@@ -1,0 +1,24 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+            <div style="text-align: center;">
+                <img src="VerifiedCredentialExpert-icon.png" height=200px; />
+                <h1>Verifiable Credential Expert Issuance and Verifier Sample</h1>
+        
+                <button type="button" id="idIssue" class="button">GET CREDENTIAL</button>
+                <button type="button" id="idVerify" class="button">VERIFY CREDENTIAL</button>
+                <script>
+                        var idIssue = document.getElementById('idIssue');
+                        var idVerify = document.getElementById('idVerify');
+
+                        idIssue.addEventListener('click', () => {
+                            window.location = "issuer";
+                        })
+                        idVerify.addEventListener('click', () => {
+                            window.location = "verifier";
+                        })
+                    </script>
+            </div>
