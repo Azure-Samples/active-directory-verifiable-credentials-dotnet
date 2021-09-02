@@ -1,0 +1,26 @@
+{
+  "includeQRCode": true,
+  "callback": {
+    "url": "https://callback.hoekstra.dev/api/issuer/issuanceCallback",
+    "state": "dasd",
+    "headers": {
+      "api-key": "API for ISSUER CALLBACK API"
+    }
+  },
+  "authority": "did:ion:EiCSQ9X5y-UXiDjl8wKXp8BoIGbAN682H3f6vfkLKKewTQ:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJzaWdfMDg2YjlmOTMiLCJwdWJsaWNLZXlKd2siOnsiY3J2Ijoic2VjcDI1NmsxIiwia3R5IjoiRUMiLCJ4IjoiQXJIQ3V0RzE5M2dxWHhUdHh3S2F5TEFBUlV6SThQUnpSbnFPZGpZYmpMVSIsInkiOiI2NEFXelRiYk5TcF93UEpVNUlJV3BVeFpXS1VKTlBHTHdndkluWGRwdm1jIn0sInB1cnBvc2VzIjpbImF1dGhlbnRpY2F0aW9uIiwiYXNzZXJ0aW9uTWV0aG9kIl0sInR5cGUiOiJFY2RzYVNlY3AyNTZrMVZlcmlmaWNhdGlvbktleTIwMTkifV0sInNlcnZpY2VzIjpbeyJpZCI6ImxpbmtlZGRvbWFpbnMiLCJzZXJ2aWNlRW5kcG9pbnQiOnsib3JpZ2lucyI6WyJodHRwczovL3d3dy5ob2Vrc3RyYW9ubGluZS5uZXQvIl19LCJ0eXBlIjoiTGlua2VkRG9tYWlucyJ9XX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRGlsRGhDT1VULWo1OHhWNFJ4Z2RmV2RYdTFhZklRQUJ5dXNrOEdrQkxwOHcifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUNxLVRJVGZVdk4zaGpsWGpJVEo3M2UyTzZnRlRYRnNubksyWk1VTEVYdVhBIiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlDUVEtMDR6Y2dGclV1RFVWaHN5ZzBiZk1tSUM4MkVLaTB1b3BCSVNFVlNFQSJ9fQ",
+  "registration": {
+    "clientName": "Verifiable Credential Expert Sample"
+  },
+  "issuance": {
+    "type": "VerifiedCredentialExpert",
+    "manifest": "https://beta.did.msidentity.com/v1.0/cc7743d2-9026-44df-ba0e-33f87ebba062/verifiableCredential/contracts/VerifiedCredentialExpertIDTokenhint",
+    "pin": {
+      "value": "123456",
+      "length": 4
+    },
+    "claims": {
+      "given_name": "Matthijs",
+      "family_name": "Hoekstra"
+    }
+  }
+}

@@ -1,70 +1,100 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Identity.Client;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Diagnostics;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Hosting;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Security.Cryptography;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
+using System.Diagnostics;
+using asp_net_core_user_signin;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Client;
 using System.Net.Http.Headers;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
-namespace Verifiable_credentials_DotNet
+namespace asp_net_core_user_signin
 {
     [Route("api/[controller]/[action]")]
-    public class VerifierController : Controller
+    [ApiController]
+    public class IssuerController : ControllerBase
     {
-        const string PRESENTATIONPAYLOAD = "presentation_request_config.json";
-//        const string PRESENTATIONPAYLOAD = "presentation_request_config - TrueIdentitySample.json";
+        const string ISSUANCEPAYLOAD = "issuance_request_config.json";
 
         protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
-        protected readonly ILogger<VerifierController> _log;
+        protected readonly ILogger<IssuerController> _log;
 
-        public VerifierController(IOptions<AppSettingsModel> appSettings,IMemoryCache memoryCache, ILogger<VerifierController> log)
+        public IssuerController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<IssuerController> log)
         {
             this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
         }
 
-
-        [HttpGet("/api/verifier/presentation-request")]
-        public async Task<ActionResult> presentationRequest()
+        [Authorize]
+        [HttpGet("/api/issuer/issuance-request")]
+        public async Task<ActionResult> issuanceRequest()
         {
             try
             {
-
+                //
+                // modify the payload from the template with the correct values like pincode and state
+                //
                 string jsonString = null;
+                string newpin = null;
 
-                string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), PRESENTATIONPAYLOAD);
+                string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), ISSUANCEPAYLOAD);
                 _log.LogTrace("IssuanceRequest file: {0}", payloadpath);
                 if (!System.IO.File.Exists(payloadpath))
                 {
                     _log.LogError("File not found: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " not found" }); 
+                    return BadRequest(new { error = "400", error_description = ISSUANCEPAYLOAD + " not found" });
                 }
                 jsonString = System.IO.File.ReadAllText(payloadpath);
-                if (string.IsNullOrEmpty(jsonString)) 
+                if (string.IsNullOrEmpty(jsonString))
                 {
                     _log.LogError("Error reading file: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " error reading file" }); 
+                    return BadRequest(new { error = "400", error_description = ISSUANCEPAYLOAD + " error reading file" });
                 }
 
                 string state = Guid.NewGuid().ToString();
 
-                //modify payload with new state
+                //check if pin is required, if found make sure we set a new random pin
                 JObject payload = JObject.Parse(jsonString);
+                if (payload["issuance"]["pin"] != null)
+                {
+                    _log.LogTrace("pin element found in JSON payload, modifying to a random number of the specific length");
+                    var length = (int)payload["issuance"]["pin"]["length"];
+                    var pinMaxValue = (int)Math.Pow(10, length) - 1;
+                    var randomNumber = RandomNumberGenerator.GetInt32(1, pinMaxValue);
+                    newpin = string.Format("{0:D" + length.ToString() + "}", randomNumber);
+                    payload["issuance"]["pin"]["value"] = newpin;
+                }
+
                 if (payload["callback"]["state"] != null)
                 {
                     payload["callback"]["state"] = state;
                 }
+
+                //retrieve the 2 optional claims to use as part of the payload to get a VC
+                var given_name = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
+                var family_name = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value;
+
+                payload["issuance"]["claims"]["given_name"] = given_name;
+                payload["issuance"]["claims"]["family_name"] = family_name;
 
                 //modify the callback method to make it easier to debug 
                 //with tools like ngrok since the URI changes all the time
@@ -73,23 +103,24 @@ namespace Verifiable_credentials_DotNet
                 if (payload["callback"]["url"] != null)
                 {
                     string host = GetRequestHostName();
-                    payload["callback"]["url"] = String.Format("{0}/api/verifier/presentationCallback", host);
+                    payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
                 }
 
                 jsonString = JsonConvert.SerializeObject(payload);
 
-
                 //CALL REST API WITH PAYLOAD
                 HttpStatusCode statusCode = HttpStatusCode.OK;
                 string response = null;
+
                 try
                 {
                     var accessToken = GetAccessToken().Result;
                     if (accessToken.Item1 == String.Empty)
                     {
-                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
+                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"),accessToken.error, accessToken.error_description);
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
+
 
                     HttpClient client = new HttpClient();
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
@@ -97,23 +128,33 @@ namespace Verifiable_credentials_DotNet
 
                     HttpResponseMessage res = client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json")).Result;
                     response = res.Content.ReadAsStringAsync().Result;
-                    _log.LogTrace("succesfully called Request API");
                     client.Dispose();
                     statusCode = res.StatusCode;
 
-                    JObject requestConfig = JObject.Parse(response);
-                    requestConfig.Add(new JProperty("id", state));
-                    jsonString = JsonConvert.SerializeObject(requestConfig);
-
-                    var cacheData = new
+                    if (statusCode == HttpStatusCode.Created)
                     {
-                        status = "notscanned",
-                        message = "Request ready, please scan with Authenticator",
-                        expiry = requestConfig["expiry"].ToString()
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+                        _log.LogTrace("succesfully called Request API");
+                        JObject requestConfig = JObject.Parse(response);
+                        if (newpin != null) { requestConfig["pin"] = newpin; }
+                        requestConfig.Add(new JProperty("id", state));
+                        jsonString = JsonConvert.SerializeObject(requestConfig);
 
-                    return new ContentResult { ContentType = "application/json", Content = jsonString };
+                        var cacheData = new
+                        {
+                            status = "notscanned",
+                            message = "Request ready, please scan with Authenticator",
+                            expiry = requestConfig["expiry"].ToString()
+                        };
+                        _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+
+                        return new ContentResult { ContentType = "application/json", Content = jsonString };
+                    }
+                    else
+                    {
+                        _log.LogError("Unsuccesfully called Request API");
+                        return BadRequest(new { error = "400", error_description = "Something went wrong calling the API: " + response });
+                    }
+
                 }
                 catch (Exception ex)
                 {
@@ -128,36 +169,46 @@ namespace Verifiable_credentials_DotNet
 
 
         [HttpPost]
-        public async Task<ActionResult> presentationCallback()
+        public async Task<ActionResult> issuanceCallback()
         {
             try
             {
                 string content = new System.IO.StreamReader(this.Request.Body).ReadToEndAsync().Result;
-                Debug.WriteLine("callback!: " + content);
-                JObject presentationResponse = JObject.Parse(content);
-                var state = presentationResponse["state"].ToString();
+                _log.LogTrace("callback!: " + content);
+                JObject issuanceResponse = JObject.Parse(content);
+                var state = issuanceResponse["state"].ToString();
 
-                if (presentationResponse["code"].ToString() == "request_retrieved")
+                if (issuanceResponse["code"].ToString() == "request_retrieved")
                 {
                     var cacheData = new
                     {
                         status = "request_retrieved",
-                        message = "QR Code is scanned. Waiting for validation...",
+                        message = "QR Code is scanned. Waiting for issuance...",
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
 
-                if (presentationResponse["code"].ToString() == "presentation_verified")
+                //
+                //THIS IS NOT IMPLEMENTED IN OUR SERVICE YET, ONLY MOCKUP FOR ONCE WE DO SUPPORT THE CALLBACK AFTER ISSUANCE
+                //
+                if (issuanceResponse["code"].ToString() == "issuance_successful")
                 {
                     var cacheData = new
                     {
-                        status = "presentation_verified",
-                        message = "Presentation received",
-                        payload = presentationResponse["issuers"].ToString(),
-                        subject = presentationResponse["subject"].ToString()
+                        status = "issuance_succesful",
+                        message = "Credential succesful issued",
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-
+                }
+                if (issuanceResponse["code"].ToString() == "issuance_failed")
+                {
+                    var cacheData = new
+                    {
+                        status = "issuance_failed",
+                        message = "Credential issuance failed",
+                        payload = issuanceResponse["details"].ToString()
+                    };
+                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
 
                 return new OkResult();
@@ -167,15 +218,10 @@ namespace Verifiable_credentials_DotNet
                 return BadRequest(new { error = "400", error_description = ex.Message });
             }
         }
-        //
-        //this function is called from the UI polling for a response from the AAD VC Service.
-        //when a callback is recieved at the presentationCallback service the session will be updated
-        //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the presentation
-        //
-        [HttpGet("/api/verifier/presentation-response")]
-        public async Task<ActionResult> presentationResponse()
+
+        [HttpGet("/api/issuer/issuance-response")]
+        public async Task<ActionResult> issuanceResponse()
         {
-            
             try
             {
                 string state = this.Request.Query["id"];
@@ -189,34 +235,15 @@ namespace Verifiable_credentials_DotNet
                     value = JObject.Parse(buf);
 
                     Debug.WriteLine("check if there was a response yet: " + value);
-                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) }; 
+                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) };
                 }
 
-                //JObject cacheData = null;
-                //if (GetCachedJsonObject(state, out cacheData))
-                //{
-                //    _log.LogTrace("Have VC validation result");
-                //    //RemoveCacheValue( state ); // if you're not using B2C integration, uncomment this line
-                //    return ReturnJson(TransformCacheDataToBrowserResponse(cacheData));
-                //}
-                //else
-                //{
-                //    string requestId = this.Request.Query["requestId"];
-                //    if (!string.IsNullOrEmpty(requestId) && GetCachedJsonObject(requestId, out cacheData))
-                //    {
-                //        _log.LogTrace("Have 1st callback");
-                //        RemoveCacheValue(requestId);
-                //        return ReturnJson(TransformCacheDataToBrowserResponse(cacheData));
-                //    }
-                //}
                 return new OkResult();
             }
             catch (Exception ex)
             {
                 return BadRequest(new { error = "400", error_description = ex.Message });
             }
-
-
         }
 
         //some helper functions
@@ -232,15 +259,15 @@ namespace Verifiable_credentials_DotNet
             IConfidentialClientApplication app;
             if (isUsingClientSecret)
             {
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-                    .WithClientSecret(AppSettings.ClientSecret)
+                app = ConfidentialClientApplicationBuilder.Create(AppSettings.VCAPIClientId)
+                    .WithClientSecret(AppSettings.VCAPIClientSecret)
                     .WithAuthority(new Uri(AppSettings.Authority))
                     .Build();
             }
             else
             {
-                X509Certificate2 certificate = AppSettings.ReadCertificate(AppSettings.CertificateName);
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
+                X509Certificate2 certificate = AppSettings.ReadCertificate(AppSettings.VCAPICertificateName);
+                app = ConfidentialClientApplicationBuilder.Create(AppSettings.VCAPIClientId)
                     .WithCertificate(certificate)
                     .WithAuthority(new Uri(AppSettings.Authority))
                     .Build();

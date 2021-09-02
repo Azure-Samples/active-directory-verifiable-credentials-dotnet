@@ -16,9 +16,7 @@ using System.Net.Http;
 using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
-using asp_net_core_user_input;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.Identity.Web;
 using Microsoft.Identity.Client;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
@@ -118,13 +116,12 @@ namespace Verifiable_credentials_DotNet
 
                     HttpResponseMessage res = client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json")).Result;
                     response = res.Content.ReadAsStringAsync().Result;
-                    _log.LogTrace("succesfully called Request API");
                     client.Dispose();
                     statusCode = res.StatusCode;
 
                     if (statusCode == HttpStatusCode.Created)
                     {
-
+                        _log.LogTrace("succesfully called Request API");
                         JObject requestConfig = JObject.Parse(response);
                         if (newpin != null) { requestConfig["pin"] = newpin; }
                         requestConfig.Add(new JProperty("id", state));
@@ -142,6 +139,7 @@ namespace Verifiable_credentials_DotNet
                     }
                     else
                     {
+                        _log.LogError("Unsuccesfully called Request API");
                         return BadRequest(new { error = "400", error_description = "Something went wrong calling the API: " + response });
                     }
 

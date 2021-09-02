@@ -1,21 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using asp_net_core_user_signin;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Identity.Web;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 
-namespace Verifiable_credentials_DotNet
+namespace asp_net_core_user_signin
 {
     [Route("api/[controller]/[action]")]
     public class VerifierController : Controller
@@ -192,23 +198,6 @@ namespace Verifiable_credentials_DotNet
                     return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) }; 
                 }
 
-                //JObject cacheData = null;
-                //if (GetCachedJsonObject(state, out cacheData))
-                //{
-                //    _log.LogTrace("Have VC validation result");
-                //    //RemoveCacheValue( state ); // if you're not using B2C integration, uncomment this line
-                //    return ReturnJson(TransformCacheDataToBrowserResponse(cacheData));
-                //}
-                //else
-                //{
-                //    string requestId = this.Request.Query["requestId"];
-                //    if (!string.IsNullOrEmpty(requestId) && GetCachedJsonObject(requestId, out cacheData))
-                //    {
-                //        _log.LogTrace("Have 1st callback");
-                //        RemoveCacheValue(requestId);
-                //        return ReturnJson(TransformCacheDataToBrowserResponse(cacheData));
-                //    }
-                //}
                 return new OkResult();
             }
             catch (Exception ex)
@@ -232,15 +221,15 @@ namespace Verifiable_credentials_DotNet
             IConfidentialClientApplication app;
             if (isUsingClientSecret)
             {
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-                    .WithClientSecret(AppSettings.ClientSecret)
+                app = ConfidentialClientApplicationBuilder.Create(AppSettings.VCAPIClientId)
+                    .WithClientSecret(AppSettings.VCAPIClientSecret)
                     .WithAuthority(new Uri(AppSettings.Authority))
                     .Build();
             }
             else
             {
-                X509Certificate2 certificate = AppSettings.ReadCertificate(AppSettings.CertificateName);
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
+                X509Certificate2 certificate = AppSettings.ReadCertificate(AppSettings.VCAPICertificateName);
+                app = ConfidentialClientApplicationBuilder.Create(AppSettings.VCAPIClientId)
                     .WithCertificate(certificate)
                     .WithAuthority(new Uri(AppSettings.Authority))
                     .Build();

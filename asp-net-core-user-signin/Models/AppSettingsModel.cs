@@ -7,7 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Verifiable_credentials_DotNet
+namespace asp_net_core_user_signin
 {
     /// <summary>
     /// Description of the configuration of an AzureAD confidential client application. This should
@@ -18,11 +18,11 @@ namespace Verifiable_credentials_DotNet
         /// <summary>
         /// instance of Azure AD, for example public Azure or a Sovereign cloud (Azure China, Germany, US government, etc ...)
         /// </summary>
-        public string Instance { get; set; } = "https://login.microsoftonline.com/{0}";
+        public string VCAPIInstance { get; set; } = "https://login.microsoftonline.com/{0}";
         /// <summary>
         /// URL of the client REST API endpoint
         /// </summary>
-        private string Endpoint { get; set; } = "https://beta.did.msidentity.com/v1.0/{0}/verifiablecredentials/request";
+        private string VCAPIEndpoint { get; set; } = "https://beta.did.msidentity.com/v1.0/{0}/verifiablecredentials/request";
         /// <summary>
         /// Web Api scope. With client credentials flows, the scopes is ALWAYS of the shape "resource/.default"
         /// FUTURE THIS WILL CHANGE TO MS GRAPH SCOPE
@@ -34,11 +34,11 @@ namespace Verifiable_credentials_DotNet
         /// or a domain name associated with the tenant
         /// - or 'organizations' (for a multi-tenant application)
         /// </summary>
-        public string TenantId { get; set; }
+        public string VCAPITenantId { get; set; }
         /// <summary>
         /// Guid used by the application to uniquely identify itself to Azure AD
         /// </summary>
-        public string ClientId { get; set; }
+        public string VCAPIClientId { get; set; }
         /// <summary>
         /// URL of the authority
         /// </summary>
@@ -46,14 +46,14 @@ namespace Verifiable_credentials_DotNet
         {
             get
             {
-                return String.Format(CultureInfo.InvariantCulture, Instance, TenantId);
+                return String.Format(CultureInfo.InvariantCulture, VCAPIInstance, VCAPITenantId);
             }
         }
         public string ApiEndpoint
         {
             get
             {
-                return String.Format(CultureInfo.InvariantCulture, Endpoint, TenantId);
+                return String.Format(CultureInfo.InvariantCulture, VCAPIEndpoint, VCAPITenantId);
             }
         }
         /// <summary>
@@ -64,7 +64,7 @@ namespace Verifiable_credentials_DotNet
         /// or a certificate previously shared with AzureAD during the application registration 
         /// (and identified by the CertificateName property belows)
         /// <remarks> 
-        public string ClientSecret { get; set; }
+        public string VCAPIClientSecret { get; set; }
         /// <summary>
         /// Name of a certificate in the user certificate store
         /// </summary>
@@ -73,7 +73,7 @@ namespace Verifiable_credentials_DotNet
         /// or a certificate previously shared with AzureAD during the application registration 
         /// (and identified by this CertificateName property)
         /// <remarks> 
-        public string CertificateName { get; set; }
+        public string VCAPICertificateName { get; set; }
         /// <summary>
         /// Checks if the sample is configured for using ClientSecret or Certificate. This method is just for the sake of this sample.
         /// You won't need this verification in your production application since you will be authenticating in AAD using one mechanism only.
@@ -85,12 +85,12 @@ namespace Verifiable_credentials_DotNet
             string clientSecretPlaceholderValue = "[Enter here a client secret for your application]";
             string certificatePlaceholderValue = "[Or instead of client secret: Enter here the name of a certificate (from the user cert store) as registered with your application]";
 
-            if (!String.IsNullOrWhiteSpace(config.ClientSecret) && config.ClientSecret != clientSecretPlaceholderValue)
+            if (!String.IsNullOrWhiteSpace(config.VCAPIClientSecret) && config.VCAPIClientSecret != clientSecretPlaceholderValue)
             {
                 return true;
             }
 
-            else if (!String.IsNullOrWhiteSpace(config.CertificateName) && config.CertificateName != certificatePlaceholderValue)
+            else if (!String.IsNullOrWhiteSpace(config.VCAPICertificateName) && config.VCAPICertificateName != certificatePlaceholderValue)
             {
                 return false;
             }
