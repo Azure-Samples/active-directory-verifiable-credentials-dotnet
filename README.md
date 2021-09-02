@@ -182,16 +182,18 @@ Once the VC is verified, you get a second, more complete, callback which contain
     }
 }
 ```
+
 Some notable attributes in the message:
+
 - **claims** - parsed claims from the VC
 - **receipt.id_token** - the DID of the presentation
-
 
 ## Setup
 
 Before you can run any of these samples make sure your environment is setup correctly. 
 
 ### VC Client API Service Principle
+
 For the public preview of this API you need to manually create the Service Principal for the API `Verifiable Credential Request Service`, which is the Microsoft service that will access your Key Vault.
 You do this via the following Powershell command
 
@@ -201,12 +203,14 @@ New-AzureADServicePrincipal -AppId "bbb94529-53a3-4be5-a069-7eaf2712b826" -Displ
 ```
 
 ### App Registration for Client Credentials
+
 Your app needs a way to get an access token and this is done via the client credentials flow. You can register a Web app, accept the defaults, and set the redirect_uri `https://localhost`.
 The important thing is to add an `API Permission` for API `Verifiable Credential Request Service` and permission `VerifiableCredential.Create.All`.
 
 You can run the  powershell script `Configure1.ps1` in the `AppCreationScripts` directory of the sample or follow these manual steps:
 
 Register an application in Azure Active Directory: 
+
 1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
 2. Navigate to the Microsoft identity platform for developers App registrations page.
 3.	Select New registration
@@ -228,6 +232,7 @@ Register an application in Azure Active Directory:
 Store the recorded values since they need to be used in the configuration of the samples later.
 
 ### Update your Access Policy for Azure Key Vault
+
 The VC Client API needs to have access to your Azure Key Vault. You need to add a new `Access Policy` in your Azure Key Vault for the API `Verifiable Credential Request Service` with "Get" and "Sign" for Key Permissions and "Get" for Secret Permissions.
 
 1. Go to your issuer key vault's "Access Policies" blade
