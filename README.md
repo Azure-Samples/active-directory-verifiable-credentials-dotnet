@@ -3,6 +3,7 @@
 This repo contains a set of Azure AD Verifiable Credentials samples
 
 ## Samples
+
 | Sample | Description |
 |------|--------|
 | asp-net-core-api | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which requires the user to sign in|
@@ -46,7 +47,7 @@ To call the VC Client API to start the issuance process, the VC Request API need
   }
 }
 ```
-
+ 
 - **authority** - is the DID identifier for your registered Verifiable Credential from portal.azure.com.
 - **includeQRCode** - If you want the VC Client API to return a `data:image/png;base64` string of the QR code to present in the browser. If you select `false`, you must create the QR code yourself (which is not difficult).
 - **registration.clientName** - name of your app which will be shown in the Microsoft Authenticator

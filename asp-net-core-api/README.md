@@ -11,7 +11,7 @@ urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
 # Verifiable Credentials Code Sample
 
-This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue and consume verifiable credentials. 
+This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue and consume verifiable credentials.
 
 ## About this sample
 
@@ -22,7 +22,6 @@ Welcome to Azure Active Directory Verifiable Credentials. In this sample, we'll 
 ## Contents
 
 The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a verifiedcredentialexpert VC and verify that as well.
-
 
 | Issuance | |
 |------|--------|
