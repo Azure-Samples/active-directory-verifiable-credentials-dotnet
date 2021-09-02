@@ -38,8 +38,10 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 ## Setup
 
 Before you can run this sample make sure your environment is setup correctly. 
-Run the powershell script ConfigureVCService.ps1 in the AppCreationScripts directory to create the correct enterprise application for the VC request service in your tenant. And make sure that SP has the correct permissions on your Keyvault. In the future this will be configured automaticall:
-### keyvault permissions
+Run the powershell script ConfigureVCService.ps1 in the AppCreationScripts directory to create the correct enterprise application for the VC request service in your tenant. And make sure that SP has the correct permissions on your Keyvault. In the future this will be configured automatically:
+
+### KeyVault permissions
+
 1. Go to your issuer key vault's "Access Policies" blade
 2. Click "Add Access Policy"
 3. Check "Get" and "Sign" for Key Permissions, and "Get" for secret permissions.
@@ -47,9 +49,11 @@ Run the powershell script ConfigureVCService.ps1 in the AppCreationScripts direc
 5. Click "Add", then Click "Save"
 
 ### create application registration
+
 Run the [Configure1.ps1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
-Register an application in Azure Active Directory: 
+Register an application in Azure Active Directory:
+
 1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
 2. Navigate to the Microsoft identity platform for developers App registrations page.
 3.	Select New registration
@@ -71,6 +75,7 @@ Register an application in Azure Active Directory:
 Store the recorded values in the appsettings.json file
 
 ### API Payloads
+
 Make sure you modify the payloads json files. The Authority in the payloads should be your own DID, you can copy that from the verifiable credential page in the azure portal.
 
 ## Credential defintion
