@@ -38,17 +38,29 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 
 ## Setup
 
-Before you can run this sample make sure your environment is setup correctly. 
-Run the powershell script ConfigureVCService.ps1 in the AppCreationScripts directory to create the correct enterprise application for the VC request service in your tenant. And make sure that SP has the correct permissions on your Keyvault. In the future this will be configured automaticall:
+Before you can run this sample make sure your environment is setup correctly. You need to setup and configure the Verifiable Credential Service by walking through the steps from the tutorial [here](https://aka.ms/didfordevs).
+Run the powershell script `ConfigureVCService.ps1` in the [AppCreationScripts](./AppCreationScripts/) directory to create the correct enterprise application for the VC request service in your tenant. 
+You can run this from a powershell console (or in the azure terminal on portal.azure.com)
+
+```Powershell
+New-AzureADServicePrincipal -AppId bbb94529-53a3-4be5-a069-7eaf2712b826 -DisplayName "Verifiable Credential Request Service"
+```
+
+If you are running this from your local machine in PowerShell make sure you run this first:
+```PowerShell
+Import-Module AzureAD
+```
+
+Next you need to make sure that SP has the correct permissions on your Keyvault. In the future this will be configured automatically:
 ### keyvault permissions
 1. Go to your issuer key vault's "Access Policies" blade
 2. Click "Add Access Policy"
-3. Check "Get" and "Sign" for Key Permissions, and "Get" for secret permissions.
+3. Check "Get" and "Sign" for Key Permissions, and "Get" for secret permissions, no permissions needed for certificates.
 4. Select Principal and enter "Verifiable Credential Request Service"
 5. Click "Add", then Click "Save"
 
 ### create application registration
-Run the [Configure1.ps1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
+Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
 Register an application in Azure Active Directory: 
 1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
@@ -82,12 +94,13 @@ cd active-directory-verifiable-credentials-dotnet/asp-net-core-api
 
 ### Create your credential
 To use the sample we need a configured verified credential in the azure portal.
-In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. When you are using these 2 files to create your own credential make sure you copy the value of the credential URL after you created the credential in the portal. You will need to upload the 2 json files to your storage account and refer to these 2 files when creating the credential. 
+In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. Use these 2 files to create your own VerifiedCredentialExpert credential. Make sure you copy the value of the credential URL after you created the credential in the portal. You will need to upload the 2 json files to your storage account and refer to these 2 files when creating the credential. Copy the URL in the `CredentialManifest` part of the appsettings.json
 
 ### API Payloads
-Make sure you modify the payloads json files, you need to modify the `issuance_request_config.json` and `presentation_request_config.json` file and modify the Authority and Manifest. The Authority in the payloads should be your own DID, you can copy that from the verifiable credential page in the azure portal. The manifest is the URL of your newly created credential.
-The callback URI is modified in code to match your hostname.
-In the `presentation_request_config.json` file you also need to add your issuer DID (did:ion:..) in the `trustedIssuers` part of the json file.
+The API is called with special payloads for issuing and verifying verifiable credentials. The sample payload files are modified by the sample code by copying the correct values from the `appsettings.json` file.
+If you want to modify the payloads `issuance_request_config.json` and `presentation_request_config.json` files yourself, make sure you comment out the code overwriting the values in the VerifierController.cs and IssuerController.cs files. The code overwrites the Authority, Manifest and trustedIssuers values. The callback URI is modified in code to match your hostname.
+
+You need to manually copy your Microsoft AAD Verifiable Credential service created DID (did:ion..) value from the azure portal and paste that in the appsettings.json file for IssuerAuthority and VerifierAuthority
 
 ## Running the sample
 

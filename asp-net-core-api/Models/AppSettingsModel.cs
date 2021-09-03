@@ -28,6 +28,12 @@ namespace Verifiable_credentials_DotNet
         /// FUTURE THIS WILL CHANGE TO MS GRAPH SCOPE
         /// </summary>
         public string VCServiceScope { get; set; }
+        
+        public string CredentialManifest { get; set; }
+
+        public string IssuerAuthority { get; set; }
+
+        public string VerifierAuthority { get; set; }
         /// <summary>
         /// The Tenant is:
         /// - either the tenant ID of the Azure AD tenant in which this application is registered (a guid)

@@ -66,6 +66,21 @@ namespace Verifiable_credentials_DotNet
                     payload["callback"]["state"] = state;
                 }
 
+                //get the VerifierDID from the appsettings
+                if (payload["authority"] != null)
+                {
+                    payload["authority"] = AppSettings.VerifierAuthority;
+                }
+
+                //copy the issuerDID from the settings and fill in the trustedIssuer part of the payload
+                //this means only that issuer should be trusted for the request credentialtype
+                //this value is an array in the payload, you can trust multiple issuers for the same credentialtype
+                //very common to accept the test VCs and the Production VCs coming from different verifiable credential services
+                if (payload["presentation"]["requestedCredentials"][0]["trustedIssuers"][0] != null)
+                {
+                    payload["presentation"]["requestedCredentials"][0]["trustedIssuers"][0] = AppSettings.IssuerAuthority;
+                }
+
                 //modify the callback method to make it easier to debug 
                 //with tools like ngrok since the URI changes all the time
                 //this way you don't need to modify the callback URL in the payload every time

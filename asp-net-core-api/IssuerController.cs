@@ -84,6 +84,12 @@ namespace Verifiable_credentials_DotNet
                     payload["callback"]["state"] = state;
                 }
 
+                //get the IssuerDID from the appsettings
+                if (payload["authority"] != null)
+                {
+                    payload["authority"] = AppSettings.VerifierAuthority;
+                }
+
                 //modify the callback method to make it easier to debug 
                 //with tools like ngrok since the URI changes all the time
                 //this way you don't need to modify the callback URL in the payload every time
@@ -93,6 +99,13 @@ namespace Verifiable_credentials_DotNet
                     string host = GetRequestHostName();
                     payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
                 }
+
+                //get the IssuerDID from the appsettings
+                if (payload["issuance"]["manifest"] != null)
+                {
+                    payload["issuance"]["manifest"] = AppSettings.CredentialManifest;
+                }
+
 
                 jsonString = JsonConvert.SerializeObject(payload);
 
