@@ -71,11 +71,39 @@ Register an application in Azure Active Directory:
 
 Store the recorded values in the appsettings.json file
 
-### API Payloads
-Make sure you modify the payloads json files. The Authority in the payloads should be your own DID, you can copy that from the verifiable credential page in the azure portal.
 
-## Credential defintion
-In the project directory CredentialFiles you will find the VerifiedCredentialExpertDisplay.json file and the VerifiedCredentialExpertRules.json file. When you are using these 2 files to create your own credential make sure you modify the "iss:" value in the rules file and replace the DID with your own DID.
+## Setting up and running the sample
+To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use `ngrok` as a reverse proxy to reach your app.
+
+```Powershell
+git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
+cd active-directory-verifiable-credentials-dotnet/asp-net-core-api
+```
+
+### Create your credential
+To use the sample we need a configured verified credential in the azure portal.
+In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. When you are using these 2 files to create your own credential make sure you copy the value of the credential URL after you created the credential in the portal. You will need to upload the 2 json files to your storage account and refer to these 2 files when creating the credential. 
+
+### API Payloads
+Make sure you modify the payloads json files, you need to modify the `issuance_request_config.json` and `presentation_request_config.json` file and modify the Authority and Manifest. The Authority in the payloads should be your own DID, you can copy that from the verifiable credential page in the azure portal. The manifest is the URL of your newly created credential.
+The callback URI is modified in code to match your hostname.
+In the `presentation_request_config.json` file you also need to add your issuer DID (did:ion:..) in the `trustedIssuers` part of the json file.
+
+## Running the sample
+
+```Powershell
+git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
+cd active-directory-verifiable-credentials-dotnet/asp-net-core-api
+dotnet build "asp-net-core-api.csproj" -c Debug -o .\bin\Debug\netcoreapp3.1
+dotnet run
+```
+
+Then, open a seperate command prompt and run the following command
+```Powershell
+ngrok http 3000
+```
+Copy the https address ngrok just created and copy paste that in the browser to open the website. 
+The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
 
 ## About the code
 Since the API is now a multi-tenant API it needs to receive an access token when it's called. 
