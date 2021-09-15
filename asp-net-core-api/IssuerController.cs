@@ -1,13 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Hosting;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Security.Cryptography;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
@@ -40,13 +35,18 @@ namespace Verifiable_credentials_DotNet
             _log = log;
         }
 
+        /// <summary>
+        /// This method is called from the UI to initiate the issuance of the verifiable credential
+        /// </summary>
+        /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
         [HttpGet("/api/issuer/issuance-request")]
         public async Task<ActionResult> issuanceRequest()
         {
             try
             {
-                //
-                // modify the payload from the template with the correct values like pincode and state
+                //they payload template is loaded from disk and modified in the code below to make it easier to get started
+                //and having all config in a central location appsettings.json. 
+                //if you want to manually change the payload in the json file make sure you comment out the code below which will modify it automatically
                 //
                 string jsonString = null;
                 string newpin = null;
@@ -65,9 +65,8 @@ namespace Verifiable_credentials_DotNet
                     return BadRequest(new { error = "400", error_description = ISSUANCEPAYLOAD + " error reading file" });
                 }
 
-                string state = Guid.NewGuid().ToString();
-
                 //check if pin is required, if found make sure we set a new random pin
+                //pincode is only used when the payload contains claim value pairs which results in an IDTokenhint
                 JObject payload = JObject.Parse(jsonString);
                 if (payload["issuance"]["pin"] != null)
                 {
@@ -79,6 +78,9 @@ namespace Verifiable_credentials_DotNet
                     payload["issuance"]["pin"]["value"] = newpin;
                 }
 
+                string state = Guid.NewGuid().ToString();
+
+                //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
                 if (payload["callback"]["state"] != null)
                 {
                     payload["callback"]["state"] = state;
@@ -87,7 +89,7 @@ namespace Verifiable_credentials_DotNet
                 //get the IssuerDID from the appsettings
                 if (payload["authority"] != null)
                 {
-                    payload["authority"] = AppSettings.VerifierAuthority;
+                    payload["authority"] = AppSettings.IssuerAuthority;
                 }
 
                 //modify the callback method to make it easier to debug 
@@ -100,7 +102,10 @@ namespace Verifiable_credentials_DotNet
                     payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
                 }
 
-                //get the IssuerDID from the appsettings
+                //get the manifest from the appsettings, this is the URL to the credential created in the azure portal. 
+                //the display and rules file to create the credential can be dound in the credentialfiles directory
+                //make sure the credentialtype in the issuance payload matches with the rules file
+                //for this sample it should be VerifiedCredentialExpert
                 if (payload["issuance"]["manifest"] != null)
                 {
                     payload["issuance"]["manifest"] = AppSettings.CredentialManifest;
@@ -115,6 +120,8 @@ namespace Verifiable_credentials_DotNet
 
                 try
                 {
+                    //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
+                    //needs to be send as bearer to the VC Request API
                     var accessToken = GetAccessToken().Result;
                     if (accessToken.Item1 == String.Empty)
                     {
@@ -139,6 +146,8 @@ namespace Verifiable_credentials_DotNet
                         if (newpin != null) { requestConfig["pin"] = newpin; }
                         requestConfig.Add(new JProperty("id", state));
                         jsonString = JsonConvert.SerializeObject(requestConfig);
+
+                        //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
 
                         var cacheData = new
                         {
@@ -168,7 +177,10 @@ namespace Verifiable_credentials_DotNet
             }
         }
 
-
+        /// <summary>
+        /// This method is called by the VC Request API when the user scans a QR code and accepts the issued Verifiable Credential
+        /// </summary>
+        /// <returns></returns>
         [HttpPost]
         public async Task<ActionResult> issuanceCallback()
         {
@@ -179,6 +191,11 @@ namespace Verifiable_credentials_DotNet
                 JObject issuanceResponse = JObject.Parse(content);
                 var state = issuanceResponse["state"].ToString();
 
+                //there are 2 different callbacks. 1 if the QR code is scanned (or deeplink has been followed)
+                //Scanning the QR code makes Authenticator download the specific request from the server
+                //the request will be deleted from the server immediately.
+                //That's why it is so important to capture this callback and relay this to the UI so the UI can hide
+                //the QR code to prevent the user from scanning it twice (resulting in an error since the request is already deleted)
                 if (issuanceResponse["code"].ToString() == "request_retrieved")
                 {
                     var cacheData = new
@@ -192,22 +209,24 @@ namespace Verifiable_credentials_DotNet
                 //
                 //THIS IS NOT IMPLEMENTED IN OUR SERVICE YET, ONLY MOCKUP FOR ONCE WE DO SUPPORT THE CALLBACK AFTER ISSUANCE
                 //
-                if (issuanceResponse["code"].ToString() == "issuance_succesful")
+                if (issuanceResponse["code"].ToString() == "issuance_successful")
                 {
                     var cacheData = new
                     {
                         status = "issuance_succesful",
-                        message = "Credential succesful issued",
+                        message = "Credential successfully issued",
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
-                if (issuanceResponse["code"].ToString() == "issuance_failed")
+
+                //we capture if something goes wrong during issuance. See documentation with the different error codes
+                if (issuanceResponse["code"].ToString() == "issuance_error")
                 {
                     var cacheData = new
                     {
                         status = "issuance_failed",
                         message = "Credential issuance failed",
-                        payload = issuanceResponse["details"].ToString()
+                        payload = issuanceResponse["code"].ToString()
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
@@ -220,11 +239,18 @@ namespace Verifiable_credentials_DotNet
             }
         }
 
+        //
+        //this function is called from the UI polling for a response from the AAD VC Service.
+        //when a callback is recieved at the issuanceCallback service the session will be updated
+        //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the issuance process
+        //
         [HttpGet("/api/issuer/issuance-response")]
         public async Task<ActionResult> issuanceResponse()
         {
             try
             {
+                //the id is the state value initially created when the issuanc request was requested from the request API
+                //the in-memory database uses this as key to get and store the state of the process so the UI can be updated
                 string state = this.Request.Query["id"];
                 if (string.IsNullOrEmpty(state))
                 {
@@ -251,7 +277,7 @@ namespace Verifiable_credentials_DotNet
         protected async Task<(string token, string error, string error_description)> GetAccessToken()
         {
             //
-            //TODO Setup the proper access token cache for client credentials
+            // TODO: Setup the proper access token cache for client credentials
             //
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
             bool isUsingClientSecret = AppSettings.AppUsesClientSecret(AppSettings);

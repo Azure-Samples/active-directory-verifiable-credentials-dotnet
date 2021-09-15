@@ -34,7 +34,10 @@ namespace Verifiable_credentials_DotNet
             _log = log;
         }
 
-
+        /// <summary>
+        /// This method is called from the UI to initiate the presentation of the verifiable credential
+        /// </summary>
+        /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
         [HttpGet("/api/verifier/presentation-request")]
         public async Task<ActionResult> presentationRequest()
         {
@@ -42,7 +45,10 @@ namespace Verifiable_credentials_DotNet
             {
 
                 string jsonString = null;
-
+                //they payload template is loaded from disk and modified in the code below to make it easier to get started
+                //and having all config in a central location appsettings.json. 
+                //if you want to manually change the payload in the json file make sure you comment out the code below which will modify it automatically
+                //
                 string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), PRESENTATIONPAYLOAD);
                 _log.LogTrace("IssuanceRequest file: {0}", payloadpath);
                 if (!System.IO.File.Exists(payloadpath))
@@ -59,7 +65,7 @@ namespace Verifiable_credentials_DotNet
 
                 string state = Guid.NewGuid().ToString();
 
-                //modify payload with new state
+                //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
                 JObject payload = JObject.Parse(jsonString);
                 if (payload["callback"]["state"] != null)
                 {
@@ -73,7 +79,7 @@ namespace Verifiable_credentials_DotNet
                 }
 
                 //copy the issuerDID from the settings and fill in the trustedIssuer part of the payload
-                //this means only that issuer should be trusted for the request credentialtype
+                //this means only that issuer should be trusted for the requested credentialtype
                 //this value is an array in the payload, you can trust multiple issuers for the same credentialtype
                 //very common to accept the test VCs and the Production VCs coming from different verifiable credential services
                 if (payload["presentation"]["requestedCredentials"][0]["trustedIssuers"][0] != null)
@@ -81,10 +87,8 @@ namespace Verifiable_credentials_DotNet
                     payload["presentation"]["requestedCredentials"][0]["trustedIssuers"][0] = AppSettings.IssuerAuthority;
                 }
 
-                //modify the callback method to make it easier to debug 
-                //with tools like ngrok since the URI changes all the time
-                //this way you don't need to modify the callback URL in the payload every time
-                //ngrok changes the URI
+                //modify the callback method to make it easier to debug with tools like ngrok since the URI changes all the time
+                //this way you don't need to modify the callback URL in the payload every time ngrok changes the URI
                 if (payload["callback"]["url"] != null)
                 {
                     string host = GetRequestHostName();
@@ -99,6 +103,8 @@ namespace Verifiable_credentials_DotNet
                 string response = null;
                 try
                 {
+                    //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
+                    //needs to be send as bearer to the VC Request API
                     var accessToken = GetAccessToken().Result;
                     if (accessToken.Item1 == String.Empty)
                     {
@@ -116,19 +122,33 @@ namespace Verifiable_credentials_DotNet
                     client.Dispose();
                     statusCode = res.StatusCode;
 
-                    JObject requestConfig = JObject.Parse(response);
-                    requestConfig.Add(new JProperty("id", state));
-                    jsonString = JsonConvert.SerializeObject(requestConfig);
-
-                    var cacheData = new
+                    if (statusCode == HttpStatusCode.Created)
                     {
-                        status = "notscanned",
-                        message = "Request ready, please scan with Authenticator",
-                        expiry = requestConfig["expiry"].ToString()
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+                        JObject requestConfig = JObject.Parse(response);
+                        requestConfig.Add(new JProperty("id", state));
+                        jsonString = JsonConvert.SerializeObject(requestConfig);
 
-                    return new ContentResult { ContentType = "application/json", Content = jsonString };
+                        //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
+                    
+                        var cacheData = new
+                        {
+                            status = "notscanned",
+                            message = "Request ready, please scan with Authenticator",
+                            expiry = requestConfig["expiry"].ToString()
+                        };
+                        _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+
+                        //the response from the VC Request API call is returned to the caller (the UI). It contains the URI to the request which Authenticator can download after
+                        //it has scanned the QR code. If the payload requested the VC Request service to create the QR code that is returned as well
+                        //the javascript in the UI will use that QR code to display it on the screen to the user.
+
+                        return new ContentResult { ContentType = "application/json", Content = jsonString };
+                    }
+                    else
+                    {
+                        _log.LogError("Unsuccesfully called Request API");
+                        return BadRequest(new { error = "400", error_description = "Something went wrong calling the API: " + response });
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -141,7 +161,10 @@ namespace Verifiable_credentials_DotNet
             }
         }
 
-
+        /// <summary>
+        /// This method is called by the VC Request API when the user scans a QR code and presents a Verifiable Credential to the service
+        /// </summary>
+        /// <returns></returns>
         [HttpPost]
         public async Task<ActionResult> presentationCallback()
         {
@@ -152,6 +175,11 @@ namespace Verifiable_credentials_DotNet
                 JObject presentationResponse = JObject.Parse(content);
                 var state = presentationResponse["state"].ToString();
 
+                //there are 2 different callbacks. 1 if the QR code is scanned (or deeplink has been followed)
+                //Scanning the QR code makes Authenticator download the specific request from the server
+                //the request will be deleted from the server immediately.
+                //That's why it is so important to capture this callback and relay this to the UI so the UI can hide
+                //the QR code to prevent the user from scanning it twice (resulting in an error since the request is already deleted)
                 if (presentationResponse["code"].ToString() == "request_retrieved")
                 {
                     var cacheData = new
@@ -162,6 +190,10 @@ namespace Verifiable_credentials_DotNet
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
 
+                // the 2nd callback is the result with the verified credential being verified.
+                // typically here is where the business logic is written to determine what to do with the result
+                // the response in this callback contains the claims from the Verifiable Credential(s) being presented by the user
+                // In this case the result is put in the in memory cache which is used by the UI when polling for the state so the UI can be updated.
                 if (presentationResponse["code"].ToString() == "presentation_verified")
                 {
                     var cacheData = new
@@ -193,6 +225,8 @@ namespace Verifiable_credentials_DotNet
             
             try
             {
+                //the id is the state value initially created when the issuanc request was requested from the request API
+                //the in-memory database uses this as key to get and store the state of the process so the UI can be updated
                 string state = this.Request.Query["id"];
                 if (string.IsNullOrEmpty(state))
                 {
@@ -207,23 +241,6 @@ namespace Verifiable_credentials_DotNet
                     return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) }; 
                 }
 
-                //JObject cacheData = null;
-                //if (GetCachedJsonObject(state, out cacheData))
-                //{
-                //    _log.LogTrace("Have VC validation result");
-                //    //RemoveCacheValue( state ); // if you're not using B2C integration, uncomment this line
-                //    return ReturnJson(TransformCacheDataToBrowserResponse(cacheData));
-                //}
-                //else
-                //{
-                //    string requestId = this.Request.Query["requestId"];
-                //    if (!string.IsNullOrEmpty(requestId) && GetCachedJsonObject(requestId, out cacheData))
-                //    {
-                //        _log.LogTrace("Have 1st callback");
-                //        RemoveCacheValue(requestId);
-                //        return ReturnJson(TransformCacheDataToBrowserResponse(cacheData));
-                //    }
-                //}
                 return new OkResult();
             }
             catch (Exception ex)
