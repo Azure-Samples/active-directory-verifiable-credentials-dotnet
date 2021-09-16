@@ -11,6 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="issuance_request_config - idtokenhint.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Update="issuance_request_config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
