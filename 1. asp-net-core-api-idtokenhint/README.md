@@ -74,8 +74,8 @@ cd active-directory-verifiable-credentials-dotnet/asp-net-core-api
 ### Create your credential
 To use the sample we need a configured Verifiable Credential in the azure portal.
 In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. Use these 2 files to create your own VerifiedCredentialExpert credential. 
-Before you upload the files, you need to modify the `VerifiedCredentialExpertRules.json`
-If you navigate to your [Verifiable Credentials](https://portal.azure.com/#blade/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/issuerSettingsBlade) blade in azure portal, you can copy the Decentralized identifier (DID) string and modify the value after "iss" on line 12. Save the file and follow the instructions how to create your first verifiable credential.
+Before you upload the files, you need to modify the `VerifiedCredentialExpertRules.json` file.
+If you navigate to your [Verifiable Credentials](https://portal.azure.com/#blade/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/issuerSettingsBlade) blade in azure portal, you can copy the Decentralized identifier (DID) string (did:ion..) and modify the value after "iss" on line 12. Save the file and follow the instructions how to create your first verifiable credential.
 
 You can find the instructions on how to create a Verifiable Credential in the azure portal here [TODO LINK TO DOCUMENT HOW TO CREATE A CREDENTIAL ONCE ITS FINISHED]
 
@@ -100,7 +100,9 @@ Since we are waiting for the docs to be finished how to create a credential foll
 > - click create
 > - copy the Issue Credential URL.
 
-Make sure you copy the value of the credential URL after you created the credential in the portal. Copy the URL in the `CredentialManifest` part of the `appsettings.json`. 
+Make sure you copy the value of the credential URL after you created the credential in the portal. 
+[INSERT SCREENSHOT FROM CREATED CREDENTIAL HERE]
+Copy the URL in the `CredentialManifest` part of the `appsettings.json`. 
 You need to manually copy your Microsoft AAD Verifiable Credential service created Decentralized Identifier (did:ion..) value from this page as well and paste that in the appsettings.json file for `IssuerAuthority` and `VerifierAuthority`.
 
 ### API Payloads
@@ -126,6 +128,7 @@ ngrok http 3000
 The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
 
 1. Select GET CREDENTIAL
+[ADD SCREENSHOT OF SAMPLE APP HERE]
 1. In Authenticator, scan the QR code. 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
 6. If you see the 'This app or website may be risky screen', select **Advanced**.
