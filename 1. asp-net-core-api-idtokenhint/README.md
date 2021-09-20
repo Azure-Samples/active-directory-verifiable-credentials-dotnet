@@ -73,7 +73,12 @@ cd active-directory-verifiable-credentials-dotnet/asp-net-core-api
 
 ### Create your credential
 To use the sample we need a configured Verifiable Credential in the azure portal.
-In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. Use these 2 files to create your own VerifiedCredentialExpert credential. You can find the instructions on how to create a Verifiable Credential in the azure portal here [TODO LINK TO DOCUMENT HOW TO CREATE A CREDENTIAL ONCE ITS FINISHED] 
+In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. Use these 2 files to create your own VerifiedCredentialExpert credential. 
+Before you upload the files, you need to modify the `VerifiedCredentialExpertRules.json`
+If you navigate to your [Verifiable Credentials](https://portal.azure.com/#blade/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/issuerSettingsBlade) blade in azure portal, you can copy the Decentralized identifier (DID) string and modify the value after "iss" on line 12. Save the file and follow the instructions how to create your first verifiable credential.
+
+You can find the instructions on how to create a Verifiable Credential in the azure portal here [TODO LINK TO DOCUMENT HOW TO CREATE A CREDENTIAL ONCE ITS FINISHED]
+
 > **TEMPORARY WORKARDOUND**:
 Since we are waiting for the docs to be finished how to create a credential follow the followings step:
 > - Goto https://portal.azure.com, sign in
@@ -129,10 +134,8 @@ The sample dynamically copies the hostname to be part of the callback URL, this 
 
   - At the top of the screen, you can see a red **Not verified** message.
   - The credential is based on the information you uploaded as the display file.
-  - The **Sign in to your account** option points to didplayground.b2clogin.com.
 
-9. Select **Sign in to your account**, you can sign-up for a new account.
-10. After successful authentication, the **Add** button is now activated. Select **Add**.
+9. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
 1. Navigate back and click on the Verify Credential link
