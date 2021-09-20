@@ -5,9 +5,9 @@
     //make sure you use ngrok or something like that when running on a local devbox. 
     //The MS AAD VC Request service needs to be able to reach the callback URI
     "url": "https://YOURPUBLICREACHABLEHOSTNAME/api/issuer/issuanceCallback",
-    "state": "dasd",
+    "state": "STATEWILLBESETINCODE",
     "headers": {
-      "api-key": "API for ISSUER CALLBACK API"
+      "api-key": "OPTIONAL API-KEY for VERIFIER CALLBACK API"
     }
   },
   //The Authority is the DID from your MS AAD Verifiable Credential service, you can copy this from the VC page in azure portal
@@ -19,6 +19,18 @@
   //created in the azure portal
   "issuance": {
     "type": "VerifiedCredentialExpert",
-    "manifest": "CREDENTIAL URL IN THIS SAMPLE WILL BE COPIED FROM APPSETTINGS.JSON"
+    "manifest": "CREDENTIAL URL IN THIS SAMPLE WILL BE COPIED FROM APPSETTINGS.JSON",
+    //Recommendation is to protect issuance payload with a PIN code. 
+    //The pincode is set to a random value in code and will be displayed in the UI to the user
+    "pin": {
+      "value": "123456",
+      "length": 4
+    },
+    //This is an example payload which will be used in the rules file of the credential.
+    //The rules files maps information from the ID Token (hint) to the VC
+    "claims": {
+      "given_name": "Matthijs",
+      "family_name": "Hoekstra"
+    }
   }
 }

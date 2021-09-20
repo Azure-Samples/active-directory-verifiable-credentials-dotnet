@@ -21,8 +21,10 @@
             <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
                <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
                <div id="message"></div>
-               <div id="payload"></div>
+                <br />
                <div id="subject"></div>
+                <br />
+               <div id="payload"></div>
             </div>
 
             <script src="qrcode.min.js"></script>
@@ -76,9 +78,7 @@
                                     if (respMsg.status == 'presentation_verified') {
                                         document.getElementById('message').innerHTML = respMsg.message;
                                         document.getElementById('payload').innerHTML = "Payload: " + respMsg.payload;
-                                        document.getElementById('subject').innerHTML = "Subject: " + respMsg.subject;
-                                        //document.getElementById('sign-in').textContent = 'Verify Again';
-                                        //document.getElementById('sign-in').style.visibility = 'visible';
+                                        document.getElementById('subject').innerHTML = respMsg.firstname +" " + respMsg.lastname +" is a Verifiable Credential Expert";
                                         clearInterval(checkStatus);
                                     }
                                 }

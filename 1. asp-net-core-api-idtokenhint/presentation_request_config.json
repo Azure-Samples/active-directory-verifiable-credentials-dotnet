@@ -5,9 +5,9 @@
     //make sure you use ngrok or something like that when running on a local devbox. 
     //The MS AAD VC Request service needs to be able to reach the callback URI
     "url": "https://YOURPUBLICREACHABLEHOSTNAME/api/verifier/presentationCallback",
-    "state": "dasd",
+    "state": "STATEWILLBESETINCODE",
     "headers": {
-      "api-key": "API for VERIFIER CALLBACK API"
+      "api-key": "OPTIONAL API-KEY for VERIFIER CALLBACK API"
     }
   },
   //The Authority is the DID from your MS AAD Verifiable Credential service, you can copy this from the VC page in azure portal
@@ -25,7 +25,7 @@
         "purpose": "So we can see that you a veriable credentials expert",
         //You can trust multiple issuers who might be issuing the same credential type (for example certifications or diplomas)
         //You need to specify at least 1 trusted issuer DID, for this sample code we copy the IssuerAuthority from appsettings to the request
-        "trustedIssuers": [ "did:ion: copied from your VC portal"]
+        "trustedIssuers": [ "did:ion: copied from your VC portal in this sample the code copies it from APPSETTINGS.JSON"]
       }
 
     ]

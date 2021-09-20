@@ -80,15 +80,16 @@
                                         document.getElementById('message').innerHTML = respMsg.message;
                                     }
                                     if (respMsg.status == 'issuance_succesful') {
+                                        document.getElementById('pinCodeText').style.display = "none";
                                         document.getElementById('message').innerHTML = respMsg.message;
                                         clearInterval(checkStatus);
                                     }
                                     if (respMsg.status == 'issuance_failed') {
+                                        document.getElementById('pinCodeText').style.display = "none";
                                         document.getElementById('message').innerHTML = respMsg.message;
                                         document.getElementById('payload').innerHTML = "Payload: " + respMsg.payload;
                                         clearInterval(checkStatus);
                                     }
-
                                 }
                             })
                     }, 1500);

@@ -65,7 +65,7 @@ namespace Verifiable_credentials_DotNet
         /// <summary>
         /// Client secret (application password)
         /// </summary>
-        /// <remarks>Daemon applications can authenticate with AAD through two mechanisms: ClientSecret
+        /// <remarks>client credential applications can authenticate with AAD through two mechanisms: ClientSecret
         /// (which is a kind of application password: this property)
         /// or a certificate previously shared with AzureAD during the application registration 
         /// (and identified by the CertificateName property belows)

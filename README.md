@@ -5,8 +5,10 @@ This repo contains a set of Azure AD Verifiable Credentials samples
 ## Samples
 | Sample | Description |
 |------|--------|
-| asp-net-core-api | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which requires the user to sign in|
-| asp-net-core-user-signin | Sample where user signs in to website which uses ID Tokenhint to issue a verifiable credential |
+| 1. asp-net-core-api | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which requires the user to sign in|
+| TODO 2. asp-net-core-api-idtokenhint | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which allows the VC Request API to pass in a payload instead of using an OIDC IDtoken to get values inside the VC|
+| TODO 3. asp-net-core-user-signin | Sample where user signs in to website which uses ID Tokenhint to issue a verifiable credential |
+
 
 Microsoft provides a simple to use REST API to issue and verify verifiable credentials. You can use the programming language you prefer to the REST API. Instead of needing to understand the different protocols and encryption algoritms for Verifiable Credentials and DIDs you only need to understand how to format a JSON structure as parameter for the VC Request API.
 
@@ -188,52 +190,8 @@ Some notable attributes in the message:
 
 ## Setup
 
-Before you can run any of these samples make sure your environment is setup correctly. 
+Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions here [TODO INSERT LINK TO DOCS ONCE PUBLISHED]
 
-### VC Client API Service Principle
-For the public preview of this API you need to manually create the Service Principal for the API `Verifiable Credential Request Service`, which is the Microsoft service that will access your Key Vault.
-You do this via the following Powershell command
-
-```Powershell
-Connect-AzureAD -TenantId <your-tenantid-guid>
-New-AzureADServicePrincipal -AppId "bbb94529-53a3-4be5-a069-7eaf2712b826" -DisplayName "Verifiable Credential Request Service" 
-```
-
-### App Registration for Client Credentials
-Your app needs a way to get an access token and this is done via the client credentials flow. You can register a Web app, accept the defaults, and set the redirect_uri `https://localhost`.
-The important thing is to add an `API Permission` for API `Verifiable Credential Request Service` and permission `VerifiableCredential.Create.All`.
-
-You can run the  powershell script `Configure1.ps1` in the `AppCreationScripts` directory of the sample or follow these manual steps:
-
-Register an application in Azure Active Directory: 
-1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
-2. Navigate to the Microsoft identity platform for developers App registrations page.
-3.	Select New registration
-    -  In the Name section, enter a meaningful application name for your issuance and/or verification application
-    - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
-    - Select Register to create the application
-4.	On the app overview page, find the Application (client) ID value and record it for later.
-5.	From the Certificates & secrets page, in the Client secrets section, choose New client secret:
-    - Type a key description (for instance app secret)
-    - Select a key duration.
-    - When you press the Add button, the key value will be displayed, copy and save the value in a safe location.
-    - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
-6.	In the list of pages for the app, select API permissions
-    - Click the Add a permission button
-    - Search for APIs in my organization for bbb94529-53a3-4be5-a069-7eaf2712b826 and click the “Verifiable Credential Request Service”
-    - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
-    - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
-
-Store the recorded values since they need to be used in the configuration of the samples later.
-
-### Update your Access Policy for Azure Key Vault
-The VC Client API needs to have access to your Azure Key Vault. You need to add a new `Access Policy` in your Azure Key Vault for the API `Verifiable Credential Request Service` with "Get" and "Sign" for Key Permissions and "Get" for Secret Permissions.
-
-1. Go to your issuer key vault's "Access Policies" blade
-2. Click "Add Access Policy"
-3. Check "Get" and "Sign" for Key Permissions, and "Get" for secret permissions.
-4. Select Principal and enter "Verifiable Credential Request Service"
-5. Click "Add", then Click "Save"
 
 ## Resources
 
