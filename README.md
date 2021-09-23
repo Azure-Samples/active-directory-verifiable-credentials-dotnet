@@ -88,20 +88,22 @@ This callback is typically used to notify the user on the issuance website the p
 ```
 ### Unuccesful Issuance flow response
 ```JSON
-{"code":"issuance_failed","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value...",
-"details" : "user_canceled"
+{
+  "code":"issuance_failed",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", 
+  "state": "...what you passed as the state value...",
+  "error": {
+      "code":"IssuanceFlowFailed”,
+      "message":"issuance_service_error”,
+    }
 }
 ```
-When the issuance fails this can be caused by several reasons. The following details are currently provided in the details part of the response:
-| Details | Definition |
+When the issuance fails this can be caused by several reasons. The following details are currently provided in the error part of the response:
+| Message | Definition |
 |---|---|
-| user_canceled | The user has canceled the flow |
 | fetch_contract_error | The user has canceled the flow |
-| linked_domain_error | Something wrong with linked domain |
 | issuance_service_error | VC Issuance service was not able to validate requirements / something went wrong on Microsoft AAD VC Issuance service side. |
 | unspecified_error | Something went wrong that doesn’t fall into this bucket |
-
-These 5 specific details generically bucket most of the errors that could occur during issuance.
 
 
 ## Verification
