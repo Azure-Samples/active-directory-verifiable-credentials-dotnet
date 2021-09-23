@@ -84,7 +84,11 @@ This callback is typically used to notify the user on the issuance website the p
 
 ### Succesful Issuance flow response
 ```JSON
-{"code":"issuance_succesful","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value..."}
+{
+  "code":"issuance_succesful",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "state": "...what you passed as the state value..."
+}
 ```
 ### Unuccesful Issuance flow response
 ```JSON
@@ -93,8 +97,8 @@ This callback is typically used to notify the user on the issuance website the p
   "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", 
   "state": "...what you passed as the state value...",
   "error": {
-      "code":"IssuanceFlowFailed”,
-      "message":"issuance_service_error”,
+      "code":"IssuanceFlowFailed",
+      "message":"issuance_service_error",
     }
 }
 ```
@@ -153,7 +157,11 @@ In your callback endpoint, you will get a callback with the below message when t
 
 When the QR code is scanned, you get a short callback like this.
 ```JSON
-{"code":"request_retrieved","requestId":"c18d8035-3fc8-4c27-a5db-9801e6232569", "state": "...what you passed as the state value..."}
+{
+  "code":"request_retrieved",
+  "requestId":"c18d8035-3fc8-4c27-a5db-9801e6232569", 
+  "state": "...what you passed as the state value..."
+}
 ```
 
 Once the VC is verified, you get a second, more complete, callback which contains all the details on what whas presented by the user.
