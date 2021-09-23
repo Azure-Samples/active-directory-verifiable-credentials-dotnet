@@ -14,6 +14,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Web;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Verifiable_credentials_DotNet
 {
@@ -263,9 +265,6 @@ namespace Verifiable_credentials_DotNet
         //some helper functions
         protected async Task<(string token, string error, string error_description)> GetAccessToken()
         {
-            //
-            //TODO Setup the proper access token cache for client credentials
-            //
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
             bool isUsingClientSecret = AppSettings.AppUsesClientSecret(AppSettings);
 
@@ -286,6 +285,15 @@ namespace Verifiable_credentials_DotNet
                     .WithAuthority(new Uri(AppSettings.Authority))
                     .Build();
             }
+
+            //configure in memory cache for the access tokens. The tokens are typically valid for 60 seconds,
+            //so no need to create new ones for every web request
+            app.AddDistributedTokenCache(services =>
+            {
+                services.AddDistributedMemoryCache();
+                services.AddLogging(configure => configure.AddConsole())
+                .Configure<LoggerFilterOptions>(options => options.MinLevel = Microsoft.Extensions.Logging.LogLevel.Debug);
+            });
 
             // With client credentials flows the scopes is ALWAYS of the shape "resource/.default", as the 
             // application permissions need to be set statically (in the portal or by PowerShell), and then granted by

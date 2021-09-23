@@ -18,11 +18,11 @@ namespace Verifiable_credentials_DotNet
         /// <summary>
         /// instance of Azure AD, for example public Azure or a Sovereign cloud (Azure China, Germany, US government, etc ...)
         /// </summary>
-        public string Instance { get; set; } = "https://login.microsoftonline.com/{0}";
+        public string Instance { get; set; }
         /// <summary>
-        /// URL of the client REST API endpoint
+        /// URL of the client REST API endpoint, still need to use tenantID, use ApiEndpoint instead.
         /// </summary>
-        private string Endpoint { get; set; } = "https://beta.did.msidentity.com/v1.0/{0}/verifiablecredentials/request";
+        public string Endpoint { get; set; } 
         /// <summary>
         /// Web Api scope. With client credentials flows, the scopes is ALWAYS of the shape "resource/.default"
         /// FUTURE THIS WILL CHANGE TO MS GRAPH SCOPE
