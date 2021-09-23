@@ -131,7 +131,7 @@ To call the VC Request API to start the verification process, the application cr
         "type": "your credentialType",
         "manifest": "https://portableidentitycards.azure-api.net/dev/536279f6-15cc-45f2-be2d-61e352b51eef/portableIdentities/contracts/MyCredentialTypeName",
         "purpose": "the purpose why the verifier asks for a VC",
-        "trustedIssuers": [ "did:ion: ...of the Issuer" ]
+        "acceptedIssuers": [ "did:ion: ...of the Issuer" ]
       }
     ]
   }
