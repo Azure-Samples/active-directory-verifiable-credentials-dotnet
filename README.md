@@ -75,7 +75,11 @@ In the response message from the VC Request API, it will include a URL to the re
 In your callback endpoint, you will get a callback with the below message when the QR code is scanned. This callback is typically used to modify the UI, hide the QR code to prevent scanning again and show the pincode to use when the user wants to accept the Verifiable Credential.
 
 ```JSON
-{"code":"request_retrieved","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value..."}
+{
+  "code":"request_retrieved",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "state": "...what you passed as the state value..."
+}
 ```
 
 Once the VC is issued, you get a second callback which contains information if the issuance of the verifiable credential to the user was succesful or not.
@@ -84,24 +88,30 @@ This callback is typically used to notify the user on the issuance website the p
 
 ### Succesful Issuance flow response
 ```JSON
-{"code":"issuance_succesful","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value..."}
+{
+  "code":"issuance_succesful",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "state": "...what you passed as the state value..."
+}
 ```
 ### Unuccesful Issuance flow response
 ```JSON
-{"code":"issuance_failed","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value...",
-"details" : "user_canceled"
+{
+  "code":"issuance_failed",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", 
+  "state": "...what you passed as the state value...",
+  "error": {
+      "code":"IssuanceFlowFailed",
+      "message":"issuance_service_error",
+    }
 }
 ```
-When the issuance fails this can be caused by several reasons. The following details are currently provided in the details part of the response:
-| Details | Definition |
+When the issuance fails this can be caused by several reasons. The following details are currently provided in the error part of the response:
+| Message | Definition |
 |---|---|
-| user_canceled | The user has canceled the flow |
 | fetch_contract_error | The user has canceled the flow |
-| linked_domain_error | Something wrong with linked domain |
 | issuance_service_error | VC Issuance service was not able to validate requirements / something went wrong on Microsoft AAD VC Issuance service side. |
 | unspecified_error | Something went wrong that doesn’t fall into this bucket |
-
-These 5 specific details generically bucket most of the errors that could occur during issuance.
 
 
 ## Verification
@@ -131,7 +141,7 @@ To call the VC Request API to start the verification process, the application cr
         "type": "your credentialType",
         "manifest": "https://portableidentitycards.azure-api.net/dev/536279f6-15cc-45f2-be2d-61e352b51eef/portableIdentities/contracts/MyCredentialTypeName",
         "purpose": "the purpose why the verifier asks for a VC",
-        "trustedIssuers": [ "did:ion: ...of the Issuer" ]
+        "acceptedIssuers": [ "did:ion: ...of the Issuer" ]
       }
     ]
   }
@@ -151,7 +161,11 @@ In your callback endpoint, you will get a callback with the below message when t
 
 When the QR code is scanned, you get a short callback like this.
 ```JSON
-{"code":"request_retrieved","requestId":"c18d8035-3fc8-4c27-a5db-9801e6232569", "state": "...what you passed as the state value..."}
+{
+  "code":"request_retrieved",
+  "requestId":"c18d8035-3fc8-4c27-a5db-9801e6232569", 
+  "state": "...what you passed as the state value..."
+}
 ```
 
 Once the VC is verified, you get a second, more complete, callback which contains all the details on what whas presented by the user.
