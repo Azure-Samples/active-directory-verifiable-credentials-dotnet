@@ -45,12 +45,6 @@ namespace Verifiable_credentials_DotNet
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
-            {
-                builder.AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader();
-            }));
             services.AddRazorPages();
         }
 
@@ -68,14 +62,9 @@ namespace Verifiable_credentials_DotNet
                 app.UseHsts();
             }
             app.UseSession();
-
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
-
-            app.UseAuthorization();
-            
 
             app.UseEndpoints(endpoints =>
             {
