@@ -3,11 +3,11 @@
 This repo contains a set of Azure AD Verifiable Credentials samples
 
 ## Samples
-
 | Sample | Description |
 |------|--------|
-| asp-net-core-api | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which requires the user to sign in|
-| asp-net-core-user-signin | Sample where user signs in to website which uses ID Tokenhint to issue a verifiable credential |
+| 1. asp-net-core-api-idtokenhint | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which allows the VC Request API to pass in a payload for the Verifiable Credentials|
+
+
 
 Microsoft provides a simple to use REST API to issue and verify verifiable credentials. You can use the programming language you prefer to the REST API. Instead of needing to understand the different protocols and encryption algoritms for Verifiable Credentials and DIDs you only need to understand how to format a JSON structure as parameter for the VC Request API.
 
@@ -47,7 +47,7 @@ To call the VC Client API to start the issuance process, the VC Request API need
   }
 }
 ```
- 
+
 - **authority** - is the DID identifier for your registered Verifiable Credential from portal.azure.com.
 - **includeQRCode** - If you want the VC Client API to return a `data:image/png;base64` string of the QR code to present in the browser. If you select `false`, you must create the QR code yourself (which is not difficult).
 - **registration.clientName** - name of your app which will be shown in the Microsoft Authenticator
@@ -75,7 +75,11 @@ In the response message from the VC Request API, it will include a URL to the re
 In your callback endpoint, you will get a callback with the below message when the QR code is scanned. This callback is typically used to modify the UI, hide the QR code to prevent scanning again and show the pincode to use when the user wants to accept the Verifiable Credential.
 
 ```JSON
-{"code":"request_retrieved","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value..."}
+{
+  "code":"request_retrieved",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "state": "...what you passed as the state value..."
+}
 ```
 
 Once the VC is issued, you get a second callback which contains information if the issuance of the verifiable credential to the user was succesful or not.
@@ -84,24 +88,30 @@ This callback is typically used to notify the user on the issuance website the p
 
 ### Succesful Issuance flow response
 ```JSON
-{"code":"issuance_succesful","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value..."}
+{
+  "code":"issuance_succesful",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "state": "...what you passed as the state value..."
+}
 ```
 ### Unuccesful Issuance flow response
 ```JSON
-{"code":"issuance_failed","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value...",
-"details" : "user_canceled"
+{
+  "code":"issuance_failed",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", 
+  "state": "...what you passed as the state value...",
+  "error": {
+      "code":"IssuanceFlowFailed",
+      "message":"issuance_service_error",
+    }
 }
 ```
-When the issuance fails this can be caused by several reasons. The following details are currently provided in the details part of the response:
-| Details | Definition |
+When the issuance fails this can be caused by several reasons. The following details are currently provided in the error part of the response:
+| Message | Definition |
 |---|---|
-| user_canceled | The user has canceled the flow |
 | fetch_contract_error | The user has canceled the flow |
-| linked_domain_error | Something wrong with linked domain |
 | issuance_service_error | VC Issuance service was not able to validate requirements / something went wrong on Microsoft AAD VC Issuance service side. |
 | unspecified_error | Something went wrong that doesn’t fall into this bucket |
-
-These 5 specific details generically bucket most of the errors that could occur during issuance.
 
 
 ## Verification
@@ -131,7 +141,7 @@ To call the VC Request API to start the verification process, the application cr
         "type": "your credentialType",
         "manifest": "https://portableidentitycards.azure-api.net/dev/536279f6-15cc-45f2-be2d-61e352b51eef/portableIdentities/contracts/MyCredentialTypeName",
         "purpose": "the purpose why the verifier asks for a VC",
-        "trustedIssuers": [ "did:ion: ...of the Issuer" ]
+        "acceptedIssuers": [ "did:ion: ...of the Issuer" ]
       }
     ]
   }
@@ -151,7 +161,11 @@ In your callback endpoint, you will get a callback with the below message when t
 
 When the QR code is scanned, you get a short callback like this.
 ```JSON
-{"code":"request_retrieved","requestId":"c18d8035-3fc8-4c27-a5db-9801e6232569", "state": "...what you passed as the state value..."}
+{
+  "code":"request_retrieved",
+  "requestId":"c18d8035-3fc8-4c27-a5db-9801e6232569", 
+  "state": "...what you passed as the state value..."
+}
 ```
 
 Once the VC is verified, you get a second, more complete, callback which contains all the details on what whas presented by the user.
@@ -182,64 +196,15 @@ Once the VC is verified, you get a second, more complete, callback which contain
     }
 }
 ```
-
 Some notable attributes in the message:
-
 - **claims** - parsed claims from the VC
 - **receipt.id_token** - the DID of the presentation
 
+
 ## Setup
 
-Before you can run any of these samples make sure your environment is setup correctly. 
+Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions here [TODO INSERT LINK TO DOCS ONCE PUBLISHED]
 
-### VC Client API Service Principle
-
-For the public preview of this API you need to manually create the Service Principal for the API `Verifiable Credential Request Service`, which is the Microsoft service that will access your Key Vault.
-You do this via the following Powershell command
-
-```Powershell
-Connect-AzureAD -TenantId <your-tenantid-guid>
-New-AzureADServicePrincipal -AppId "bbb94529-53a3-4be5-a069-7eaf2712b826" -DisplayName "Verifiable Credential Request Service" 
-```
-
-### App Registration for Client Credentials
-
-Your app needs a way to get an access token and this is done via the client credentials flow. You can register a Web app, accept the defaults, and set the redirect_uri `https://localhost`.
-The important thing is to add an `API Permission` for API `Verifiable Credential Request Service` and permission `VerifiableCredential.Create.All`.
-
-You can run the  powershell script `Configure1.ps1` in the `AppCreationScripts` directory of the sample or follow these manual steps:
-
-Register an application in Azure Active Directory: 
-
-1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
-2. Navigate to the Microsoft identity platform for developers App registrations page.
-3.	Select New registration
-    -  In the Name section, enter a meaningful application name for your issuance and/or verification application
-    - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
-    - Select Register to create the application
-4.	On the app overview page, find the Application (client) ID value and record it for later.
-5.	From the Certificates & secrets page, in the Client secrets section, choose New client secret:
-    - Type a key description (for instance app secret)
-    - Select a key duration.
-    - When you press the Add button, the key value will be displayed, copy and save the value in a safe location.
-    - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
-6.	In the list of pages for the app, select API permissions
-    - Click the Add a permission button
-    - Search for APIs in my organization for bbb94529-53a3-4be5-a069-7eaf2712b826 and click the “Verifiable Credential Request Service”
-    - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
-    - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
-
-Store the recorded values since they need to be used in the configuration of the samples later.
-
-### Update your Access Policy for Azure Key Vault
-
-The VC Client API needs to have access to your Azure Key Vault. You need to add a new `Access Policy` in your Azure Key Vault for the API `Verifiable Credential Request Service` with "Get" and "Sign" for Key Permissions and "Get" for Secret Permissions.
-
-1. Go to your issuer key vault's "Access Policies" blade
-2. Click "Add Access Policy"
-3. Check "Get" and "Sign" for Key Permissions, and "Get" for secret permissions.
-4. Select Principal and enter "Verifiable Credential Request Service"
-5. Click "Add", then Click "Save"
 
 ## Resources
 
