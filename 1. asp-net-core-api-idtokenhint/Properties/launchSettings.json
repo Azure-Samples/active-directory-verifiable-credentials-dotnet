@@ -19,7 +19,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "VCDEVidtokenhint"
       },
       "applicationUrl": "http://0.0.0.0:3000"
     }

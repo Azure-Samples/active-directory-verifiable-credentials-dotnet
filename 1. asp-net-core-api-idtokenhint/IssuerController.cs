@@ -217,7 +217,7 @@ namespace Verifiable_credentials_DotNet
                 }
 
                 //
-                //THIS IS NOT IMPLEMENTED IN OUR SERVICE YET, ONLY MOCKUP FOR ONCE WE DO SUPPORT THE CALLBACK AFTER ISSUANCE
+                //This callback is called when issuance is completed.
                 //
                 if (issuanceResponse["code"].ToString() == "issuance_successful")
                 {
@@ -228,8 +228,9 @@ namespace Verifiable_credentials_DotNet
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
-
-                //we capture if something goes wrong during issuance. See documentation with the different error codes
+                //
+                //We capture if something goes wrong during issuance. See documentation with the different error codes
+                //
                 if (issuanceResponse["code"].ToString() == "issuance_error")
                 {
                     var cacheData = new

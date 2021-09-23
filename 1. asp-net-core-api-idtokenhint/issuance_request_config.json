@@ -29,8 +29,8 @@
     //This is an example payload which will be used in the rules file of the credential.
     //The rules files maps information from the ID Token (hint) to the VC
     "claims": {
-      "given_name": "Matthijs",
-      "family_name": "Hoekstra"
+      "given_name": "FIRSTNAME",
+      "family_name": "LASTNAME"
     }
   }
 }
