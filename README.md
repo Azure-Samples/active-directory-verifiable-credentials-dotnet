@@ -75,7 +75,11 @@ In the response message from the VC Request API, it will include a URL to the re
 In your callback endpoint, you will get a callback with the below message when the QR code is scanned. This callback is typically used to modify the UI, hide the QR code to prevent scanning again and show the pincode to use when the user wants to accept the Verifiable Credential.
 
 ```JSON
-{"code":"request_retrieved","requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", "state": "...what you passed as the state value..."}
+{
+  "code":"request_retrieved",
+  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "state": "...what you passed as the state value..."
+}
 ```
 
 Once the VC is issued, you get a second callback which contains information if the issuance of the verifiable credential to the user was succesful or not.
