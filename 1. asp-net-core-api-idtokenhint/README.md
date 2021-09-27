@@ -34,7 +34,7 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 |------|--------|
 | Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential.
 | VerifierController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL and helps verifying the presented verifiable credential.
-| verifier_request_config.json | The sample payload send to the server to start issuing a vc.
+| presentation_request_config.json | The sample payload send to the server to start issuing a vc.
 
 ## Setup
 
