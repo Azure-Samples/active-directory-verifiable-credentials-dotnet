@@ -139,7 +139,6 @@ To call the VC Request API to start the verification process, the application cr
     "requestedCredentials": [
       {
         "type": "your credentialType",
-        "manifest": "https://portableidentitycards.azure-api.net/dev/536279f6-15cc-45f2-be2d-61e352b51eef/portableIdentities/contracts/MyCredentialTypeName",
         "purpose": "the purpose why the verifier asks for a VC",
         "acceptedIssuers": [ "did:ion: ...of the Issuer" ]
       }
@@ -150,7 +149,7 @@ To call the VC Request API to start the verification process, the application cr
 
 Much of the data is the same in this JSON structure, but some differences needs explaining.
 
-- **authority** vs **trustedIssuers** - The Verifier and the Issuer may be two different entities. For example, the Verifier might be a online service, like a car rental service, while the DID it is asking for is the issuing entity for drivers licenses. Note that `trustedIssuers` is a collection of DIDs, which means you can ask for multiple VCs from the user coming from different trusted issuers.
+- **authority** vs **acceptedIssuers** - The Verifier and the Issuer may be two different entities. For example, the Verifier might be a online service, like a car rental service, while the DID it is asking for is the issuing entity for drivers licenses. Note that `trustedIssuers` is a collection of DIDs, which means you can ask for multiple VCs from the user coming from different trusted issuers.
 - **presentation** - required for a Verification request. Note that `issuance` and `presentation` are mutually exclusive. You can't send both.
 - **requestedCredentials** - please also note that the `requestedCredentials` is a collection too, which means you can ask to create a presentation request that contains multiple DIDs.
 - **includeReceipt** - if set to true, the `presentation_verified` callback will contain the `receipt` element.
