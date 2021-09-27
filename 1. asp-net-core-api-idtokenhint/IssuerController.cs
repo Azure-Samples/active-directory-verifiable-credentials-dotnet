@@ -225,7 +225,7 @@ namespace Verifiable_credentials_DotNet
                 {
                     var cacheData = new
                     {
-                        status = "issuance_succesful",
+                        status = "issuance_successful",
                         message = "Credential successfully issued",
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
@@ -237,10 +237,13 @@ namespace Verifiable_credentials_DotNet
                 {
                     var cacheData = new
                     {
-                        status = "issuance_failed",
-                        message = "Credential issuance failed",
-                        payload = issuanceResponse["code"].ToString()
-                    };
+                        status = "issuance_error",
+                        payload = issuanceResponse["error"]["code"].ToString(),
+                        //at the moment there isn't a specific error for incorrect entry of a pincode.
+                        //So assume this error happens when the users entered the incorrect pincode and ask to try again.
+                        message = issuanceResponse["error"]["message"].ToString()
+
+                };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
 

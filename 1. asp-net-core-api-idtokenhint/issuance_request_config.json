@@ -1,5 +1,5 @@
 {
-  "includeQRCode": true,
+  "includeQRCode": false,
   "callback": {
     //In this sample code we will overwrite the callback and use the HOSTNAME dynamicall
     //make sure you use ngrok or something like that when running on a local devbox. 

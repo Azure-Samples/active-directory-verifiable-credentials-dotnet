@@ -16,7 +16,7 @@
     "clientName": "Veriable Credential Expert Verifier"
   },
   "presentation": {
-    "includeReceipt": true,
+    "includeReceipt": false,
     //You can request multiple verifiable credentials at once that's whty the requestCredentials is an array
     "requestedCredentials": [
       {

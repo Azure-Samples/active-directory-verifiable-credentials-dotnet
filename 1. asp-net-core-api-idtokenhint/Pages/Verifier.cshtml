@@ -78,9 +78,10 @@
                                     if (respMsg.status == 'presentation_verified') {
                                         document.getElementById('message').innerHTML = respMsg.message;
                                         document.getElementById('payload').innerHTML = "Payload: " + respMsg.payload;
-                                        document.getElementById('subject').innerHTML = respMsg.firstname +" " + respMsg.lastname +" is a Verifiable Credential Expert";
+                                        document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName +" is a Verifiable Credential Expert";
                                         clearInterval(checkStatus);
                                     }
+
                                 }
                             })
                     }, 1500); //change this to higher interval if you use ngrok to prevent overloading the free tier service

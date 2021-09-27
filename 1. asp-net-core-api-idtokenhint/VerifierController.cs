@@ -207,17 +207,17 @@ namespace Verifiable_credentials_DotNet
                     var cacheData = new
                     {
                         status = "presentation_verified",
-                        message = "Presentation received",
+                        message = "Presentation verified",
                         payload = presentationResponse["issuers"].ToString(),
                         subject = presentationResponse["subject"].ToString(),
-                        firstname = presentationResponse["issuers"][0]["claims"]["firstName"].ToString(),
-                        lastname = presentationResponse["issuers"][0]["claims"]["lastName"].ToString()
+                        firstName = presentationResponse["issuers"][0]["claims"]["firstName"].ToString(),
+                        lastName = presentationResponse["issuers"][0]["claims"]["lastName"].ToString()
 
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
 
                 }
-
+                
                 return new OkResult();
             }
             catch (Exception ex)
