@@ -77,7 +77,7 @@
                                     
                                     if (respMsg.status == 'presentation_verified') {
                                         document.getElementById('message').innerHTML = respMsg.message;
-                                        document.getElementById('payload').innerHTML = "Payload: " + respMsg.payload;
+                                        document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
                                         document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName +" is a Verifiable Credential Expert";
                                         clearInterval(checkStatus);
                                     }
