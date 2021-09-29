@@ -152,10 +152,9 @@ Function ConfigureApplications
     $user = Get-AzureADUser -ObjectId $creds.Account.Id
 
    # Create the client AAD application
-   Write-Host "Creating the AAD application (daemon-console)"
-   $clientAadApplication = New-AzureADApplication -DisplayName "daemon-console" `
-                                                  -ReplyUrls "https://daemon" `
-                                                  -IdentifierUris "https://$tenantName/daemon-console" `
+   Write-Host "Creating the AAD application (Verifiable Credentials ASP.Net core sample)"
+   $clientAadApplication = New-AzureADApplication -DisplayName "Verifiable Credentials ASP.Net core sample" `
+                                                  -IdentifierUris "https://$tenantName/vcaspnetcoresample" `
                                                   -PublicClient $False
 
    # Generate a certificate
@@ -197,10 +196,10 @@ Function ConfigureApplications
 
    $requiredResourcesAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.RequiredResourceAccess]
 
-  # Add Required Resources Access (from 'client' to 'Verifiable Credential Request Service')
-  Write-Host "Getting access from 'client' to 'Microsoft Graph'"
-  $requiredPermissions = GetRequiredPermissions -applicationDisplayName "Verifiable Credential Request Service" `
-                                               -requiredApplicationPermissions "VerifiableCredential.Create.All";
+   # Add Required Resources Access (from 'client' to 'Verifiable Credential Request Service')
+   Write-Host "Getting access from 'client' to 'Microsoft Graph'"
+   $requiredPermissions = GetRequiredPermissions -applicationDisplayName "Verifiable Credential Request Service" `
+                                                 -requiredApplicationPermissions "VerifiableCredential.Create.All";
 
    $requiredResourcesAccess.Add($requiredPermissions)
 
