@@ -185,7 +185,7 @@ Function ConfigureApplications
    $key = CreateAppKey -fromDate $fromDate -durationInYears 2 -pw $pw
    $clientAppKey = $pw
    $clientAadApplication = New-AzureADApplication -DisplayName "Verifiable Credentials ASP.Net core sample" `
-                                                  -IdentifierUris "https://$tenantName/vcaspnetcoresample2" `
+                                                  -IdentifierUris "https://$tenantName/vcaspnetcoresample" `
                                                   -PasswordCredentials $key `
                                                   -PublicClient $False
 
