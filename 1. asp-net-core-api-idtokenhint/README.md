@@ -40,7 +40,7 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 
 Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation here [TODO LINK TO DOCS ONCE READY].
 
-### create application registration
+### Create application registration
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
 Register an application in Azure Active Directory: 
@@ -180,7 +180,7 @@ response = res.Content.ReadAsStringAsync().Result;
 
 ## Troubleshooting
 
-### Did you forget to provide admin consent? This is needed for confidential apps
+### Did you forget to provide admin consent? This is needed for confidential apps.
 If you get an error when calling the API `Insufficient privileges to complete the operation.`, this is because the tenant administrator has not granted permissions
 to the application. See step 6 of 'Register the client app' above.
 

@@ -125,7 +125,8 @@ To call the VC Request API to start the verification process, the application cr
   "authority": "did:ion: did-of-the-Verifier",
   "includeQRCode": true,
   "registration": {
-    "clientName": "the verifier's client name"
+    "clientName": "the verifier's client name",
+    "purpose": "the purpose why the verifier asks for a VC"
   },
   "callback": {
     "url": "https://contoso.com/api/verifier/presentationCallback",
@@ -135,7 +136,7 @@ To call the VC Request API to start the verification process, the application cr
     }
   },
   "presentation": {
-    "includeReceipt": true,
+    "includeReceipt": false,
     "requestedCredentials": [
       {
         "type": "your credentialType",
@@ -149,7 +150,7 @@ To call the VC Request API to start the verification process, the application cr
 
 Much of the data is the same in this JSON structure, but some differences needs explaining.
 
-- **authority** vs **acceptedIssuers** - The Verifier and the Issuer may be two different entities. For example, the Verifier might be a online service, like a car rental service, while the DID it is asking for is the issuing entity for drivers licenses. Note that `trustedIssuers` is a collection of DIDs, which means you can ask for multiple VCs from the user coming from different trusted issuers.
+- **authority** vs **acceptedIssuers** - The Verifier and the Issuer may be two different entities. For example, the Verifier might be a online service, like a car rental service, while the DID it is asking for is the issuing entity for drivers licenses. Note that `acceptedIssuers` is a collection of DIDs, which means you can ask for multiple VCs from the user coming from different trusted issuers.
 - **presentation** - required for a Verification request. Note that `issuance` and `presentation` are mutually exclusive. You can't send both.
 - **requestedCredentials** - please also note that the `requestedCredentials` is a collection too, which means you can ask to create a presentation request that contains multiple DIDs.
 - **includeReceipt** - if set to true, the `presentation_verified` callback will contain the `receipt` element.
@@ -189,15 +190,14 @@ Once the VC is verified, you get a second, more complete, callback which contain
       }
     ],
     "receipt":{
-        "id_token": "...JWT Token of VC...",
-        "state": "
+        "id_token": "...JWT Token of VC..."
         }
     }
 }
 ```
 Some notable attributes in the message:
 - **claims** - parsed claims from the VC
-- **receipt.id_token** - the DID of the presentation
+- **receipt.id_token** - the ID token of the presentation, this is the full presentation Authenticator has send to the Request service. Great for debugging and also to retrieve information not available in the payload. To keep the responses small the receipt property in the request should be set to false.
 
 
 ## Setup
