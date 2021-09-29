@@ -208,7 +208,7 @@ Function ConfigureApplications
    Write-Host "Granted permissions."
 
    # Update config file for 'client'
-   $configFile = $pwd.Path + "\..\asp-net-core-api\appsettings.json"
+   $configFile = $pwd.Path + "..\appsettings.json"
    Write-Host "Updating the sample code ($configFile)"
    $dictionary = @{ "Tenant" = $tenantName;"ClientId" = $clientAadApplication.AppId;"ClientSecret" = $clientAppKey;"CertificateName" = "CN=vcaspnetcoresample" };
    UpdateTextFile -configFilePath $configFile -dictionary $dictionary

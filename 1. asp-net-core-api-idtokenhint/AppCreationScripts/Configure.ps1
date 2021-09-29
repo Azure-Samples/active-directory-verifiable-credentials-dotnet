@@ -185,7 +185,7 @@ Function ConfigureApplications
    $key = CreateAppKey -fromDate $fromDate -durationInYears 2 -pw $pw
    $clientAppKey = $pw
    $clientAadApplication = New-AzureADApplication -DisplayName "Verifiable Credentials ASP.Net core sample" `
-                                                  -IdentifierUris "https://$tenantName/vcaspnetcoresample" `
+                                                  -IdentifierUris "https://$tenantName/vcaspnetcoresample2" `
                                                   -PasswordCredentials $key `
                                                   -PublicClient $False
 
@@ -221,7 +221,7 @@ Function ConfigureApplications
    Write-Host "Granted permissions."
 
    # Update config file for 'client'
-   $configFile = $pwd.Path + "\..\asp-net-core-api\appsettings.json"
+   $configFile = $pwd.Path + "\..\appsettings.json"
    Write-Host "Updating the sample code ($configFile)"
    $dictionary = @{ "TenantId" = $tenantId;"ClientId" = $clientAadApplication.AppId;"ClientSecret" = $clientAppKey };
    UpdateTextFile -configFilePath $configFile -dictionary $dictionary
