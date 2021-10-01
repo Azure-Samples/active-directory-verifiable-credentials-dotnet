@@ -22,7 +22,6 @@
     "requestedCredentials": [
       {
         "type": "VerifiedCredentialExpert",
-        "manifest": "CREDENTIAL URL COPIED FROM THE VC PORTAL, IN THIS SAMPLE CODE ITS COPIED FROM APPSETTINGS.JSON",
         "purpose": "So we can see that you a veriable credentials expert",
         //You can trust multiple issuers who might be issuing the same credential type (for example certifications or diplomas)
         //You need to specify at least 1 trusted issuer DID, for this sample code we copy the IssuerAuthority from appsettings to the request

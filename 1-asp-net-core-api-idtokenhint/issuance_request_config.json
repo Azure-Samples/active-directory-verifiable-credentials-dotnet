@@ -7,7 +7,7 @@
     "url": "https://YOURPUBLICREACHABLEHOSTNAME/api/issuer/issuanceCallback",
     "state": "STATEWILLBESETINCODE",
     "headers": {
-      "api-key": "OPTIONAL API-KEY for VERIFIER CALLBACK API"
+      "api-key": "OPTIONAL API-KEY for ISSUANCE CALLBACK API"
     }
   },
   //The Authority is the DID from your MS AAD Verifiable Credential service, you can copy this from the VC page in azure portal
