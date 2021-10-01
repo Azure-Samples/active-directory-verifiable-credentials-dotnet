@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7FE94B4D-C90A-48DE-8D83-F27A3F1A02FE}"
+	ProjectSection(SolutionItems) = preProject
+		README.MD = README.MD
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "asp-net-core-api-idtokenhint", "asp-net-core-api-idtokenhint.csproj", "{60A39A9D-9801-4C69-8E40-B348D59E19E0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{60A39A9D-9801-4C69-8E40-B348D59E19E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60A39A9D-9801-4C69-8E40-B348D59E19E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60A39A9D-9801-4C69-8E40-B348D59E19E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60A39A9D-9801-4C69-8E40-B348D59E19E0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {970B13CA-48B7-47C2-8F1B-3F82A3CD7482}
+	EndGlobalSection
+EndGlobal
