@@ -38,7 +38,7 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 
 ## Setup
 
-Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation here [TODO LINK TO DOCS ONCE READY].
+Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/didfordevs).
 
 ### Create application registration
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
@@ -58,10 +58,10 @@ Register an application in Azure Active Directory:
     - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
 6.	In the list of pages for the app, select API permissions
     - Click the Add a permission button
-    - Search for APIs in my organization for bbb94529-53a3-4be5-a069-7eaf2712b826 and click the “Verifiable Credential Request Service”
+    - Search for APIs in my organization for bbb94529-53a3-4be5-a069-7eaf2712b826 or Verifiable Credential and click the “Verifiable Credential Request Service”
     - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
     - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
-
+![Admin concent](ReadmeFiles/AdminConcent.PNG)
 
 ## Setting up and running the sample
 To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use `ngrok` as a reverse proxy to reach your app.
@@ -77,31 +77,10 @@ In the project directory CredentialFiles you will find the `VerifiedCredentialEx
 Before you upload the files, you need to modify the `VerifiedCredentialExpertRules.json` file.
 If you navigate to your [Verifiable Credentials](https://portal.azure.com/#blade/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/issuerSettingsBlade) blade in azure portal, you can copy the Decentralized identifier (DID) string (did:ion..) and modify the value after "iss" on line 12. Save the file and follow the instructions how to create your first verifiable credential.
 
-You can find the instructions on how to create a Verifiable Credential in the azure portal here [TODO LINK TO DOCUMENT HOW TO CREATE A CREDENTIAL ONCE ITS FINISHED]
+You can find the instructions on how to create a Verifiable Credential in the azure portal [here](https://aka.ms/didfordevs)
 
-> **TEMPORARY WORKARDOUND**:
-Since we are waiting for the docs to be finished how to create a credential follow the followings step:
-> - Goto https://portal.azure.com, sign in
-> - create a storage account with these [instructions](https://docs.microsoft.com/en-us/azure/active-directory/verifiable-credentials/enable-your-tenant-verifiable-credentials#create-a-storage-account).
-> - Assign a blob role [here](https://docs.microsoft.com/en-us/azure/active-directory/verifiable-credentials/enable-your-tenant-verifiable-credentials#assign-a-blob-role).
-> - Navigate to the Verifiable Credentials blade
-> - Goto the Credentials Page
-> - Click on `Add Credential`
-> - User VerifiedCredentialExpert as name
-> - click on select display file
-> - select the storage account
-> - select the vc-container
-> - Upload the 2 json files from the `CredentialFiles` directory form the sample (select both files and click upload)
-> - Select VerifiedCredentialExpertDisplay.json and click select
-> - click on select rules file
-> - select the same storage account
-> - select the vc-container
-> - select the verifiedCredentialExpertRules.json file and click select
-> - click create
-> - copy the Issue Credential URL.
 
 Make sure you copy the value of the credential URL after you created the credential in the portal. 
-[INSERT SCREENSHOT FROM CREATED CREDENTIAL HERE]
 Copy the URL in the `CredentialManifest` part of the `appsettings.json`. 
 You need to manually copy your Microsoft AAD Verifiable Credential service created Decentralized Identifier (did:ion..) value from this page as well and paste that in the appsettings.json file for `IssuerAuthority` and `VerifierAuthority`.
 
