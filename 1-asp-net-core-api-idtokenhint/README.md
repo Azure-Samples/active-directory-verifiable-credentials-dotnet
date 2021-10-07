@@ -107,7 +107,6 @@ ngrok http 3000
 The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
 
 1. Select GET CREDENTIAL
-[ADD SCREENSHOT OF SAMPLE APP HERE]
 1. In Authenticator, scan the QR code. 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
 6. If you see the 'This app or website may be risky screen', select **Advanced**.
