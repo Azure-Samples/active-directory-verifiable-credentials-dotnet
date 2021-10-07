@@ -41,8 +41,8 @@ To call the VC Client API to start the issuance process, the VC Request API need
       "length": 6
     },
     "claims": {
-      "mySpecialClaimOne": "mySpecialValueOne",
-      "mySpecialClaimTwo": "mySpecialValueTwo"
+      "given_name": "Megan",
+      "family_name": "Bowen"
     }
   }
 }
@@ -201,7 +201,7 @@ Some notable attributes in the message:
 
 ## Setup
 
-Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions here [TODO INSERT LINK TO DOCS ONCE PUBLISHED]
+Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions here [here](https://aka.ms/didfordevs)
 
 
 ## Resources

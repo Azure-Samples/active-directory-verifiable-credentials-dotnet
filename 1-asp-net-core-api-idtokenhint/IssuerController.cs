@@ -72,12 +72,23 @@ namespace Verifiable_credentials_DotNet
                 JObject payload = JObject.Parse(jsonString);
                 if (payload["issuance"]["pin"] != null)
                 {
-                    _log.LogTrace("pin element found in JSON payload, modifying to a random number of the specific length");
-                    var length = (int)payload["issuance"]["pin"]["length"];
-                    var pinMaxValue = (int)Math.Pow(10, length) - 1;
-                    var randomNumber = RandomNumberGenerator.GetInt32(1, pinMaxValue);
-                    newpin = string.Format("{0:D" + length.ToString() + "}", randomNumber);
-                    payload["issuance"]["pin"]["value"] = newpin;
+                    if (isMobile())
+                    {
+                        _log.LogTrace("pin element found in JSON payload, but on mobile so remove pin since we will be using deeplinking");
+                        //consider providing the PIN through other means to your user instead of removing it.
+                        payload["issuance"]["pin"].Parent.Remove();
+
+                    }
+                    else
+                    {
+                        _log.LogTrace("pin element found in JSON payload, modifying to a random number of the specific length");
+                        var length = (int)payload["issuance"]["pin"]["length"];
+                        var pinMaxValue = (int)Math.Pow(10, length) - 1;
+                        var randomNumber = RandomNumberGenerator.GetInt32(1, pinMaxValue);
+                        newpin = string.Format("{0:D" + length.ToString() + "}", randomNumber);
+                        payload["issuance"]["pin"]["value"] = newpin;
+                    }
+
                 }
 
                 string state = Guid.NewGuid().ToString();
@@ -360,6 +371,16 @@ namespace Verifiable_credentials_DotNet
                 hostname = string.Format("{0}://{1}", scheme, originalHost);
             else hostname = string.Format("{0}://{1}", scheme, this.Request.Host);
             return hostname;
+        }
+
+        protected bool isMobile()
+        {
+            string userAgent = this.Request.Headers["User-Agent"];
+
+            if (userAgent.Contains("Android") || userAgent.Contains("iPhone"))
+                return true;
+            else
+                return false;
         }
     }
 }
