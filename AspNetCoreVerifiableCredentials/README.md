@@ -68,7 +68,7 @@ To run the sample, clone the repository, compile & run it. It's callback endpoin
 
 ```Powershell
 git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
-cd active-directory-verifiable-credentials-dotnet/1-asp-net-core-api-idtokenhint
+cd active-directory-verifiable-credentials-dotnet/AspNetCoreVerifiableCredentials
 ```
 
 ### Create your credential
@@ -94,7 +94,7 @@ Make sure you copy the `ClientId`, `ClientSecret` and `TenantTd` you copied when
 
 1. Open a command prompt and run the following command:
 ```Powershell
-dotnet build "asp-net-core-api-idtokenhint.csproj" -c Debug -o .\bin\Debug\netcoreapp3.1
+dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net5
 dotnet run
 ```
 
