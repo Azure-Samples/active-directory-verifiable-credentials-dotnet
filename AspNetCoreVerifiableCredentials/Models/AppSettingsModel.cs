@@ -7,7 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Verifiable_credentials_DotNet
+namespace AspNetCoreVerifiableCredentials
 {
     /// <summary>
     /// Description of the configuration of an AzureAD confidential client application. This should

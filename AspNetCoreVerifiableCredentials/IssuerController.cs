@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Verifiable_credentials_DotNet
+namespace AspNetCoreVerifiableCredentials
 {
     [Route("api/[controller]/[action]")]
     [ApiController]

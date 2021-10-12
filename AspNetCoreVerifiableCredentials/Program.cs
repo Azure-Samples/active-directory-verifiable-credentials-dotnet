@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Verifiable_credentials_DotNet
+namespace AspNetCoreVerifiableCredentials
 {
     public class Program
     {
