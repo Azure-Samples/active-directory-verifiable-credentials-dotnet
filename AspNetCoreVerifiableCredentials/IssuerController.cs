@@ -42,7 +42,7 @@ namespace AspNetCoreVerifiableCredentials
         /// </summary>
         /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
         [HttpGet("/api/issuer/issuance-request")]
-        public async Task<ActionResult> issuanceRequest()
+        public async Task<ActionResult> IssuanceRequest()
         {
             try
             {
@@ -72,7 +72,7 @@ namespace AspNetCoreVerifiableCredentials
                 JObject payload = JObject.Parse(jsonString);
                 if (payload["issuance"]["pin"] != null)
                 {
-                    if (isMobile())
+                    if (IsMobile())
                     {
                         _log.LogTrace("pin element found in JSON payload, but on mobile so remove pin since we will be using deeplinking");
                         //consider providing the PIN through other means to your user instead of removing it.
@@ -205,7 +205,7 @@ namespace AspNetCoreVerifiableCredentials
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult> issuanceCallback()
+        public async Task<ActionResult> IssuanceCallback()
         {
             try
             {
@@ -272,7 +272,7 @@ namespace AspNetCoreVerifiableCredentials
         //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the issuance process
         //
         [HttpGet("/api/issuer/issuance-response")]
-        public async Task<ActionResult> issuanceResponse()
+        public ActionResult IssuanceResponse()
         {
             try
             {
@@ -373,7 +373,7 @@ namespace AspNetCoreVerifiableCredentials
             return hostname;
         }
 
-        protected bool isMobile()
+        protected bool IsMobile()
         {
             string userAgent = this.Request.Headers["User-Agent"];
 

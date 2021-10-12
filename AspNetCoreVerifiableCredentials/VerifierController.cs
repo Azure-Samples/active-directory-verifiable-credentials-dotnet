@@ -41,7 +41,7 @@ namespace AspNetCoreVerifiableCredentials
         /// </summary>
         /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
         [HttpGet("/api/verifier/presentation-request")]
-        public async Task<ActionResult> presentationRequest()
+        public async Task<ActionResult> PresentationRequest()
         {
             try
             {
@@ -174,7 +174,7 @@ namespace AspNetCoreVerifiableCredentials
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult> presentationCallback()
+        public async Task<ActionResult> PresentationCallback()
         {
             try
             {
@@ -231,7 +231,7 @@ namespace AspNetCoreVerifiableCredentials
         //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the presentation
         //
         [HttpGet("/api/verifier/presentation-response")]
-        public async Task<ActionResult> presentationResponse()
+        public ActionResult PresentationResponse()
         {
 
             try
