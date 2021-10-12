@@ -152,8 +152,8 @@ HttpClient client = new HttpClient();
 var defaultRequestHeaders = client.DefaultRequestHeaders;
 defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
 
-HttpResponseMessage res = client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json")).Result;
-response = res.Content.ReadAsStringAsync().Result;
+HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+response = await res.Content.ReadAsStringAsync();
 ```
 
 ## Troubleshooting

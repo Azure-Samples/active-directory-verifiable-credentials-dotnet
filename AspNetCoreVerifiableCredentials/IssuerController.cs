@@ -145,7 +145,7 @@ namespace Verifiable_credentials_DotNet
                 {
                     //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                     //needs to be send as bearer to the VC Request API
-                    var accessToken = GetAccessToken().Result;
+                    var accessToken = await GetAccessToken();
                     if (accessToken.Item1 == String.Empty)
                     {
                         _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"),accessToken.error, accessToken.error_description);
@@ -157,8 +157,8 @@ namespace Verifiable_credentials_DotNet
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
-                    HttpResponseMessage res = client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json")).Result;
-                    response = res.Content.ReadAsStringAsync().Result;
+                    HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    response = await res.Content.ReadAsStringAsync();
                     client.Dispose();
                     statusCode = res.StatusCode;
 
@@ -209,7 +209,7 @@ namespace Verifiable_credentials_DotNet
         {
             try
             {
-                string content = new System.IO.StreamReader(this.Request.Body).ReadToEndAsync().Result;
+                string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
                 _log.LogTrace("callback!: " + content);
                 JObject issuanceResponse = JObject.Parse(content);
                 var state = issuanceResponse["state"].ToString();
