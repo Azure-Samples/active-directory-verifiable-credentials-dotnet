@@ -22,13 +22,13 @@ namespace AspNetCoreVerifiableCredentials
         /// <summary>
         /// URL of the client REST API endpoint, still need to use tenantID, use ApiEndpoint instead.
         /// </summary>
-        public string Endpoint { get; set; } 
+        public string Endpoint { get; set; }
         /// <summary>
         /// Web Api scope. With client credentials flows, the scopes is ALWAYS of the shape "resource/.default"
         /// FUTURE THIS WILL CHANGE TO MS GRAPH SCOPE
         /// </summary>
         public string VCServiceScope { get; set; }
-        
+
         public string CredentialManifest { get; set; }
 
         public string IssuerAuthority { get; set; }

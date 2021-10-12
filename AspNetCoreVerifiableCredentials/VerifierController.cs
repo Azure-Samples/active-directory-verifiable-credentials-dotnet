@@ -23,13 +23,13 @@ namespace AspNetCoreVerifiableCredentials
     public class VerifierController : Controller
     {
         const string PRESENTATIONPAYLOAD = "presentation_request_config.json";
-//        const string PRESENTATIONPAYLOAD = "presentation_request_config - TrueIdentitySample.json";
+        //        const string PRESENTATIONPAYLOAD = "presentation_request_config - TrueIdentitySample.json";
 
         protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
         protected readonly ILogger<VerifierController> _log;
 
-        public VerifierController(IOptions<AppSettingsModel> appSettings,IMemoryCache memoryCache, ILogger<VerifierController> log)
+        public VerifierController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<VerifierController> log)
         {
             this.AppSettings = appSettings.Value;
             _cache = memoryCache;
@@ -56,13 +56,13 @@ namespace AspNetCoreVerifiableCredentials
                 if (!System.IO.File.Exists(payloadpath))
                 {
                     _log.LogError("File not found: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " not found" }); 
+                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " not found" });
                 }
                 jsonString = System.IO.File.ReadAllText(payloadpath);
-                if (string.IsNullOrEmpty(jsonString)) 
+                if (string.IsNullOrEmpty(jsonString))
                 {
                     _log.LogError("Error reading file: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " error reading file" }); 
+                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " error reading file" });
                 }
 
                 string state = Guid.NewGuid().ToString();
@@ -113,7 +113,7 @@ namespace AspNetCoreVerifiableCredentials
                 {
                     //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                     //needs to be send as bearer to the VC Request API
-                    var accessToken = await GetAccessToken ();
+                    var accessToken = await GetAccessToken();
                     if (accessToken.Item1 == String.Empty)
                     {
                         _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
@@ -137,7 +137,7 @@ namespace AspNetCoreVerifiableCredentials
                         jsonString = JsonConvert.SerializeObject(requestConfig);
 
                         //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
-                    
+
                         var cacheData = new
                         {
                             status = "notscanned",
@@ -217,7 +217,7 @@ namespace AspNetCoreVerifiableCredentials
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
 
                 }
-                
+
                 return new OkResult();
             }
             catch (Exception ex)
@@ -233,7 +233,7 @@ namespace AspNetCoreVerifiableCredentials
         [HttpGet("/api/verifier/presentation-response")]
         public async Task<ActionResult> presentationResponse()
         {
-            
+
             try
             {
                 //the id is the state value initially created when the issuanc request was requested from the request API
@@ -249,7 +249,7 @@ namespace AspNetCoreVerifiableCredentials
                     value = JObject.Parse(buf);
 
                     Debug.WriteLine("check if there was a response yet: " + value);
-                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) }; 
+                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) };
                 }
 
                 return new OkResult();

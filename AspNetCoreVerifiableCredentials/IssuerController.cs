@@ -109,7 +109,7 @@ namespace AspNetCoreVerifiableCredentials
                 //with tools like ngrok since the URI changes all the time
                 //this way you don't need to modify the callback URL in the payload every time
                 //ngrok changes the URI
-                
+
                 if (payload["callback"]["url"] != null)
                 {
                     //localhost hostname can't work for callbacks so we won't overwrite it.
@@ -148,7 +148,7 @@ namespace AspNetCoreVerifiableCredentials
                     var accessToken = await GetAccessToken();
                     if (accessToken.Item1 == String.Empty)
                     {
-                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"),accessToken.error, accessToken.error_description);
+                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
 
@@ -254,7 +254,7 @@ namespace AspNetCoreVerifiableCredentials
                         //So assume this error happens when the users entered the incorrect pincode and ask to try again.
                         message = issuanceResponse["error"]["message"].ToString()
 
-                };
+                    };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
 
