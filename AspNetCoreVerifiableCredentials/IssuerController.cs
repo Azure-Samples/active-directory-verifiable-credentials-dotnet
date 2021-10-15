@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Verifiable_credentials_DotNet
+namespace AspNetCoreVerifiableCredentials
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
@@ -42,7 +42,7 @@ namespace Verifiable_credentials_DotNet
         /// </summary>
         /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
         [HttpGet("/api/issuer/issuance-request")]
-        public async Task<ActionResult> issuanceRequest()
+        public async Task<ActionResult> IssuanceRequest()
         {
             try
             {
@@ -72,7 +72,7 @@ namespace Verifiable_credentials_DotNet
                 JObject payload = JObject.Parse(jsonString);
                 if (payload["issuance"]["pin"] != null)
                 {
-                    if (isMobile())
+                    if (IsMobile())
                     {
                         _log.LogTrace("pin element found in JSON payload, but on mobile so remove pin since we will be using deeplinking");
                         //consider providing the PIN through other means to your user instead of removing it.
@@ -109,7 +109,7 @@ namespace Verifiable_credentials_DotNet
                 //with tools like ngrok since the URI changes all the time
                 //this way you don't need to modify the callback URL in the payload every time
                 //ngrok changes the URI
-                
+
                 if (payload["callback"]["url"] != null)
                 {
                     //localhost hostname can't work for callbacks so we won't overwrite it.
@@ -145,10 +145,10 @@ namespace Verifiable_credentials_DotNet
                 {
                     //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                     //needs to be send as bearer to the VC Request API
-                    var accessToken = GetAccessToken().Result;
+                    var accessToken = await GetAccessToken();
                     if (accessToken.Item1 == String.Empty)
                     {
-                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"),accessToken.error, accessToken.error_description);
+                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
 
@@ -157,8 +157,8 @@ namespace Verifiable_credentials_DotNet
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
-                    HttpResponseMessage res = client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json")).Result;
-                    response = res.Content.ReadAsStringAsync().Result;
+                    HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    response = await res.Content.ReadAsStringAsync();
                     client.Dispose();
                     statusCode = res.StatusCode;
 
@@ -205,11 +205,11 @@ namespace Verifiable_credentials_DotNet
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult> issuanceCallback()
+        public async Task<ActionResult> IssuanceCallback()
         {
             try
             {
-                string content = new System.IO.StreamReader(this.Request.Body).ReadToEndAsync().Result;
+                string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
                 _log.LogTrace("callback!: " + content);
                 JObject issuanceResponse = JObject.Parse(content);
                 var state = issuanceResponse["state"].ToString();
@@ -254,7 +254,7 @@ namespace Verifiable_credentials_DotNet
                         //So assume this error happens when the users entered the incorrect pincode and ask to try again.
                         message = issuanceResponse["error"]["message"].ToString()
 
-                };
+                    };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 }
 
@@ -272,7 +272,7 @@ namespace Verifiable_credentials_DotNet
         //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the issuance process
         //
         [HttpGet("/api/issuer/issuance-response")]
-        public async Task<ActionResult> issuanceResponse()
+        public ActionResult IssuanceResponse()
         {
             try
             {
@@ -373,7 +373,7 @@ namespace Verifiable_credentials_DotNet
             return hostname;
         }
 
-        protected bool isMobile()
+        protected bool IsMobile()
         {
             string userAgent = this.Request.Headers["User-Agent"];
 

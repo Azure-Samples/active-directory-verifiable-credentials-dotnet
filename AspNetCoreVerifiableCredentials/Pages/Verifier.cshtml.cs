@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Verifiable_credentials_DotNet.Pages
+namespace AspNetCoreVerifiableCredentials.Pages
 {
-    public class IssuerModel : PageModel
+    public class VerifierModel : PageModel
     {
         public void OnGet()
         {

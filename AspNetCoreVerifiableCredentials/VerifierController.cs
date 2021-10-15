@@ -17,19 +17,19 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Verifiable_credentials_DotNet
+namespace AspNetCoreVerifiableCredentials
 {
     [Route("api/[controller]/[action]")]
     public class VerifierController : Controller
     {
         const string PRESENTATIONPAYLOAD = "presentation_request_config.json";
-//        const string PRESENTATIONPAYLOAD = "presentation_request_config - TrueIdentitySample.json";
+        //        const string PRESENTATIONPAYLOAD = "presentation_request_config - TrueIdentitySample.json";
 
         protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
         protected readonly ILogger<VerifierController> _log;
 
-        public VerifierController(IOptions<AppSettingsModel> appSettings,IMemoryCache memoryCache, ILogger<VerifierController> log)
+        public VerifierController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<VerifierController> log)
         {
             this.AppSettings = appSettings.Value;
             _cache = memoryCache;
@@ -41,7 +41,7 @@ namespace Verifiable_credentials_DotNet
         /// </summary>
         /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
         [HttpGet("/api/verifier/presentation-request")]
-        public async Task<ActionResult> presentationRequest()
+        public async Task<ActionResult> PresentationRequest()
         {
             try
             {
@@ -56,13 +56,13 @@ namespace Verifiable_credentials_DotNet
                 if (!System.IO.File.Exists(payloadpath))
                 {
                     _log.LogError("File not found: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " not found" }); 
+                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " not found" });
                 }
                 jsonString = System.IO.File.ReadAllText(payloadpath);
-                if (string.IsNullOrEmpty(jsonString)) 
+                if (string.IsNullOrEmpty(jsonString))
                 {
                     _log.LogError("Error reading file: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " error reading file" }); 
+                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " error reading file" });
                 }
 
                 string state = Guid.NewGuid().ToString();
@@ -113,7 +113,7 @@ namespace Verifiable_credentials_DotNet
                 {
                     //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                     //needs to be send as bearer to the VC Request API
-                    var accessToken = GetAccessToken().Result;
+                    var accessToken = await GetAccessToken();
                     if (accessToken.Item1 == String.Empty)
                     {
                         _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
@@ -124,8 +124,8 @@ namespace Verifiable_credentials_DotNet
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
-                    HttpResponseMessage res = client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json")).Result;
-                    response = res.Content.ReadAsStringAsync().Result;
+                    HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    response = await res.Content.ReadAsStringAsync();
                     _log.LogTrace("succesfully called Request API");
                     client.Dispose();
                     statusCode = res.StatusCode;
@@ -137,7 +137,7 @@ namespace Verifiable_credentials_DotNet
                         jsonString = JsonConvert.SerializeObject(requestConfig);
 
                         //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
-                    
+
                         var cacheData = new
                         {
                             status = "notscanned",
@@ -174,11 +174,11 @@ namespace Verifiable_credentials_DotNet
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult> presentationCallback()
+        public async Task<ActionResult> PresentationCallback()
         {
             try
             {
-                string content = new System.IO.StreamReader(this.Request.Body).ReadToEndAsync().Result;
+                string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
                 Debug.WriteLine("callback!: " + content);
                 JObject presentationResponse = JObject.Parse(content);
                 var state = presentationResponse["state"].ToString();
@@ -217,7 +217,7 @@ namespace Verifiable_credentials_DotNet
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
 
                 }
-                
+
                 return new OkResult();
             }
             catch (Exception ex)
@@ -231,9 +231,9 @@ namespace Verifiable_credentials_DotNet
         //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the presentation
         //
         [HttpGet("/api/verifier/presentation-response")]
-        public async Task<ActionResult> presentationResponse()
+        public ActionResult PresentationResponse()
         {
-            
+
             try
             {
                 //the id is the state value initially created when the issuanc request was requested from the request API
@@ -249,7 +249,7 @@ namespace Verifiable_credentials_DotNet
                     value = JObject.Parse(buf);
 
                     Debug.WriteLine("check if there was a response yet: " + value);
-                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) }; 
+                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) };
                 }
 
                 return new OkResult();

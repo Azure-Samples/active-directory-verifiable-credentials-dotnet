@@ -1,13 +1,13 @@
 ﻿@page
-@model Verifiable_credentials_DotNet.Pages.IssuerModel
+@model AspNetCoreVerifiableCredentials.Pages.VerifierModel
 @{
-    ViewData["Title"] = "Issuer";
+    ViewData["Title"] = "Verifier";
 }
-            <div style="text-align: center;">
+           <div style="text-align: center;">
                 <img src="VerifiedCredentialExpert-icon.png" height=200px; />
-                <h1>Verifiable Credential Expert Issuance</h1>
+                <h1>Verifiable Credential Expert Verification</h1>
         
-            <button type="button" id="sign-in" class="button">GET CREDENTIAL</button>
+            <button type="button" id="sign-in" class="button">VERIFY CREDENTIAL</button>
             <div id="qrText"  style="display:none;">
                 <p class="small-text">
                     <img src="authenticator-icon.png" alt="Authenticator icon" class="icon-small"><br>
@@ -21,7 +21,9 @@
             <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
                <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
                <div id="message"></div>
-               <br />
+                <br />
+               <div id="subject"></div>
+                <br />
                <div id="payload"></div>
             </div>
 
@@ -31,65 +33,55 @@
                 var signOut = document.getElementById('sign-out');
                 var display = document.getElementById('display');
                 var qrcode = new QRCode("qrcode", { width: 300, height: 300 });
-                var respIssuanceReq = null;
+                var respPresentationReq = null;
 
                 signIn.addEventListener('click', () => {
-                    fetch('/api/issuer/issuance-request')
+                    fetch('/api/verifier/presentation-request')
                     .then(function(response) {
                         response.text()
                         .catch(error => document.getElementById("message").innerHTML = error)
                         .then(function(message) {
-                            respIssuanceReq = JSON.parse(message);
+                            respPresentationReq = JSON.parse(message);
                             if( /Android/i.test(navigator.userAgent) ) {
-                                console.log(`Android device! Using deep link (${respIssuanceReq.url}).`);
-                                window.location.href = respIssuanceReq.url; setTimeout(function () {
+                                console.log(`Android device! Using deep link (${respPresentationReq.url}).`);
+                                window.location.href = respPresentationReq.url; setTimeout(function () {
                                 window.location.href = "https://play.google.com/store/apps/details?id=com.azure.authenticator"; }, 2000);
                             } else if (/iPhone/i.test(navigator.userAgent)) {
-                                console.log(`iOS device! Using deep link (${respIssuanceReq.url}).`);
-                                window.location.replace(respIssuanceReq.url);
+                                console.log(`iOS device! Using deep link (${respPresentationReq.url}).`);
+                                window.location.replace(respPresentationReq.url);
                             } else {
                                 console.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
-                                qrcode.makeCode(respIssuanceReq.url);
-                                document.getElementById('sign-in').style.display = "none";
+                                qrcode.makeCode(respPresentationReq.url);
+                                document.getElementById('sign-in').style.visibility = "hidden";
                                 document.getElementById('qrText').style.display = "block";
-                                if (respIssuanceReq.pin) {
-                                    document.getElementById('pinCodeText').innerHTML = "Pin code: " + respIssuanceReq.pin;
-                                    document.getElementById('pinCodeText').style.display = "block";
-                                }
                             }
                         }).catch(error => { console.log(error.message); })
                     }).catch(error => { console.log(error.message); })
 
                     var checkStatus = setInterval(function () {
-                        fetch('api/issuer/issuance-response?id=' + respIssuanceReq.id )
+                        fetch('api/verifier/presentation-response?id=' + respPresentationReq.id )
                             .then(response => response.text())
                             .catch(error => document.getElementById("message").innerHTML = error)
                             .then(response => {
                                 if (response.length > 0) {
                                     console.log(response)
                                     respMsg = JSON.parse(response);
-                                    // QR Code scanned, show pincode if pincode is required
+                                    // QR Code scanned
                                     if (respMsg.status == 'request_retrieved') {
                                         document.getElementById('message-wrapper').style.display = "block";
                                         document.getElementById('qrText').style.display = "none";
                                         document.getElementById('qrcode').style.display = "none";
 
-                                        if (respMsg.pin) {
-                                            document.getElementById('pinCodeText').style.display = "visible";
-                                        }
                                         document.getElementById('message').innerHTML = respMsg.message;
                                     }
-                                    if (respMsg.status == 'issuance_successful') {
-                                        document.getElementById('pinCodeText').style.display = "none";
+                                    
+                                    if (respMsg.status == 'presentation_verified') {
                                         document.getElementById('message').innerHTML = respMsg.message;
+                                        document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
+                                        document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName +" is a Verifiable Credential Expert";
                                         clearInterval(checkStatus);
                                     }
-                                    if (respMsg.status == 'issuance_error') {
-                                        document.getElementById('pinCodeText').style.display = "none";
-                                        document.getElementById('message').innerHTML = "Issuance error occured, did you enter the wrong pincode? Please refresh the page and try again.";
-                                        document.getElementById('payload').innerHTML = "Payload: " + respMsg.payload;
-                                        clearInterval(checkStatus);
-                                    }
+
                                 }
                             })
                     }, 1500); //change this to higher interval if you use ngrok to prevent overloading the free tier service

@@ -7,7 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Verifiable_credentials_DotNet
+namespace AspNetCoreVerifiableCredentials
 {
     /// <summary>
     /// Description of the configuration of an AzureAD confidential client application. This should
@@ -22,13 +22,13 @@ namespace Verifiable_credentials_DotNet
         /// <summary>
         /// URL of the client REST API endpoint, still need to use tenantID, use ApiEndpoint instead.
         /// </summary>
-        public string Endpoint { get; set; } 
+        public string Endpoint { get; set; }
         /// <summary>
         /// Web Api scope. With client credentials flows, the scopes is ALWAYS of the shape "resource/.default"
         /// FUTURE THIS WILL CHANGE TO MS GRAPH SCOPE
         /// </summary>
         public string VCServiceScope { get; set; }
-        
+
         public string CredentialManifest { get; set; }
 
         public string IssuerAuthority { get; set; }
