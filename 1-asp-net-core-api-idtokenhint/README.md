@@ -68,7 +68,7 @@ To run the sample, clone the repository, compile & run it. It's callback endpoin
 
 ```Powershell
 git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
-cd active-directory-verifiable-credentials-dotnet/AspNetCoreVerifiableCredentials
+cd active-directory-verifiable-credentials-dotnet/1-asp-net-core-api-idtokenhint
 ```
 
 ### Create your credential
