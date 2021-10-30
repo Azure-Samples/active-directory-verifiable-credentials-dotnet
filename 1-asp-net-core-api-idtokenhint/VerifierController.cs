@@ -28,12 +28,14 @@ namespace AspNetCoreVerifiableCredentials
         protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
         protected readonly ILogger<VerifierController> _log;
+        private IHttpClientFactory _httpClientFactory;
 
-        public VerifierController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<VerifierController> log)
+        public VerifierController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
         {
             this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>
@@ -105,7 +107,6 @@ namespace AspNetCoreVerifiableCredentials
 
                 jsonString = JsonConvert.SerializeObject(payload);
 
-
                 //CALL REST API WITH PAYLOAD
                 HttpStatusCode statusCode = HttpStatusCode.OK;
                 string response = null;
@@ -120,14 +121,13 @@ namespace AspNetCoreVerifiableCredentials
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
 
-                    HttpClient client = new HttpClient();
+                    var client = _httpClientFactory.CreateClient();
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
                     HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
                     response = await res.Content.ReadAsStringAsync();
                     _log.LogTrace("succesfully called Request API");
-                    client.Dispose();
                     statusCode = res.StatusCode;
 
                     if (statusCode == HttpStatusCode.Created)
