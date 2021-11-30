@@ -86,10 +86,10 @@ Once the VC is issued, you get a second callback which contains information if t
 
 This callback is typically used to notify the user on the issuance website the process is completed and continue with whatever the website needs or wants the user to do.
 
-### Succesful Issuance flow response
+### Successful Issuance flow response
 ```JSON
 {
-  "code":"issuance_succesful",
+  "code":"issuance_successful",
   "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0",
   "state": "...what you passed as the state value..."
 }
