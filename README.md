@@ -30,7 +30,7 @@ To call the VC Client API to start the issuance process, the VC Request API need
     "url": "https://contoso.com/api/issuer/issuanceCallback",
     "state": "you pass your state here to correlate it when you get the callback",
     "headers": {
-        "keyname": "any value you want in your callback"
+      "api-key": "API key to help protect your callback API"
     }
   },
   "issuance": {
