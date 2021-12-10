@@ -132,7 +132,7 @@ To call the VC Request API to start the verification process, the application cr
     "url": "https://contoso.com/api/verifier/presentationCallback",
     "state": "you pass your state here to correlate it when you get the callback",
     "headers": {
-        "keyname": "any value you want in your callback"
+      "api-key": "API key to help protect your callback API"
     }
   },
   "presentation": {
