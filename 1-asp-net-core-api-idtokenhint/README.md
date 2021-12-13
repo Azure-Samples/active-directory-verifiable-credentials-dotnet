@@ -94,7 +94,7 @@ Make sure you copy the `ClientId`, `ClientSecret` and `TenantTd` you copied when
 
 1. Open a command prompt and run the following command:
 ```Powershell
-dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net5
+dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net6
 dotnet run
 ```
 
