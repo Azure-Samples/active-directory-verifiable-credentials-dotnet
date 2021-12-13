@@ -201,7 +201,7 @@ Some notable attributes in the message:
 
 ## Setup
 
-Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions here [here](https://aka.ms/didfordevs)
+Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions [here](https://aka.ms/vcsetup)
 
 
 ## Resources
