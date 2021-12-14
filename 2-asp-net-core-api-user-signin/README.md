@@ -131,19 +131,23 @@ dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\ne
 dotnet run
 ```
 
+4. Click "Sign in" and enter your tenant's work or school account credentials.
 
-1. Click "Sign in" and enter your tenant's work or school account credentials.
-2. Select GET CREDENTIAL
-1. In Authenticator, scan the QR code. 
+5. Select GET CREDENTIAL
+
+6. In Authenticator, scan the QR code. 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
-6. If you see the 'This app or website may be risky screen', select **Advanced**.
-1. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
-1. On the Add a credential screen, notice that:
+
+7. If you see the 'This app or website may be risky screen', select **Advanced**.
+
+8. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
+
+9. On the Add a credential screen, notice that:
 
   - At the top of the screen, you can see a red **Not verified** message.
   - The credential is based on the information you uploaded as the display file.
 
-9. Select **Add**.
+10. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
 1. Navigate back and click on the Verify Credential link
