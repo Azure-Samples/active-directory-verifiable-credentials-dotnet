@@ -45,6 +45,8 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/vcsetup).
 
 ### Create application registration
+Note: If you already having [this sample](https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/tree/main/1-asp-net-core-api-idtokenhint) up and running you may be able to skip over to Step 7. The powershell scripts currently dont automate Step 7 and onwards.
+
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
 Register an application in Azure Active Directory: 
