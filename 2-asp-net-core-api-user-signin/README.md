@@ -6,7 +6,7 @@ languages:
 products:
 - active-directory
 - verifiable credentials
-description: "A code sample demonstrating issuance and verification of verifiable credentials."
+description: "A code sample demonstrating issuance and verification of verifiable credentials for a signed in user in your organization."
 urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
 # Verifiable Credentials Code Sample
