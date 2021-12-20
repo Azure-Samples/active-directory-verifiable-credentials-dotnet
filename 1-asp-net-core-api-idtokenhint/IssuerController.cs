@@ -30,13 +30,14 @@ namespace AspNetCoreVerifiableCredentials
         protected IMemoryCache _cache;
         protected readonly ILogger<IssuerController> _log;
         private IHttpClientFactory _httpClientFactory;
-
+        private string _apiKey;
         public IssuerController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<IssuerController> log, IHttpClientFactory httpClientFactory)
         {
             this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
             _httpClientFactory = httpClientFactory;
+            _apiKey = System.Environment.GetEnvironmentVariable("API-KEY");
         }
 
         /// <summary>
@@ -92,7 +93,6 @@ namespace AspNetCoreVerifiableCredentials
                     }
 
                 }
-
                 string state = Guid.NewGuid().ToString();
 
                 //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
@@ -122,6 +122,12 @@ namespace AspNetCoreVerifiableCredentials
                     {
                         payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
                     }
+                }
+
+                // set our api-key in the request so we can check it in the callbacks we receive
+                if (payload["callback"]["headers"]["api-key"] != null) 
+                {
+                    payload["callback"]["headers"]["api-key"] = this._apiKey;
                 }
 
                 //get the manifest from the appsettings, this is the URL to the credential created in the azure portal. 
@@ -211,6 +217,12 @@ namespace AspNetCoreVerifiableCredentials
             {
                 string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
                 _log.LogTrace("callback!: " + content);
+                this.Request.Headers.TryGetValue("api-key", out var apiKey);
+                if (this._apiKey != apiKey)
+                {
+                    _log.LogTrace("api-key wrong or missing");
+                    return new ContentResult() { StatusCode = (int)HttpStatusCode.Unauthorized, Content = "api-key wrong or missing" };
+                }
                 JObject issuanceResponse = JObject.Parse(content);
                 var state = issuanceResponse["state"].ToString();
 
