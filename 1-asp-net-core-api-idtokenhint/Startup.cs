@@ -27,6 +27,14 @@ namespace AspNetCoreVerifiableCredentials
                 options.AllowSynchronousIO = true;
             });
 
+            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+                    // .WithOrigins("http://example.com","http://www.contoso.com");
+            }));
+
             services.Configure<AppSettingsModel>(Configuration.GetSection("AppSettings"));
 
 
@@ -64,6 +72,7 @@ namespace AspNetCoreVerifiableCredentials
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseCors("MyPolicy");
 
             app.UseEndpoints(endpoints =>
             {
