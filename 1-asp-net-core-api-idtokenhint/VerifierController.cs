@@ -29,13 +29,14 @@ namespace AspNetCoreVerifiableCredentials
         protected IMemoryCache _cache;
         protected readonly ILogger<VerifierController> _log;
         private IHttpClientFactory _httpClientFactory;
-
+        private string _apiKey;
         public VerifierController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
         {
             this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
             _httpClientFactory = httpClientFactory;
+            _apiKey = System.Environment.GetEnvironmentVariable("API-KEY");
         }
 
         /// <summary>
@@ -105,6 +106,12 @@ namespace AspNetCoreVerifiableCredentials
                     }
                 }
 
+                // set our api-key in the request so we can check it in the callbacks we receive
+                if (payload["callback"]["headers"]["api-key"] != null)
+                {
+                    payload["callback"]["headers"]["api-key"] = this._apiKey;
+                }
+
                 jsonString = JsonConvert.SerializeObject(payload);
 
                 //CALL REST API WITH PAYLOAD
@@ -121,17 +128,18 @@ namespace AspNetCoreVerifiableCredentials
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
 
+                    _log.LogTrace( $"Request API payload: {jsonString}" );
                     var client = _httpClientFactory.CreateClient();
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
                     HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
                     response = await res.Content.ReadAsStringAsync();
-                    _log.LogTrace("succesfully called Request API");
                     statusCode = res.StatusCode;
 
                     if (statusCode == HttpStatusCode.Created)
                     {
+                        _log.LogTrace("succesfully called Request API");
                         JObject requestConfig = JObject.Parse(response);
                         requestConfig.Add(new JProperty("id", state));
                         jsonString = JsonConvert.SerializeObject(requestConfig);
@@ -179,7 +187,13 @@ namespace AspNetCoreVerifiableCredentials
             try
             {
                 string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
-                Debug.WriteLine("callback!: " + content);
+                _log.LogTrace("callback!: " + content);
+                this.Request.Headers.TryGetValue("api-key", out var apiKey);
+                if (this._apiKey != apiKey) 
+                {
+                    _log.LogTrace("api-key wrong or missing");
+                    return new ContentResult() { StatusCode = (int)HttpStatusCode.Unauthorized, Content = "api-key wrong or missing" };
+                }               
                 JObject presentationResponse = JObject.Parse(content);
                 var state = presentationResponse["state"].ToString();
 
@@ -211,7 +225,8 @@ namespace AspNetCoreVerifiableCredentials
                         payload = presentationResponse["issuers"].ToString(),
                         subject = presentationResponse["subject"].ToString(),
                         firstName = presentationResponse["issuers"][0]["claims"]["firstName"].ToString(),
-                        lastName = presentationResponse["issuers"][0]["claims"]["lastName"].ToString()
+                        lastName = presentationResponse["issuers"][0]["claims"]["lastName"].ToString(),
+                        presentationResponse = presentationResponse // need to cache the entire presentation response for B2C
 
                     };
                     _cache.Set(state, JsonConvert.SerializeObject(cacheData));
@@ -233,7 +248,6 @@ namespace AspNetCoreVerifiableCredentials
         [HttpGet("/api/verifier/presentation-response")]
         public ActionResult PresentationResponse()
         {
-
             try
             {
                 //the id is the state value initially created when the issuanc request was requested from the request API
@@ -246,20 +260,68 @@ namespace AspNetCoreVerifiableCredentials
                 JObject value = null;
                 if (_cache.TryGetValue(state, out string buf))
                 {
+                    _log.LogTrace( $"id {state}, cache: {buf}");
                     value = JObject.Parse(buf);
-
-                    Debug.WriteLine("check if there was a response yet: " + value);
+                    // the browser doesn't need the full presentationResponse
+                    if ( value.ContainsKey("presentationResponse") )
+                    {
+                        value.Remove("presentationResponse");
+                    }
                     return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) };
                 }
-
                 return new OkResult();
             }
             catch (Exception ex)
             {
                 return BadRequest(new { error = "400", error_description = ex.Message });
             }
-
-
+        }
+        /// <summary>
+        /// Azure AD B2C REST API Endpoint for retrieveing the VC presentation response
+        /// HTTP POST comes from Azure AD B2C 
+        /// body : The InputClaims from the B2C policy.It will only be one claim named 'id'
+        /// </summary>
+        /// <returns>returns a JSON structure with claims from the VC presented</returns>
+        [HttpPost("/api/verifier/presentation-response-b2c")]
+        public async Task<ActionResult> PresentationResponseB2C() {
+            try {
+                string body = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
+                _log.LogTrace(body);
+                JObject b2cRequest = JObject.Parse(body);
+                string state = b2cRequest["id"].ToString();
+                if (string.IsNullOrEmpty(state)) 
+                {
+                    return BadRequest(new { error = "400", error_description = "Missing argument 'id'" });
+                }
+                JObject cachedData = null;
+                if (!_cache.TryGetValue(state, out string buf)) 
+                {
+                    var msg = new { version = "1.0.0", status = 400, userMessage = "Verifiable Credentials not presented" };
+                    return new ContentResult { StatusCode = 409, ContentType = "application/json", Content = JsonConvert.SerializeObject(msg) };
+                }
+                cachedData = JObject.Parse(buf);
+                // remove cache data now, because if we crash, we don't want to get into an infinite loop of crashing
+                _cache.Remove(state);
+                // setup the response that we are returning to B2C
+                var presentationResponse = cachedData["presentationResponse"];
+                var obj = new {
+                    // type is 2..N of the types presented. [0]==the generic 'VerifiableCredentials', so we pick the 2nd for convenience
+                    vcType = presentationResponse["issuers"][0]["type"][1].ToString(),
+                    vcIss = presentationResponse["issuers"][0]["authority"].ToString(),
+                    vcSub = presentationResponse["subject"].ToString(),
+                    // key is intended to be user in user's profile 'identities' collection as a signInName,
+                    // and it can't have colons, therefor we modify the value (and clip at following :)
+                    vcKey = presentationResponse["subject"].ToString().Replace("did:ion:", "did.ion.").Split(":")[0]
+                };
+                JObject b2cResponse = JObject.Parse(JsonConvert.SerializeObject(obj));
+                // merge the VC claims with the claims we created above since we return them both to B2C
+                b2cResponse.Merge( presentationResponse["issuers"][0]["claims"], new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union });
+                string resp = JsonConvert.SerializeObject(b2cResponse);
+                _log.LogTrace(resp);
+                return new ContentResult { ContentType = "application/json", Content = resp };
+            } catch (Exception ex) {
+                return BadRequest(new { error = "400", error_description = ex.Message });
+            }
         }
 
         //some helper functions
