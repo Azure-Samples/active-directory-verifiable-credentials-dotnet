@@ -6,7 +6,7 @@ This repo contains a set of Azure AD Verifiable Credentials samples
 | Sample | Description |
 |------|--------|
 | 1-asp-net-core-api-idtokenhint | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which allows the VC Request API to pass in a payload for the Verifiable Credentials|
-| 2-asp-net-core-api-user-signin | dotnet sample for a Line of Business (LOB) developer who wants to provide the signed-in users an option to get and present Verifiable credentials using the VC Request API. **Note:** This is different from 1-asp-net-core-api-idtokenhint sample as follows : User sign-in is a requirement to issue credentials since the credentials have claims (first name, last name) based on the signed-in user's idToken.'|
+| 2-asp-net-core-api-user-signin | dotnet sample for a developer who wants to provide the signed-in users an option to get and present Verifiable credentials using the VC Request API. **Note:** This is different from 1-asp-net-core-api-idtokenhint sample as follows : User sign-in is a requirement to issue credentials since the credentials have claims (first name, last name) based on the signed-in user's idToken.'|
 
 
 
