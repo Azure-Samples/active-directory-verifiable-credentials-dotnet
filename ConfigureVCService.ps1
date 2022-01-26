@@ -44,5 +44,8 @@ Function ConfigureVCService
 if ($null -eq (Get-Module -ListAvailable -Name "Az.Accounts")) {  
     Install-Module -Name "Az.Accounts" -Scope CurrentUser 
 }
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Resources")) {  
+    Install-Module "Az.Resources" -Scope CurrentUser 
+}
 
 ConfigureVCService -Credential $Credential -tenantId $TenantId
