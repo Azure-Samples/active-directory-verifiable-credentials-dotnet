@@ -11,8 +11,8 @@ urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
 # Verifiable Credentials Code Sample
 
-As a Line of Business (LOB) developer, you'd probably want to sign-in users in your organization with their work or school accounts.
-Then provide them an option to get verifiable credentials. Further you want the LOB applications to accept these verifiable credentials
+As a developer, you'd probably want users to sign-in  with their work or school accounts.
+Then provide them an option to get verifiable credentials. Further you want the applications to accept these verifiable credentials
 to allow access. 
 
 This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue verifiable credentials for a signed in user and then consume those verifiable credentials. 
