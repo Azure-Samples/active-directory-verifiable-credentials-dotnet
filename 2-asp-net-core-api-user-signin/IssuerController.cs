@@ -121,17 +121,17 @@ namespace AspNetCoreVerifiableCredentials
                     string host = GetRequestHostName();
                     if (!host.Contains("//localhost"))
                     {
-                        payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
+                        payload["callback"]["url"] = String.Format("{0}/api/issuer/issuanceCallback", host);
                     }
                     else
                     {
-                        if (!String.IsNullOrWhiteSpace(AppSettings.VC_CallbackHostURL))
+                        if (!String.IsNullOrWhiteSpace(AppSettings.VCCallbackHostURL))
                         {
-                            payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", AppSettings.VC_CallbackHostURL);
+                            payload["callback"]["url"] = String.Format("{0}/api/issuer/issuanceCallback", AppSettings.VCCallbackHostURL);
                         }
                         else
                         {
-                            _log.LogError(String.Format("VC_CallbackHostURL is not set in the AppSettings section of appsettings.json file. Please refer to README section on Running the sample for instructions on how to set this value."));
+                            _log.LogError(String.Format("VCCallbackHostURL is not set in the AppSettings section of appsettings.json file. Please refer to README section on Running the sample for instructions on how to set this value."));
                         }
                     }
                 }

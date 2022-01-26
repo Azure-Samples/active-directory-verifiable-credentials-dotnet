@@ -35,7 +35,7 @@ namespace AspNetCoreVerifiableCredentials
         /// localhost hostname can't work for callbacks so we will use the configured value in appsetttings.json in that case.
         /// this happens for example when testing with sign-in to an IDP and https://localhost is used as redirect URI
         /// </summary>
-        public string VC_CallbackHostURL { get; set; }
+        public string VCCallbackHostURL { get; set; }
 
         public string IssuerAuthority { get; set; }
 
