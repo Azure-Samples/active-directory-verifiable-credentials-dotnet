@@ -130,24 +130,26 @@ The sample uses the `VCCallbackHostURL` to build the callback URL, this way the 
 dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net5
 dotnet run
 ```
+4. Open http://localhost:5000 Note: The ngrok generated URL is **not** being used since the URL has to match the one in the redirect URL 
+in App registration above and using ngrok generated URL would mean changing the redirect URL in the App registration everytime you run ngrok. 
 
-4. Click "Sign in" and enter your tenant's work or school account credentials.
+5. Click "Sign in" and enter your tenant's work or school account credentials.
 
-5. Select GET CREDENTIAL
+6. Select GET CREDENTIAL
 
-6. In Authenticator, scan the QR code. 
+7. In Authenticator, scan the QR code. 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
 
-7. If you see the 'This app or website may be risky screen', select **Advanced**.
+8. If you see the 'This app or website may be risky screen', select **Advanced**.
 
-8. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
+9. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
 
-9. On the Add a credential screen, notice that:
+10. On the Add a credential screen, notice that:
 
   - At the top of the screen, you can see a red **Not verified** message.
   - The credential is based on the information you uploaded as the display file.
 
-10. Select **Add**.
+11. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
 1. Navigate back and click on the Verify Credential link
