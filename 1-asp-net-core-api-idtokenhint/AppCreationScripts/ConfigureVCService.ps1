@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [PSCredential] $Credential,
-    [Parameter(Mandatory=$False, HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
+    [Parameter(Mandatory=$True, HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
     [string] $tenantId
 )
 
@@ -19,28 +19,35 @@ Function ConfigureVCService
     # you'll need to sign-in with creds enabling your to create apps in the tenant)
     if (!$Credential -and $TenantId)
     {
-        $creds = Connect-AzureAD -TenantId $tenantId
+        $creds = Connect-AzAccount -TenantId $tenantId
     }
     else
     {
         if (!$TenantId)
         {
-            $creds = Connect-AzureAD -Credential $Credential
+            $creds = Connect-AzAccount -Credential $Credential
         }
         else
         {
-            $creds = Connect-AzureAD -TenantId $tenantId -Credential $Credential
+            $creds = Connect-AzAccount -TenantId $tenantId -Credential $Credential
         }
     }
-
-    New-AzureADServicePrincipal -AppId bbb94529-53a3-4be5-a069-7eaf2712b826 -DisplayName "Verifiable Credential Request Service"
+    
+    $appId = "bbb94529-53a3-4be5-a069-7eaf2712b826"
+    if ( $null -eq (Get-AzADServicePrincipal -ApplicationId $appId) ) {
+      New-AzADServicePrincipal -ApplicationId $appId -DisplayName "Verifiable Credential Request Service"
+    }
+    
 }
 
 # Pre-requisites
-if ((Get-Module -ListAvailable -Name "AzureAD") -eq $null) { 
-    Install-Module "AzureAD" -Scope CurrentUser 
-} 
-Import-Module AzureAD
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Accounts")) {  
+    Install-Module -Name "Az.Accounts" -Scope CurrentUser 
+}
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Resources")) {  
+    Install-Module "Az.Resources" -Scope CurrentUser 
+}
+Import-Module -Name "Az.Accounts"
+Import-Module -Name "Az.Resources"
 
 ConfigureVCService -Credential $Credential -tenantId $TenantId
-
