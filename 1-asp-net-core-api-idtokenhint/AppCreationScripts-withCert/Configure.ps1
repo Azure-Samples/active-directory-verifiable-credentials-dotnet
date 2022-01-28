@@ -17,61 +17,6 @@ param(
  There are four ways to run this script. For more information, read the AppCreationScripts.md file in the same folder as this script.
 #>
 
-# Adds the requiredAccesses (expressed as a pipe separated string) to the requiredAccess structure
-# The exposed permissions are in the $exposedPermissions collection, and the type of permission (Scope | Role) is 
-# described in $permissionType
-Function AddResourcePermission($requiredAccess, `
-                               $exposedPermissions, [string]$requiredAccesses, [string]$permissionType)
-{
-        foreach($permission in $requiredAccesses.Trim().Split("|"))
-        {
-            foreach($exposedPermission in $exposedPermissions)
-            {
-                if ($exposedPermission.Value -eq $permission)
-                 {
-                    $resourceAccess = New-Object Microsoft.Open.AzureAD.Model.ResourceAccess
-                    $resourceAccess.Type = $permissionType # Scope = Delegated permissions | Role = Application permissions
-                    $resourceAccess.Id = $exposedPermission.Id # Read directory data
-                    $requiredAccess.ResourceAccess.Add($resourceAccess)
-                 }
-            }
-        }
-}
-
-#
-# Exemple: GetRequiredPermissions "Microsoft Graph"  "Graph.Read|User.Read"
-# See also: http://stackoverflow.com/questions/42164581/how-to-configure-a-new-azure-ad-application-through-powershell
-Function GetRequiredPermissions([string] $applicationDisplayName, [string] $requiredDelegatedPermissions, [string]$requiredApplicationPermissions, $servicePrincipal)
-{
-    # If we are passed the service principal we use it directly, otherwise we find it from the display name (which might not be unique)
-    if ($servicePrincipal)
-    {
-        $sp = $servicePrincipal
-    }
-    else
-    {
-        $sp = Get-AzureADServicePrincipal -Filter "DisplayName eq '$applicationDisplayName'"
-    }
-    $appid = $sp.AppId
-    $requiredAccess = New-Object Microsoft.Open.AzureAD.Model.RequiredResourceAccess
-    $requiredAccess.ResourceAppId = $appid 
-    $requiredAccess.ResourceAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.ResourceAccess]
-
-    # $sp.Oauth2Permissions | Select Id,AdminConsentDisplayName,Value: To see the list of all the Delegated permissions for the application:
-    if ($requiredDelegatedPermissions)
-    {
-        AddResourcePermission $requiredAccess -exposedPermissions $sp.Oauth2Permissions -requiredAccesses $requiredDelegatedPermissions -permissionType "Scope"
-    }
-    
-    # $sp.AppRoles | Select Id,AdminConsentDisplayName,Value: To see the list of all the Application permissions for the application
-    if ($requiredApplicationPermissions)
-    {
-        AddResourcePermission $requiredAccess -exposedPermissions $sp.AppRoles -requiredAccesses $requiredApplicationPermissions -permissionType "Role"
-    }
-    return $requiredAccess
-}
-
-
 Function UpdateLine([string] $line, [string] $value)
 {
     $index = $line.IndexOf('=')
@@ -126,106 +71,94 @@ Function ConfigureApplications
     # you'll need to sign-in with creds enabling your to create apps in the tenant)
     if (!$Credential -and $TenantId)
     {
-        $creds = Connect-AzureAD -TenantId $tenantId
+        $creds = Connect-AzAccount -TenantId $tenantId
     }
     else
     {
         if (!$TenantId)
         {
-            $creds = Connect-AzureAD -Credential $Credential
+            $creds = Connect-AzAccount -Credential $Credential
         }
         else
         {
-            $creds = Connect-AzureAD -TenantId $tenantId -Credential $Credential
+            $creds = Connect-AzAccount -TenantId $tenantId -Credential $Credential
         }
     }
 
     if (!$tenantId)
     {
-        $tenantId = $creds.Tenant.Id
+        $tenantId = $creds.Context.Account.Tenants[0]
     }
 
-    $tenant = Get-AzureADTenantDetail
-    $tenantName =  ($tenant.VerifiedDomains | Where { $_._Default -eq $True }).Name
+    $tenant = Get-AzTenant
+    $tenantDomainName =  ($tenant | Where { $_.Id -eq $tenantId }).Domains[0]
+    $tenantName =  ($tenant | Where { $_.Id -eq $tenantId }).Name
 
     # Get the user running the script
-    $user = Get-AzureADUser -ObjectId $creds.Account.Id
+    $user = Get-AzADUser -Mail $creds.Context.Account.Id
 
-   # Create the client AAD application
-   Write-Host "Creating the AAD application (Verifiable Credentials ASP.Net core sample)"
-   $clientAadApplication = New-AzureADApplication -DisplayName "Verifiable Credentials ASP.Net core sample" `
-                                                  -IdentifierUris "https://$tenantName/vcaspnetcoresample" `
-                                                  -PublicClient $False
-
-   # Generate a certificate
-   Write-Host "Verifiable Credentials ASP.Net core sample"
-   $certificate=New-SelfSignedCertificate -Subject CN=vcaspnetcoresample`
+    # Create the client AAD application
+    Write-Host "Creating the AAD application (Verifiable Credentials ASP.Net core sample)"
+    $clientAadApplication = New-AzADApplication -DisplayName "Verifiable Credentials ASP.Net core sample" `
+                                                -IdentifierUris "https://$tenantDomainName/vcaspnetcoresample" 
+    $clientServicePrincipal = ($clientAadApplication | New-AzADServicePrincipal)
+    # Generate a certificate
+    Write-Host "Verifiable Credentials ASP.Net core sample"
+    $certSubject = "CN=vcaspnetcoresample"
+    $certificate=New-SelfSignedCertificate -Subject $certSubject `
                                            -CertStoreLocation "Cert:\CurrentUser\My" `
-                                           -KeyExportPolicy Exportable `
-                                           -KeySpec Signature
-   $certKeyId = [Guid]::NewGuid()
-   $certBase64Value = [System.Convert]::ToBase64String($certificate.GetRawCertData())
-   $certBase64Thumbprint = [System.Convert]::ToBase64String($certificate.GetCertHash())
+                                           -KeyExportPolicy "Exportable" `
+                                           -KeySpec "Signature"
 
-   # Add a Azure Key Credentials from the certificate for the daemon application
-   $clientKeyCredentials = New-AzureADApplicationKeyCredential -ObjectId $clientAadApplication.ObjectId `
-                                                                    -CustomKeyIdentifier "CN=vcaspnetcoresample" `
-                                                                    -Type AsymmetricX509Cert `
-                                                                    -Usage Verify `
-                                                                    -Value $certBase64Value `
-                                                                    -StartDate $certificate.NotBefore `
-                                                                    -EndDate $certificate.NotAfter
+    $credential = New-Object -TypeName "Microsoft.Azure.PowerShell.Cmdlets.Resources.MSGraph.Models.ApiV10.MicrosoftGraphKeyCredential" `
+                                 -Property @{
+                                    'CustomKeyIdentifier' = [system.Text.Encoding]::UTF8.GetBytes($certSubject);
+                                    'Key' = $certificate.GetRawCertData();
+                                    'KeyId' = [Guid]::NewGuid().ToString();
+                                    'Usage' = 'Verify'; 
+                                    'Type' = 'AsymmetricX509Cert';
+                                    'StartDateTime' = $certificate.NotBefore;
+                                    'EndDateTime' = $certificate.NotAfter;
+                                 }
+    $appCreds = New-AzADSpCredential -ObjectId $clientAadApplication.ObjectId -KeyCredentials $credential 
 
-   $currentAppId = $clientAadApplication.AppId
-   $clientServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
+    # Add Required Resources Access (from 'client' to 'Verifiable Credential Request Service')
+    Write-Host "Getting access from 'client' to 'Microsoft Graph'"
+    $spVCRS = Get-AzADServicePrincipal -DisplayName "Verifiable Credential Request Service"
+    $permissionId = ($spVCRS.AppRole | where {$_.DisplayName -eq "VerifiableCredential.Create.All"}).Id
+    Add-AzADAppPermission -ObjectId $clientAadApplication.Id -ApiId $spVCRS.AppId -PermissionId $permissionId -Type "Role"
+    Write-Host "Granted permissions."
 
-   # add the user running the script as an app owner if needed
-   $owner = Get-AzureADApplicationOwner -ObjectId $clientAadApplication.ObjectId
-   if ($owner -eq $null)
-   { 
-    Add-AzureADApplicationOwner -ObjectId $clientAadApplication.ObjectId -RefObjectId $user.ObjectId
-    Write-Host "'$($user.UserPrincipalName)' added as an application owner to app '$($clientServicePrincipal.DisplayName)'"
-   }
+    Write-Host "Done creating the client application (VC Asp.net core sample)"
 
-   Write-Host "Done creating the client application (VC Asp.net core sample)"
+    # URL of the AAD application in the Azure portal
+    # Future? $clientPortalUrl = "https://portal.azure.com/#@"+$tenantName+"/blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Overview/appId/"+$clientAadApplication.AppId+"/objectId/"+$clientAadApplication.ObjectId+"/isMSAApp/"
+    $clientPortalUrl = "https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/CallAnAPI/appId/"+$clientAadApplication.AppId+"/objectId/"+$clientAadApplication.ObjectId+"/isMSAApp/"
+    Add-Content -Value "<tr><td>client</td><td>$($clientAadApplication.AppId)</td><td><a href='$clientPortalUrl'>VC Asp.net core sample</a></td></tr>" -Path createdApps.html
 
-   # URL of the AAD application in the Azure portal
-   # Future? $clientPortalUrl = "https://portal.azure.com/#@"+$tenantName+"/blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Overview/appId/"+$clientAadApplication.AppId+"/objectId/"+$clientAadApplication.ObjectId+"/isMSAApp/"
-   $clientPortalUrl = "https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/CallAnAPI/appId/"+$clientAadApplication.AppId+"/objectId/"+$clientAadApplication.ObjectId+"/isMSAApp/"
-   Add-Content -Value "<tr><td>client</td><td>$currentAppId</td><td><a href='$clientPortalUrl'>VC Asp.net core sample</a></td></tr>" -Path createdApps.html
+    # Update config file for 'client'
+    $configFile = $pwd.Path + "..\appsettings.json"
+    Write-Host "Updating the sample code ($configFile)"
+    $dictionary = @{ "TenantId" = $tenantId;"ClientId" = $clientAadApplication.AppId;"ClientSecret" = "";"CertificateName" = $certSubject };
+    UpdateTextFile -configFilePath $configFile -dictionary $dictionary
+    Write-Host ""
+    Write-Host "IMPORTANT: Please follow the instructions below to complete a few manual step(s) in the Azure portal":
+    Write-Host "- For 'client'"
+    Write-Host "  - Navigate to '$clientPortalUrl'"
+    Write-Host "  - Navigate to the API permissions page and click on 'Grant admin consent for {tenant}'"
 
-   $requiredResourcesAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.RequiredResourceAccess]
-
-   # Add Required Resources Access (from 'client' to 'Verifiable Credential Request Service')
-   Write-Host "Getting access from 'client' to 'Microsoft Graph'"
-   $requiredPermissions = GetRequiredPermissions -applicationDisplayName "Verifiable Credential Request Service" `
-                                                 -requiredApplicationPermissions "VerifiableCredential.Create.All";
-
-   $requiredResourcesAccess.Add($requiredPermissions)
-
-
-   Set-AzureADApplication -ObjectId $clientAadApplication.ObjectId -RequiredResourceAccess $requiredResourcesAccess
-   Write-Host "Granted permissions."
-
-   # Update config file for 'client'
-   $configFile = $pwd.Path + "..\appsettings.json"
-   Write-Host "Updating the sample code ($configFile)"
-   $dictionary = @{ "Tenant" = $tenantName;"ClientId" = $clientAadApplication.AppId;"ClientSecret" = $clientAppKey;"CertificateName" = "CN=vcaspnetcoresample" };
-   UpdateTextFile -configFilePath $configFile -dictionary $dictionary
-   Write-Host ""
-   Write-Host "IMPORTANT: Please follow the instructions below to complete a few manual step(s) in the Azure portal":
-   Write-Host "- For 'client'"
-   Write-Host "  - Navigate to '$clientPortalUrl'"
-   Write-Host "  - Navigate to the API permissions page and click on 'Grant admin consent for {tenant}'"
-
-   Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html  
+    Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html  
 }
 
 # Pre-requisites
-if ((Get-Module -ListAvailable -Name "AzureAD") -eq $null) { 
-    Install-Module "AzureAD" -Scope CurrentUser 
-} 
-Import-Module AzureAD
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Accounts")) {  
+    Install-Module -Name "Az.Accounts" -Scope CurrentUser 
+}
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Resources")) {  
+    Install-Module "Az.Resources" -Scope CurrentUser 
+}
+Import-Module -Name "Az.Accounts"
+Import-Module -Name "Az.Resources"
 
 # Run interactively (will ask you for the tenant ID)
 ConfigureApplications -Credential $Credential -tenantId $TenantId

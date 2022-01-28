@@ -5,10 +5,15 @@ param(
     [string] $tenantId
 )
 
-if ((Get-Module -ListAvailable -Name "AzureAD") -eq $null) { 
-    Install-Module "AzureAD" -Scope CurrentUser 
-} 
-Import-Module AzureAD
+# Pre-requisites
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Accounts")) {  
+    Install-Module -Name "Az.Accounts" -Scope CurrentUser 
+}
+if ($null -eq (Get-Module -ListAvailable -Name "Az.Resources")) {  
+    Install-Module "Az.Resources" -Scope CurrentUser 
+}
+Import-Module -Name "Az.Accounts"
+Import-Module -Name "Az.Resources"
 $ErrorActionPreference = 'Stop'
 
 Function Cleanup
@@ -25,36 +30,36 @@ This function removes the Azure AD applications for the sample. These applicatio
     # you'll need to sign-in with creds enabling your to create apps in the tenant)
     if (!$Credential -and $TenantId)
     {
-        $creds = Connect-AzureAD -TenantId $tenantId
+        $creds = Connect-AzAccount -TenantId $tenantId
     }
     else
     {
         if (!$TenantId)
         {
-            $creds = Connect-AzureAD -Credential $Credential
+            $creds = Connect-AzAccount -Credential $Credential
         }
         else
         {
-            $creds = Connect-AzureAD -TenantId $tenantId -Credential $Credential
+            $creds = Connect-AzAccount -TenantId $tenantId -Credential $Credential
         }
     }
-
+    
     if (!$tenantId)
     {
-        $tenantId = $creds.Tenant.Id
+        $tenantId = $creds.Context.Account.Tenants[0]
     }
-    $tenant = Get-AzureADTenantDetail
-    $tenantName =  ($tenant.VerifiedDomains | Where { $_._Default -eq $True }).Name
+    $tenant = Get-AzTenant
+    $tenantDomainName =  ($tenant | Where { $_.Id -eq $tenantId }).Domains[0]
     
     # Removes the applications
-    Write-Host "Cleaning-up applications from tenant '$tenantName'"
+    Write-Host "Cleaning-up applications from tenant '$tenantDomainName'"
 
-    Write-Host "Removing 'client' (Verifiable Credentials ASP.Net core sample if needed"
-    $app=Get-AzureADApplication -Filter "DisplayName eq 'Verifiable Credentials ASP.Net core sample'"  
+    Write-Host "Removing 'client' (Verifiable Credentials ASP.Net core sample) if needed"
+    $app = Get-AzADApplication -DisplayName "Verifiable Credentials ASP.Net core sample"  
 
-    if ($app)
+    if ($null -ne $app)
     {
-        Remove-AzureADApplication -ObjectId $app.ObjectId
+        $app | Remove-AzADApplication
         Write-Host "Removed."
     }
 

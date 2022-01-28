@@ -4,6 +4,8 @@
 
 ### Quick summary
 
+**Note** This version of the app creation scripts can only be used of Windows currently. 
+
 1. On Windows run PowerShell and navigate to the root of the cloned directory
 1. In PowerShell run:
    ```PowerShell
@@ -53,27 +55,22 @@ The `Configure.ps1` will stop if it tries to create an Azure AD application whic
 
 ### Pre-requisites
 
+You must have Powershell installed on your machine. To install it, follow the documentation:
+- [Windows](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.2)
+
 1. Open PowerShell (On Windows, press  `Windows-R` and type `PowerShell` in the search window)
 2. Navigate to the root directory of the project.
 3. Until you change it, the default [Execution Policy](https:/go.microsoft.com/fwlink/?LinkID=135170) for scripts is usually `Restricted`. In order to run the PowerShell script you need to set the Execution Policy to `RemoteSigned`. You can set this just for the current PowerShell process by running the command:
     ```PowerShell
     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
     ```
-### (Optionally) install AzureAD PowerShell modules
-The scripts install the required PowerShell module (AzureAD) for the current user if needed. However, if you want to install if for all users on the machine, you can follow the following steps:
 
-4. If you have never done it already, in the PowerShell window, install the AzureAD PowerShell modules. For this:
+### Install Az PowerShell modules
+The scripts required PowerShell module Az. To install it, follow the documentation [here](https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-7.1.0). If you have installed it previously, make sure that you have the latest version by running Powershell command. The Configure.ps1 script may give an error if you have an old version.
 
-   1. Open PowerShell as admin (On Windows, Search Powershell in the search bar, right click on it and select Run as administrator).
-   2. Type:
-      ```PowerShell
-      Install-Module AzureAD
-      ```
-
-      or if you cannot be administrator on your machine, run:
-      ```PowerShell
-      Install-Module AzureAD -Scope CurrentUser
-      ```
+```powershell
+Update-Module -Name Az
+```
 
 ### Run the script and start running
 
