@@ -78,10 +78,11 @@ brew install openssl
 
 Using the parameters, the script can be run in the following different ways. Depending on if you haven't signed in from the powershell prompt yet, you will be required to do an interactive signin. If you already have signed in, the script will execute in the current context. You can check if you have a current context via the `Get-AzContext` powershell command. This will show which Azure AD tenant you are currently signed in to. If this is the wrong Azure AD tenant, you can clear the current context with the `Clear-AzContext`. 
 
-If you don't want to sign in before you execute any scripts, you can to this via running the following
+If you don't want to sign in every time you execute a script, you can to this via running the following
 
 ```powershell
-Connect-AzConnect -tenantId $yourTenantId
+$tenantId = "yourTenantIdGuid"
+Connect-AzConnect -tenantId $tenantId
 ```
 
 #### Option 1
@@ -112,7 +113,7 @@ The default behaviour of the `Configure.ps1` script is to register the app and c
 .\Configure.ps1 -ClientCertificate -ClientSecret
 ```
 
-If you use the `-ClientCertificate` option, on Windows, the script will create a self-signed certificate in the certificate store under Personal\Certificates with the subject `CN=vcaspnetcoresample`. On Mac/Linux, the self-signed certificate will be three files named appaadcert.pem, appaadcert.csr and addaadcert.csr. The `Cleanup.ps1` script will remove the certificate from the certificate store on Windows and delete the files on Mac/Linux.
+If you use the `-ClientCertificate` option, on Windows, the script will create a self-signed certificate in the user certificate store under Personal\Certificates with the subject `CN=vcaspnetcoresample`. On Mac/Linux, the self-signed certificate will be three files named appaadcert.pem, appaadcert.csr and addaadcert.csr. The `Cleanup.ps1` script will remove the certificate from the certificate store on Windows and delete the files on Mac/Linux.
 
 #### Option 4 - Cleanup
 
