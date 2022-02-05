@@ -116,13 +116,23 @@ namespace AspNetCoreVerifiableCredentials
 
                 if (payload["callback"]["url"] != null)
                 {
-                    //localhost hostname can't work for callbacks so we won't overwrite it.
+                    //localhost hostname can't work for callbacks so we will use the configured value in appsetttings.json in that case.
                     //this happens for example when testing with sign-in to an IDP and https://localhost is used as redirect URI
-                    //in that case the callback should be configured in the payload directly instead of being modified in the code here
                     string host = GetRequestHostName();
                     if (!host.Contains("//localhost"))
                     {
-                        payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
+                        payload["callback"]["url"] = String.Format("{0}/api/issuer/issuanceCallback", host);
+                    }
+                    else
+                    {
+                        if (!String.IsNullOrWhiteSpace(AppSettings.VCCallbackHostURL))
+                        {
+                            payload["callback"]["url"] = String.Format("{0}/api/issuer/issuanceCallback", AppSettings.VCCallbackHostURL);
+                        }
+                        else
+                        {
+                            _log.LogError(String.Format("VCCallbackHostURL is not set in the AppSettings section of appsettings.json file. Please refer to README section on Running the sample for instructions on how to set this value."));
+                        }
                     }
                 }
 

@@ -6,16 +6,16 @@ languages:
 products:
 - active-directory
 - verifiable credentials
-description: "A code sample demonstrating issuance and verification of verifiable credentials."
+description: "A code sample demonstrating issuance and verification of verifiable credentials for a signed in user in your organization."
 urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
-#TODO
-modify the sample setup instructions
-modify the appcreationscripts to add AAD App registration for sign-in both the client secret and cert powershells
-
 # Verifiable Credentials Code Sample
 
-This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue and consume verifiable credentials. 
+As a developer, you'd probably want users to sign-in  with their work or school accounts.
+Then provide them an option to get verifiable credentials. Further you want the applications to accept these verifiable credentials
+to allow access. 
+
+This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue verifiable credentials for a signed in user and then consume those verifiable credentials. 
 
 ## About this sample
 
@@ -42,9 +42,11 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 
 ## Setup
 
-Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/didfordevs).
+Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/vcsetup).
 
 ### Create application registration
+Note: If you already having [this sample](https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/tree/main/1-asp-net-core-api-idtokenhint) up and running you may be able to skip over to Step 7. The powershell scripts currently dont automate Step 7 and onwards.
+
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
 Register an application in Azure Active Directory: 
@@ -66,13 +68,28 @@ Register an application in Azure Active Directory:
     - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
     - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
 ![Admin concent](ReadmeFiles/AdminConcent.PNG)
+7. In the list of pages for the app, select **Authentication**..
+   - In the Redirect URIs section, select **Web** in the combo-box and enter the following redirect URIs.
+       - `http://localhost:5000/`
+       - `http://localhost:5000/signin-oidc`
+     **Note:** 5000 is the port configured in the **applicationUrl** under **iisExpress** and also under **AspNetCoreVerifiableCredentials** in Properties\launchSettings.json
+   - In the **Advanced settings** section set **Logout URL** to `http://localhost:5000/signout-oidc`
+   - In the **Advanced settings** | **Implicit grant** section, check **ID tokens** as this sample requires the [ID Token](https://docs.microsoft.com/azure/active-directory/develop/id-tokens) to be enabled to
+     sign-in the user.
+     Select **Save**.
+8. In the list of pages for the app, select **Token configuration**
+   - Click **Add optional claim**
+   - Select token type **ID**
+   - Check the box for following optional claims: **given_name** and **family_name**
+   - Select **Add**
+   - You will be prompted and will need to check the option to **Turn on the Microsoft Graph profile permission (required for claims to appear in token).** in the prompt and select **Add**. 
 
 ## Setting up and running the sample
 To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use `ngrok` as a reverse proxy to reach your app.
 
 ```Powershell
 git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
-cd active-directory-verifiable-credentials-dotnet/1-asp-net-core-api-idtokenhint
+cd active-directory-verifiable-credentials-dotnet/2-asp-net-core-api-user-sigin
 ```
 
 ### Create your credential
@@ -94,33 +111,45 @@ If you want to modify the payloads `issuance_request_config.json` and `presentat
 
 Make sure you copy the `ClientId`, `ClientSecret` and `TenantTd` you copied when creating the app registration to the `appsettings.json` as well.
 
+Make sure you copy the `ClientId` and `TenantTd` you copied when creating the app registration to the `appsettings.json` **AzureAd** section as well.
+
 ## Running the sample
 
-1. Open a command prompt and run the following command:
+1. Open a command prompt, run ngrok to set up a URL on 5000. You can install ngrok globally by using the [ngrok npm package](https://www.npmjs.com/package/ngrok/).
+```Powershell
+ngrok http 5000
+```
+**Note:** The port number should be the same as the one configured in Properties\launchSettings.json and the Redirect URI configured in **Create application registration** section above.
+
+2. Copy the HTTPS URL generated by ngrok in the `VCCallbackHostURL` part of the `appsettings.json`, example: https://aedc-68-249-160-201.ngrok.io 
+![API Overview](ReadmeFiles/ngrok-url-screen.png)
+The sample uses the `VCCallbackHostURL` to build the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
+
+3. Now open a different command prompt and run the following command:
 ```Powershell
 dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net5
 dotnet run
 ```
+4. Open http://localhost:5000 Note: The ngrok generated URL is **not** being used since the URL has to match the one in the redirect URL 
+in App registration above and using ngrok generated URL would mean changing the redirect URL in the App registration everytime you run ngrok. 
 
-2. Using a different command prompt, run ngrok to set up a URL on 3000. You can install ngrok globally by using the [ngrok npm package](https://www.npmjs.com/package/ngrok/).
-```Powershell
-ngrok http 3000
-```
-3. Open the HTTPS URL generated by ngrok.
-![API Overview](ReadmeFiles/ngrok-url-screen.png)
-The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
+5. Click "Sign in" and enter your tenant's work or school account credentials.
 
-1. Select GET CREDENTIAL
-1. In Authenticator, scan the QR code. 
+6. Select GET CREDENTIAL
+
+7. In Authenticator, scan the QR code. 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
-6. If you see the 'This app or website may be risky screen', select **Advanced**.
-1. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
-1. On the Add a credential screen, notice that:
+
+8. If you see the 'This app or website may be risky screen', select **Advanced**.
+
+9. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
+
+10. On the Add a credential screen, notice that:
 
   - At the top of the screen, you can see a red **Not verified** message.
   - The credential is based on the information you uploaded as the display file.
 
-9. Select **Add**.
+11. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
 1. Navigate back and click on the Verify Credential link
