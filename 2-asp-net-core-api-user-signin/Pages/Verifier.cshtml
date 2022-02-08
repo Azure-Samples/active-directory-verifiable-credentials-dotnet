@@ -1,0 +1,110 @@
+﻿@page
+@model AspNetCoreVerifiableCredentials.Pages.VerifierModel
+@{
+    ViewData["Title"] = "Verifier";
+}
+           <div style="text-align: center;">
+                <img src="VerifiedCredentialExpert-icon.png" height=200px; />
+                <h1>Verifiable Credential Expert Verification</h1>
+        
+            <button type="button" id="sign-in" class="button">VERIFY CREDENTIAL</button>
+            <div id="qrText"  style="display:none;">
+                <p class="small-text">
+                    <img src="authenticator-icon.png" alt="Authenticator icon" class="icon-small"><br>
+                    Scan with Microsoft Authenticator
+                </p>
+            </div>
+            <a id="deeplink" style="display: none;margin-top: 10px;">Tap to open Authenticator on mobile</a>
+            <div id="qrcode" style="text-align: center"></div>
+            <div id="pinCodeText" style="display: none"></div>
+
+            <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
+               <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+               <div id="message"></div>
+                <br />
+               <div id="subject"></div>
+                <br />
+               <div id="payload"></div>
+            </div>
+            <div id="error-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
+               <div id="errormsg"></div>
+                <br />
+            </div>
+
+            <script src="qrcode.min.js"></script>
+            <script>
+                var signIn = document.getElementById('sign-in');
+                var signOut = document.getElementById('sign-out');
+                var display = document.getElementById('display');
+                var qrcode = new QRCode("qrcode", { width: 300, height: 300 });
+                var respPresentationReq = null;
+
+                signIn.addEventListener('click', () => {
+                    fetch('/api/verifier/presentation-request')
+                        .then(async function(response) {
+                            if (!response.ok)
+                            {
+                                console.log('Something went wrong');
+                                const errorInfo = await response.json();
+                                console.log('error:', errorInfo.error_description);
+                                document.getElementById("errormsg").innerHTML = errorInfo.error_description;
+                                return;
+                            }
+                            else
+                            {
+                                console.log (response);
+                                respPresentationReq = await response.json();
+                                if( /Android/i.test(navigator.userAgent) ) {
+                                    console.log(`Android device! Using deep link (${respPresentationReq.url}).`);
+                                    window.location.href = respPresentationReq.url; setTimeout(function () {
+                                    window.location.href = "https://play.google.com/store/apps/details?id=com.azure.authenticator"; }, 2000);
+                                } else if (/iPhone/i.test(navigator.userAgent)) {
+                                    console.log(`iOS device! Using deep link (${respPresentationReq.url}).`);
+                                    window.location.replace(respPresentationReq.url);
+                                } else {
+                                    console.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
+                                    qrcode.makeCode(respPresentationReq.url);
+                                    document.getElementById('sign-in').style.visibility = "hidden";
+                                    document.getElementById('qrText').style.display = "block";
+                                }
+                            }
+                            console.log (response);
+                        })
+                        .catch(function(error) {
+                                console.log('Something went wrong: ' + error);
+                                document.getElementById("errormsg").innerHTML = error;
+                                return;
+                                })
+                        .then(function statuscheck(){
+                            var checkStatus = setInterval(function () {
+                                fetch('api/verifier/presentation-response?id=' + respPresentationReq.id )
+                                    .then(response => response.text())
+                                    .catch(error => document.getElementById("message").innerHTML = error)
+                                    .then(response => {
+                                        if (response.length > 0) {
+                                            console.log(response)
+                                            respMsg = JSON.parse(response);
+                                            // QR Code scanned
+                                            if (respMsg.status == 'request_retrieved') {
+                                                document.getElementById('message-wrapper').style.display = "block";
+                                                document.getElementById('qrText').style.display = "none";
+                                                document.getElementById('qrcode').style.display = "none";
+                                                document.getElementById('message').innerHTML = respMsg.message;
+                                            }
+                                    
+                                            if (respMsg.status == 'presentation_verified') {
+                                                document.getElementById('message').innerHTML = respMsg.message;
+                                                document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
+                                                document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName +" is a Verifiable Credential Expert";
+                                                clearInterval(checkStatus);
+                                            }
+
+                                        }
+                                    })
+                            }, 1500); //change this to higher interval if you use ngrok to prevent overloading the free tier service
+                        });
+
+                });
+            </script>
+            </div>
+
