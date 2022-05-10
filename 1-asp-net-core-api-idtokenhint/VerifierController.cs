@@ -276,54 +276,6 @@ namespace AspNetCoreVerifiableCredentials
                 return BadRequest(new { error = "400", error_description = ex.Message });
             }
         }
-        /// <summary>
-        /// Azure AD B2C REST API Endpoint for retrieveing the VC presentation response
-        /// HTTP POST comes from Azure AD B2C 
-        /// body : The InputClaims from the B2C policy.It will only be one claim named 'id'
-        /// </summary>
-        /// <returns>returns a JSON structure with claims from the VC presented</returns>
-        [HttpPost("/api/verifier/presentation-response-b2c")]
-        public async Task<ActionResult> PresentationResponseB2C() {
-            try {
-                string body = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
-                _log.LogTrace(body);
-                JObject b2cRequest = JObject.Parse(body);
-                string state = b2cRequest["id"].ToString();
-                if (string.IsNullOrEmpty(state)) 
-                {
-                    return BadRequest(new { error = "400", error_description = "Missing argument 'id'" });
-                }
-                JObject cachedData = null;
-                if (!_cache.TryGetValue(state, out string buf)) 
-                {
-                    var msg = new { version = "1.0.0", status = 400, userMessage = "Verifiable Credentials not presented" };
-                    return new ContentResult { StatusCode = 409, ContentType = "application/json", Content = JsonConvert.SerializeObject(msg) };
-                }
-                cachedData = JObject.Parse(buf);
-                // remove cache data now, because if we crash, we don't want to get into an infinite loop of crashing
-                _cache.Remove(state);
-                // setup the response that we are returning to B2C
-                var presentationResponse = cachedData["presentationResponse"];
-                var obj = new {
-                    // type is 2..N of the types presented. [0]==the generic 'VerifiableCredentials', so we pick the 2nd for convenience
-                    vcType = presentationResponse["issuers"][0]["type"][1].ToString(),
-                    vcIss = presentationResponse["issuers"][0]["authority"].ToString(),
-                    vcSub = presentationResponse["subject"].ToString(),
-                    // key is intended to be user in user's profile 'identities' collection as a signInName,
-                    // and it can't have colons, therefor we modify the value (and clip at following :)
-                    vcKey = presentationResponse["subject"].ToString().Replace("did:ion:", "did.ion.").Split(":")[0]
-                };
-                JObject b2cResponse = JObject.Parse(JsonConvert.SerializeObject(obj));
-                // merge the VC claims with the claims we created above since we return them both to B2C
-                b2cResponse.Merge( presentationResponse["issuers"][0]["claims"], new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union });
-                string resp = JsonConvert.SerializeObject(b2cResponse);
-                _log.LogTrace(resp);
-                return new ContentResult { ContentType = "application/json", Content = resp };
-            } catch (Exception ex) {
-                return BadRequest(new { error = "400", error_description = ex.Message });
-            }
-        }
-
         //some helper functions
         protected async Task<(string token, string error, string error_description)> GetAccessToken()
         {
