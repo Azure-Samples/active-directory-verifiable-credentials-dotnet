@@ -31,8 +31,8 @@ namespace AspNetCoreVerifiableCredentials
             //TODO check if this is needed, I only want the issuing website to authenticate the user
             services.AddAuthorization(options =>
             {
-            //    // By default, all incoming requests will be authorized according to the default policy
-            //    options.FallbackPolicy = options.DefaultPolicy;
+                //    // By default, all incoming requests will be authorized according to the default policy
+                //    options.FallbackPolicy = options.DefaultPolicy;
             });
 
 
@@ -47,13 +47,13 @@ namespace AspNetCoreVerifiableCredentials
             services.AddDistributedMemoryCache();
             services.AddSession(options =>
             {
-                options.IdleTimeout = TimeSpan.FromMinutes(1);//You can set Time   
+                options.IdleTimeout = TimeSpan.FromMinutes(1);//You can set Time
                 options.Cookie.IsEssential = true;
                 options.Cookie.SameSite = SameSiteMode.None;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
 
- 
+
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -82,7 +82,14 @@ namespace AspNetCoreVerifiableCredentials
             }
             app.UseSession();
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            app.UseStaticFiles(
+                new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(
+                        Path.Combine(env.ContentRootPath, ".well-known")),
+                    RequestPath = "/.well-known"
+                }
+            );
             app.UseRouting();
 
             //we want the user to be able to sign-in when VCs are being issued
@@ -92,7 +99,7 @@ namespace AspNetCoreVerifiableCredentials
             app.UseCookiePolicy(new CookiePolicyOptions
             {
                 Secure = CookieSecurePolicy.Always
-             }) ;
+            });
 
             //this setting is used when you use tools like ngrok or reverse proxies like nginx which connect to http://localhost
             //if you don't set this setting the sign-in redirect will be http instead of https

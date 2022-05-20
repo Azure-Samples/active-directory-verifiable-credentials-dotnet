@@ -18,7 +18,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;            
+            Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
@@ -51,7 +51,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if ( env.IsDevelopment())
+            if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -66,7 +66,14 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 app.UseHttpsRedirection();
             }
             app.UseDefaultFiles();
-            app.UseStaticFiles();
+            app.UseStaticFiles(
+                new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(
+                        Path.Combine(env.ContentRootPath, ".well-known")),
+                    RequestPath = "/.well-known"
+                }
+            );
             app.UseCors("MyPolicy");
             app.UseRouting();
             app.UseAuthorization();
@@ -75,7 +82,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 endpoints.MapDefaultControllerRoute();
             });
 
-            System.Environment.SetEnvironmentVariable("INMEM-API-KEY", Guid.NewGuid().ToString() );
+            System.Environment.SetEnvironmentVariable("INMEM-API-KEY", Guid.NewGuid().ToString());
         }
     }
 }

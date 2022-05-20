@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.IO;
 
 namespace AspNetCoreVerifiableCredentials
 {
@@ -32,7 +34,7 @@ namespace AspNetCoreVerifiableCredentials
                 builder.AllowAnyOrigin()
                        .AllowAnyMethod()
                        .AllowAnyHeader();
-                    // .WithOrigins("http://example.com","http://www.contoso.com");
+                // .WithOrigins("http://example.com","http://www.contoso.com");
             }));
 
             services.Configure<AppSettingsModel>(Configuration.GetSection("AppSettings"));
@@ -41,7 +43,7 @@ namespace AspNetCoreVerifiableCredentials
             services.AddDistributedMemoryCache();
             services.AddSession(options =>
             {
-                options.IdleTimeout = TimeSpan.FromMinutes(1);//You can set Time   
+                options.IdleTimeout = TimeSpan.FromMinutes(1);//You can set Time
                 options.Cookie.IsEssential = true;
             });
             services.Configure<CookiePolicyOptions>(options =>
@@ -70,7 +72,14 @@ namespace AspNetCoreVerifiableCredentials
             }
             app.UseSession();
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            app.UseStaticFiles(
+                new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(
+                        Path.Combine(env.ContentRootPath, ".well-known")),
+                    RequestPath = "/.well-known"
+                }
+            );
             app.UseRouting();
             app.UseCors("MyPolicy");
 
