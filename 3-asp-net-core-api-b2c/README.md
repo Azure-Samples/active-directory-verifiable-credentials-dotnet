@@ -28,7 +28,7 @@ The remaining five settings control what VC credential you want to issue and pre
     "ApiEndpoint": "https://beta.eu.did.msidentity.com/v1.0/{0}/verifiablecredentials/request",
     "TenantId": "<your-AAD-tenant-for-VC>",
     "Authority": "https://login.microsoftonline.com/{0}",
-    "scope": "bbb94529-53a3-4be5-a069-7eaf2712b826/.default",
+    "scope": "3db474b9-6a0c-4840-96ac-1fceb342124f/.default",
     "ClientId": "<your-clientid-with-API-Permissions->",
     "ClientSecret": "your-secret",
     "VerifierAuthority": "did:ion:...your DID...",
