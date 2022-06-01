@@ -66,6 +66,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 app.UseHttpsRedirection();
             }
             app.UseDefaultFiles();
+            app.UseStaticFiles();
             app.UseStaticFiles(
                 new StaticFileOptions
                 {
