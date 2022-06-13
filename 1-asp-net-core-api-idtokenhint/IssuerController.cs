@@ -156,7 +156,7 @@ namespace AspNetCoreVerifiableCredentials
                     var accessToken = await GetAccessToken();
                     if (accessToken.Item1 == String.Empty)
                     {
-                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
+                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description));
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
 
