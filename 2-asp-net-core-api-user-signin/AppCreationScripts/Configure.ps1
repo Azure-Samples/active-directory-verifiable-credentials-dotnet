@@ -209,9 +209,9 @@ Function ConfigureApplications
 
    $requiredResourcesAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.RequiredResourceAccess]
 
-   # Add Required Resources Access (from 'client' to 'Verifiable Credential Request Service')
+   # Add Required Resources Access (from 'client' to 'Verifiable Credentials Service Request')
    Write-Host "Getting access from 'client' to 'Microsoft Graph'"
-   $requiredPermissions = GetRequiredPermissions -applicationDisplayName "Verifiable Credential Request Service" `
+   $requiredPermissions = GetRequiredPermissions -applicationDisplayName "Verifiable Credentials Service Request" `
                                                 -requiredApplicationPermissions "VerifiableCredential.Create.All";
 
    $requiredResourcesAccess.Add($requiredPermissions)
