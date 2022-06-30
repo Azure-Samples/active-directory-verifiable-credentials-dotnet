@@ -50,6 +50,32 @@ namespace AspNetCoreVerifiableCredentialsB2C
             CacheValueWithNoExpiery("manifestPresentation", contents);
             return JObject.Parse(contents);
         }
+
+        protected VCPresentationRequest CreatePresentationRequest( string correlationId ) {
+            VCPresentationRequest request = new VCPresentationRequest() {
+                includeQRCode = false,
+                authority = this.AppSettings.VerifierAuthority,
+                registration = new Registration() {
+                    clientName = this.AppSettings.client_name
+                },
+                callback = new Callback() {
+                    url = string.Format("{0}/presentation-callback", GetApiPath()),
+                    state = correlationId,
+                    headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
+                },
+                presentation = new Presentation() {
+                    includeReceipt = false,
+                    requestedCredentials = new List<RequestedCredential>()
+                }
+            };
+            request.presentation.requestedCredentials.Add(new RequestedCredential() {
+                type = this.AppSettings.CredentialType,
+                manifest = this.AppSettings.DidManifest,
+                purpose = this.AppSettings.Purpose,
+                acceptedIssuers = new List<string>(new string[] { this.AppSettings.IssuerAuthority })
+            });
+            return request;
+        }
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// REST APIs
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,30 +119,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 // we use it to correlate which verification that got completed, so we can update the cache and tell the correct Browser session
                 // that they are done
                 string correlationId = Guid.NewGuid().ToString();
-
-                VCPresentationRequest request = new VCPresentationRequest() {
-                    includeQRCode = false,
-                    authority = this.AppSettings.VerifierAuthority,
-                    registration = new Registration() {
-                        clientName = this.AppSettings.client_name
-                    },
-                    callback = new Callback() {
-                        url = string.Format("{0}/presentation-callback", GetApiPath()),
-                        state = correlationId,
-                        headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
-                    },
-                    presentation = new Presentation() {
-                        includeReceipt = false,
-                        requestedCredentials = new List<RequestedCredential>()
-                    }
-                };
-                request.presentation.requestedCredentials.Add(new RequestedCredential() {
-                    type = this.AppSettings.CredentialType,
-                    manifest = this.AppSettings.DidManifest,
-                    purpose = this.AppSettings.Purpose,
-                    acceptedIssuers = new List<string>(new string[] { this.AppSettings.IssuerAuthority })
-                });
-
+                VCPresentationRequest request = CreatePresentationRequest( correlationId );
                 string jsonString = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
                 });
@@ -135,6 +138,90 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 _log.LogTrace("VC Client API Response\n{0}", contents);
                 return ReturnJson( contents );
             }  catch (Exception ex) {
+                return ReturnErrorMessage(ex.Message);
+            }
+        }
+        /// <summary>
+        /// This method is called from the B2C HTML/javascript to get a QR code deeplink that 
+        /// points back to this API instead of the VC Request Service API.
+        /// You need to pass in QueryString parameters such as 'id' or 'StateProperties' which both
+        /// are the B2C CorrelationId. StateProperties is a base64 encoded JSON structure.
+        /// </summary>
+        /// <returns>JSON deeplink to this API</returns>
+        [HttpGet("/api/verifier/presentation-request-link")]
+        public ActionResult StaticPresentationReferenceGet() {
+            TraceHttpRequest();
+            try {
+                string correlationId = this.Request.Query["id"];
+                string stateProp = this.Request.Query["StateProperties"]; // may come from SETTINGS.transId
+                if (string.IsNullOrWhiteSpace(correlationId) && !string.IsNullOrWhiteSpace(stateProp) ) {
+                    stateProp = stateProp.PadRight(stateProp.Length + (stateProp.Length % 4), '=');
+                    JObject spJson = JObject.Parse( Encoding.UTF8.GetString(Convert.FromBase64String(stateProp)) );
+                    correlationId = spJson["TID"].ToString();
+                }
+                if ( string.IsNullOrWhiteSpace(correlationId) ) {
+                    correlationId = Guid.NewGuid().ToString();
+                }
+                RemoveCacheValue( correlationId );
+                var resp = new { 
+                    requestId = correlationId,
+                    url = string.Format("openid://vc/?request_uri={0}/presentation-request-proxy?id={1}", GetApiPath(), correlationId),
+                    expiry = (int)(DateTime.UtcNow.AddDays(1) - new DateTime(1970, 1, 1)).TotalSeconds,
+                    id = correlationId
+                };
+                string respJson = JsonConvert.SerializeObject(resp);
+                _log.LogTrace("API static request Response\n{0}", respJson );
+                return ReturnJson( respJson );
+            } catch (Exception ex) {
+                return ReturnErrorMessage(ex.Message);
+            }
+        }
+        /// <summary>
+        /// This method get's called by the Microsoft Authenticator when it scans the QR code and 
+        /// wants to retrieve the request. We call the VC Request Service API, get the request_uri 
+        /// in the response, invoke that url and retrieve the response and pass it to the caller.
+        /// This way this API acts as a proxy.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("/api/verifier/presentation-request-proxy")]
+        public ActionResult StaticPresentationReferenceProxy() {
+            TraceHttpRequest();
+            try {
+                // 1. Create a Presentation Request and call the Client API to get the 'real' request_uri
+                string correlationId = this.Request.Query["id"];
+                VCPresentationRequest request = CreatePresentationRequest( correlationId );
+                string jsonString = JsonConvert.SerializeObject( request, Formatting.None, new JsonSerializerSettings {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+                _log.LogTrace("VC Client API Request\n{0}", jsonString);
+                string contents = "";
+                HttpStatusCode statusCode = HttpStatusCode.OK;
+                if (!HttpPost(jsonString, out statusCode, out contents)) {
+                    _log.LogError("VC Client API Error Response\n{0}", contents);
+                    return ReturnErrorMessage(contents);
+                }
+                _log.LogTrace("VC Client API Response\n{0}", contents);
+
+                // 2. Get the 'real' request_uri from the response and make a HTTP GET to it to retrieve the JWT Token for the Authenticator
+                JObject apiResp = JObject.Parse(contents);
+                string request_uri = apiResp["url"].ToString().Split("=")[1]; // openid://vc/?request_uri=<...url to retrieve request...>
+                string response = null;
+                string contentType = null;
+                using (HttpClient client = new HttpClient()) {
+                    string preferHeader = this.Request.Headers["prefer"].ToString();
+                    if ( !string.IsNullOrWhiteSpace(preferHeader) ) {
+                        client.DefaultRequestHeaders.Add("prefer", preferHeader); // JWT-interop-profile-0.0.1
+                    }
+                    HttpResponseMessage res = client.GetAsync(request_uri).Result;
+                    response = res.Content.ReadAsStringAsync().Result;
+                    statusCode = res.StatusCode;
+                    contentType = res.Content.Headers.ContentType.ToString();
+                    client.Dispose();
+                }
+                // 3. Return the response to the Authenticator
+                _log.LogTrace("VC Client API GET Response\nStatusCode={0}\nContent-Type={1}\n{2}", statusCode, contentType, response);
+                return new ContentResult { StatusCode = (int)statusCode, ContentType = contentType, Content = response };
+            } catch (Exception ex) {
                 return ReturnErrorMessage(ex.Message);
             }
         }
@@ -183,6 +270,8 @@ namespace AspNetCoreVerifiableCredentialsB2C
                         }                        
                         return ReturnJson(JsonConvert.SerializeObject(resp));
                     }                    
+                } else {
+                    return ReturnJson(JsonConvert.SerializeObject(new { status = 0, message = "No data" }));
                 }
 
                 return new OkResult();
