@@ -87,9 +87,9 @@ namespace AspNetCoreVerifiableCredentials
                 //this means only that issuer should be trusted for the requested credentialtype
                 //this value is an array in the payload, you can trust multiple issuers for the same credentialtype
                 //very common to accept the test VCs and the Production VCs coming from different verifiable credential services
-                if (payload["presentation"]["requestedCredentials"][0]["acceptedIssuers"][0] != null)
+                if (payload["requestedCredentials"][0]["acceptedIssuers"][0] != null)
                 {
-                    payload["presentation"]["requestedCredentials"][0]["acceptedIssuers"][0] = AppSettings.IssuerAuthority;
+                    payload["requestedCredentials"][0]["acceptedIssuers"][0] = AppSettings.IssuerAuthority;
                 }                
 
                 //modify the callback method to make it easier to debug with tools like ngrok since the URI changes all the time
@@ -133,7 +133,7 @@ namespace AspNetCoreVerifiableCredentials
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
-                    HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    HttpResponseMessage res = await client.PostAsync(AppSettings.Endpoint + "verifiableCredentials/createPresentationRequest", new StringContent(jsonString, Encoding.UTF8, "application/json"));
                     response = await res.Content.ReadAsStringAsync();
                     statusCode = res.StatusCode;
 
@@ -202,7 +202,7 @@ namespace AspNetCoreVerifiableCredentials
                 //the request will be deleted from the server immediately.
                 //That's why it is so important to capture this callback and relay this to the UI so the UI can hide
                 //the QR code to prevent the user from scanning it twice (resulting in an error since the request is already deleted)
-                if (presentationResponse["code"].ToString() == "request_retrieved")
+                if (presentationResponse["requestStatus"].ToString() == "request_retrieved")
                 {
                     var cacheData = new
                     {
@@ -216,16 +216,16 @@ namespace AspNetCoreVerifiableCredentials
                 // typically here is where the business logic is written to determine what to do with the result
                 // the response in this callback contains the claims from the Verifiable Credential(s) being presented by the user
                 // In this case the result is put in the in memory cache which is used by the UI when polling for the state so the UI can be updated.
-                if (presentationResponse["code"].ToString() == "presentation_verified")
+                if (presentationResponse["requestStatus"].ToString() == "presentation_verified")
                 {
                     var cacheData = new
                     {
                         status = "presentation_verified",
                         message = "Presentation verified",
-                        payload = presentationResponse["issuers"].ToString(),
+                        payload = presentationResponse["verifiedCredentialsData"].ToString(),
                         subject = presentationResponse["subject"].ToString(),
-                        firstName = presentationResponse["issuers"][0]["claims"]["firstName"].ToString(),
-                        lastName = presentationResponse["issuers"][0]["claims"]["lastName"].ToString(),
+                        firstName = presentationResponse["verifiedCredentialsData"][0]["claims"]["firstName"].ToString(),
+                        lastName = presentationResponse["verifiedCredentialsData"][0]["claims"]["lastName"].ToString(),
                         presentationResponse = presentationResponse // need to cache the entire presentation response for B2C
 
                     };
