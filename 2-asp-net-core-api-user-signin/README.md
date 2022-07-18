@@ -161,8 +161,9 @@ in App registration above and using ngrok generated URL would mean changing the 
 
 
 ## About the code
-Since the API is now a multi-tenant API it needs to receive an access token when it's called. 
-The endpoint of the API is https://beta.did.msidentity.com/v1.0/{YOURTENANTID}/verifiablecredentials/request 
+Since the API is a multi-tenant API it needs to receive an access token when it's called. 
+The endpoint of the API is https://beta.did.msidentity.com/v1.0/verifiableCredentials/createIssuanceRequest and https://beta.did.msidentity.com/v1.0/verifiableCredentials/createPresentationRequest 
+
 
 To get an access token we are using MSAL as library. MSAL supports the creation and caching of access token which are used when calling Azure Active Directory protected resources like the verifiable credential request API.
 Typicall calling the libary looks something like this:
