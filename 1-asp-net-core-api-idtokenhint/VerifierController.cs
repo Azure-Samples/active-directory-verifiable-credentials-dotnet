@@ -113,9 +113,7 @@ namespace AspNetCoreVerifiableCredentials
                 }
 
                 jsonString = JsonConvert.SerializeObject(payload);
-                _log.LogTrace(jsonString);
-
-                //CALL REST API WITH PAYLOAD
+                 //CALL REST API WITH PAYLOAD
                 HttpStatusCode statusCode = HttpStatusCode.OK;
                 string response = null;
                 try
