@@ -74,23 +74,23 @@ namespace AspNetCoreVerifiableCredentials
                 //check if pin is required, if found make sure we set a new random pin
                 //pincode is only used when the payload contains claim value pairs which results in an IDTokenhint
                 JObject payload = JObject.Parse(jsonString);
-                if (payload["issuance"]["pin"] != null)
+                if (payload["pin"] != null)
                 {
                     if (IsMobile())
                     {
                         _log.LogTrace("pin element found in JSON payload, but on mobile so remove pin since we will be using deeplinking");
                         //consider providing the PIN through other means to your user instead of removing it.
-                        payload["issuance"]["pin"].Parent.Remove();
+                        payload["pin"].Parent.Remove();
 
                     }
                     else
                     {
                         _log.LogTrace("pin element found in JSON payload, modifying to a random number of the specific length");
-                        var length = (int)payload["issuance"]["pin"]["length"];
+                        var length = (int)payload["pin"]["length"];
                         var pinMaxValue = (int)Math.Pow(10, length) - 1;
                         var randomNumber = RandomNumberGenerator.GetInt32(1, pinMaxValue);
                         newpin = string.Format("{0:D" + length.ToString() + "}", randomNumber);
-                        payload["issuance"]["pin"]["value"] = newpin;
+                        payload["pin"]["value"] = newpin;
                     }
 
                 }
@@ -140,17 +140,17 @@ namespace AspNetCoreVerifiableCredentials
                 //the display and rules file to create the credential can be dound in the credentialfiles directory
                 //make sure the credentialtype in the issuance payload matches with the rules file
                 //for this sample it should be VerifiedCredentialExpert
-                if (payload["issuance"]["manifest"] != null)
+                if (payload["manifest"] != null)
                 {
-                    payload["issuance"]["manifest"] = AppSettings.CredentialManifest;
+                    payload["manifest"] = AppSettings.CredentialManifest;
                 }
 
                 //retrieve the 2 optional claims to use as part of the payload to get a VC
                 var given_name = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
                 var family_name = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value;
 
-                payload["issuance"]["claims"]["given_name"] = given_name;
-                payload["issuance"]["claims"]["family_name"] = family_name;
+                payload["claims"]["given_name"] = given_name;
+                payload["claims"]["family_name"] = family_name;
 
                 jsonString = JsonConvert.SerializeObject(payload);
 
@@ -174,7 +174,7 @@ namespace AspNetCoreVerifiableCredentials
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
 
-                    HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    HttpResponseMessage res = await client.PostAsync(AppSettings.Endpoint + "verifiableCredentials/createIssuanceRequest", new StringContent(jsonString, Encoding.UTF8, "application/json"));
                     response = await res.Content.ReadAsStringAsync();
                     client.Dispose();
                     statusCode = res.StatusCode;
@@ -236,7 +236,7 @@ namespace AspNetCoreVerifiableCredentials
                 //the request will be deleted from the server immediately.
                 //That's why it is so important to capture this callback and relay this to the UI so the UI can hide
                 //the QR code to prevent the user from scanning it twice (resulting in an error since the request is already deleted)
-                if (issuanceResponse["code"].ToString() == "request_retrieved")
+                if (issuanceResponse["requestStatus"].ToString() == "request_retrieved")
                 {
                     var cacheData = new
                     {
@@ -249,7 +249,7 @@ namespace AspNetCoreVerifiableCredentials
                 //
                 //This callback is called when issuance is completed.
                 //
-                if (issuanceResponse["code"].ToString() == "issuance_successful")
+                if (issuanceResponse["requestStatus"].ToString() == "issuance_successful")
                 {
                     var cacheData = new
                     {
@@ -261,7 +261,7 @@ namespace AspNetCoreVerifiableCredentials
                 //
                 //We capture if something goes wrong during issuance. See documentation with the different error codes
                 //
-                if (issuanceResponse["code"].ToString() == "issuance_error")
+                if (issuanceResponse["requestStatus"].ToString() == "issuance_error")
                 {
                     var cacheData = new
                     {

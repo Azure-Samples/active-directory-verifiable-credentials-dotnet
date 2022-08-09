@@ -61,13 +61,7 @@ namespace AspNetCoreVerifiableCredentials
                 return String.Format(CultureInfo.InvariantCulture, Instance, TenantId);
             }
         }
-        public string ApiEndpoint
-        {
-            get
-            {
-                return String.Format(CultureInfo.InvariantCulture, Endpoint, TenantId);
-            }
-        }
+
         /// <summary>
         /// Client secret (application password)
         /// </summary>
