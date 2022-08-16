@@ -56,7 +56,8 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 includeQRCode = false,
                 authority = this.AppSettings.VerifierAuthority,
                 registration = new Registration() {
-                    clientName = this.AppSettings.client_name
+                    clientName = this.AppSettings.client_name,
+                    purpose = this.AppSettings.Purpose
                 },
                 callback = new Callback() {
                     url = string.Format("{0}/presentation-callback", GetApiPath()),
@@ -71,7 +72,6 @@ namespace AspNetCoreVerifiableCredentialsB2C
             request.presentation.requestedCredentials.Add(new RequestedCredential() {
                 type = this.AppSettings.CredentialType,
                 manifest = this.AppSettings.DidManifest,
-                purpose = this.AppSettings.Purpose,
                 acceptedIssuers = new List<string>(new string[] { this.AppSettings.IssuerAuthority })
             });
             return request;

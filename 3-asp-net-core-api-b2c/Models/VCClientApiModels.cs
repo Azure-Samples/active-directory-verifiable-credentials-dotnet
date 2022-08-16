@@ -36,6 +36,7 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
     public class Registration
     {
         public string clientName { get; set; }
+        public string purpose { get; set; }
     }
 
     /// <summary>
@@ -87,7 +88,6 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
     {
         public string type { get; set; }
         public string manifest { get; set; }
-        public string purpose { get; set; }
         public List<string> acceptedIssuers { get; set; }
     }
 
