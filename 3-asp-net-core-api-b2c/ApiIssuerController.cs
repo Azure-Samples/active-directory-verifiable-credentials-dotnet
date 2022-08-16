@@ -122,8 +122,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                     includeQRCode = false,
                     authority = this.AppSettings.VerifierAuthority,
                     registration = new Registration() {
-                        clientName = this.AppSettings.client_name,
-                        purpose = this.AppSettings.Purpose
+                        clientName = this.AppSettings.client_name
                     },
                     callback = new Callback() {
                         url = string.Format("{0}/issue-callback", GetApiPath()),
