@@ -25,7 +25,7 @@ This is explained in the outer [README.md](../README.md#adding-authorization) fi
 The remaining five settings control what VC credential you want to issue and present. 
 
 ```JSON
-    "ApiEndpoint": "https://beta.eu.did.msidentity.com/v1.0/{0}/verifiablecredentials/request",
+    "ApiEndpoint": "https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/",
     "TenantId": "<your-AAD-tenant-for-VC>",
     "Authority": "https://login.microsoftonline.com/{0}",
     "scope": "3db474b9-6a0c-4840-96ac-1fceb342124f/.default",
@@ -35,10 +35,10 @@ The remaining five settings control what VC credential you want to issue and pre
     "IssuerAuthority": "did:ion:...your DID...",
     "B2C1ARestApiKey": "your-b2c-app-key",
     "CredentialType": "B2CVerifiedAccount",
-    "DidManifest": "https://beta.eu.did.msidentity.com/v1.0/<your-tenant-id-for-VC>/verifiableCredential/contracts/<your-name>",
+    "DidManifest": "https://verifiedid.did.msidentity.com/v1.0/<your-tenant-id-for-VC>/verifiableCredential/contracts/<your-name>",
     "IssuancePinCodeLength": 0
 ```
-- **ApiEndpoint** - If you have an EU Azure AD tenant, then it should read `beta.eu.did`. If not, then remove `.eu.`
+- **ApiEndpoint** - Request Service API endpoint
 - **TenantId** - This is the Azure AD tenant that you have setup Verifiable Credentials in. It is not the B2C tenant.
 - **ClientId** - This is the App you have registered that has the VC permission `VerifiableCredential.Create.All` and that has access to your VC Azure KeyVault.
 - **VerifierAuthority** - This DID for your Azure AD tenant. You can find in your VC blade in portal.azure.com.
@@ -80,6 +80,25 @@ ngrok http 5002
 ```
 
 Grab, the url in the ngrok output (like `https://96a139d4199b.ngrok.io`) and Browse to it. Note that the issuer test page is there just to help you do the basic issuance testing. Issuing VCs with this sample is intended to be done via B2C signup policies.
+
+### Pre-integration test for B2C
+
+The Azure AD B2C custom policy will, via its REST API capability, call this sample's `api/verifier/presentation-response-b2c` endpoint in the [ApiVerifierController.cs](ApiVerifierController.cs) controller. 
+To test that is working as it should before you integrate it with B2C custom policies, you can do the following:
+
+- Issue yourself a VC via browsing to `https://96a139d4199b.ngrok.io/issuer.html`. This requires that you already have a B2C Account.
+- Present the VC via browsing to `https://96a139d4199b.ngrok.io/verifier.html`
+- Run the below Powershell script. 
+
+You need to use your own ngrok url. The guid for `state` can be found in the trace in console window when presentation callback happens. 
+
+```JSON
+$url = "https://96a139d4199b.ngrok.io/api/verifier/presentation-response-b2c"
+$state = "69a2610a-6c63-42ed-bb50-99a3951a54cb"
+invoke-restmethod -Uri $url -Method "POST" -ContentType "application/json" -Body "{`"id`":`"$state`"}"
+```
+
+The response should be echoing the claims the sample would pass back to B2C in the REST API call.
 
 ### Together with Azure AD B2C
 You follow the instructions and deploy the B2C policies in this github repo [https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C](https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C). 

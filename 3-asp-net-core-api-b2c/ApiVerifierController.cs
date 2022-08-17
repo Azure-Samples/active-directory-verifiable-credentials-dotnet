@@ -43,7 +43,9 @@ namespace AspNetCoreVerifiableCredentialsB2C
             // download manifest and cache it
             string contents;
             HttpStatusCode statusCode = HttpStatusCode.OK;
-            if (!HttpGet( this.AppSettings.DidManifest, out statusCode, out contents)) {
+            var headers = new Dictionary<string, string>();
+            headers.Add("x-ms-sign-contract", "false");
+            if (!HttpGet( this.AppSettings.DidManifest, out statusCode, out contents, headers)) {
                 _log.LogError("HttpStatus {0} fetching manifest {1}", statusCode, this.AppSettings.DidManifest );
                 return null;
             }
@@ -63,12 +65,16 @@ namespace AspNetCoreVerifiableCredentialsB2C
                     state = correlationId,
                     headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
                 },
-                presentation = new Presentation() {
-                    includeReceipt = false,
-                    requestedCredentials = new List<RequestedCredential>()
+                includeReceipt = false,
+                requestedCredentials = new List<RequestedCredential>(),
+                configuration = new Configuration() {
+                    validation = new Validation() {
+                        allowRevoked = false,
+                        validateLinkedDomain = true
+                    }
                 }
             };
-            request.presentation.requestedCredentials.Add(new RequestedCredential() {
+            request.requestedCredentials.Add(new RequestedCredential() {
                 type = this.AppSettings.CredentialType,
                 manifest = this.AppSettings.DidManifest,
                 purpose = this.AppSettings.Purpose,
@@ -92,7 +98,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                     api = GetApiPath(),
                     didIssuer = manifest["input"]["issuer"], 
                     didVerifier = manifest["input"]["issuer"], 
-                    credentialType = manifest["id"], 
+                    credentialType = this.AppSettings.CredentialType, 
                     displayCard = manifest["display"]["card"],
                     buttonColor = "#000080",
                     contract = manifest["display"]["contract"]
@@ -127,7 +133,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
 
                 string contents = "";
                 HttpStatusCode statusCode = HttpStatusCode.OK;
-                if ( !HttpPost(jsonString, out statusCode, out contents))  {
+                if ( !HttpPost( this.AppSettings.ApiEndpoint + "createPresentationRequest", jsonString, out statusCode, out contents))  {
                     _log.LogError("VC Client API Error Response\n{0}", contents);
                     return ReturnErrorMessage( contents );
                 }
@@ -196,7 +202,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 _log.LogTrace("VC Client API Request\n{0}", jsonString);
                 string contents = "";
                 HttpStatusCode statusCode = HttpStatusCode.OK;
-                if (!HttpPost(jsonString, out statusCode, out contents)) {
+                if (!HttpPost(this.AppSettings.ApiEndpoint + "createPresentationRequest", jsonString, out statusCode, out contents)) {
                     _log.LogError("VC Client API Error Response\n{0}", contents);
                     return ReturnErrorMessage(contents);
                 }
@@ -255,21 +261,27 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 }
 
                 if ( GetCachedObject<VCCallbackEvent>(correlationId, out VCCallbackEvent callback) ) {
-                    if ( callback.code == "request_retrieved" ) {
+                    if ( callback.requestStatus == "request_retrieved" ) {
                         return ReturnJson(JsonConvert.SerializeObject(new { status = 1, message = "QR Code is scanned. Waiting for validation..." } ));
                     }
-                    if (callback.code == "presentation_verified") {
+                    if (callback.requestStatus == "presentation_verified") {
                         string displayName = "";
-                        if (callback.issuers[0].claims.ContainsKey("displayName"))
-                             displayName = callback.issuers[0].claims["displayName"];
-                        else displayName = string.Format("{0} {1}", callback.issuers[0].claims["firstName"], callback.issuers[0].claims["lastName"]);
+                        if (callback.verifiedCredentialsData[0].claims.ContainsKey("displayName"))
+                             displayName = callback.verifiedCredentialsData[0].claims["displayName"];
+                        else displayName = string.Format("{0} {1}"
+                                                        , callback.verifiedCredentialsData[0].claims["firstName"]
+                                                        , callback.verifiedCredentialsData[0].claims["lastName"]
+                                                        );
                         var obj = new { status = 2, message = displayName };
                         JObject resp = JObject.Parse(JsonConvert.SerializeObject( new { status = 2, message = displayName })  );
-                        foreach (KeyValuePair<string, string> kvp in callback.issuers[0].claims ) {
+                        foreach (KeyValuePair<string, string> kvp in callback.verifiedCredentialsData[0].claims ) {
                             resp.Add(new JProperty(kvp.Key, kvp.Value));
                         }                        
                         return ReturnJson(JsonConvert.SerializeObject(resp));
-                    }                    
+                    }
+                    if (callback.requestStatus == "presentation_error") {
+                        return ReturnJson(JsonConvert.SerializeObject(new { status = 99, message = "Presentation failed: " + callback.error.message }));
+                    }
                 } else {
                     return ReturnJson(JsonConvert.SerializeObject(new { status = 0, message = "No data" }));
                 }
@@ -309,8 +321,8 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 RemoveCacheValue(correlationId);
                 // setup the response that we are returning to B2C
                 var obj = new {
-                    vcType = callback.issuers[0].type[callback.issuers[0].type.Length - 1], // last
-                    vcIss = callback.issuers[0].authority,
+                    vcType = callback.verifiedCredentialsData[0].type[callback.verifiedCredentialsData[0].type.Length - 1], // last
+                    vcIss = callback.verifiedCredentialsData[0].issuer,
                     vcSub = callback.subject,
                     // key is intended to be user in user's profile 'identities' collection as a signInName,
                     // and it can't have colons, therefor we modify the value (and clip at following :)
@@ -318,7 +330,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 };
                 JObject b2cResponse = JObject.Parse(JsonConvert.SerializeObject(obj));
                 // add all the additional claims in the VC as claims to B2C
-                foreach (KeyValuePair<string, string> kvp in callback.issuers[0].claims) {
+                foreach (KeyValuePair<string, string> kvp in callback.verifiedCredentialsData[0].claims) {
                     b2cResponse.Add(new JProperty(kvp.Key, kvp.Value));
                 }
                 string resp = JsonConvert.SerializeObject(b2cResponse);
