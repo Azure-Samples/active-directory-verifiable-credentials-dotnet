@@ -28,7 +28,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                                  , IMemoryCache memoryCache
                                  , IWebHostEnvironment env
                                  , ILogger<ApiIssuerController> log) : base(configuration, appSettings, memoryCache, env, log)
-        {
+        {            
             GetIssuanceManifest();
         }
 
@@ -43,7 +43,9 @@ namespace AspNetCoreVerifiableCredentialsB2C
             // download manifest and cache it
             string contents;
             HttpStatusCode statusCode = HttpStatusCode.OK;
-            if (!HttpGet( this.AppSettings.DidManifest, out statusCode, out contents)) {
+            var headers = new Dictionary<string, string>();
+            headers.Add("x-ms-sign-contract", "false" );
+            if (!HttpGet( this.AppSettings.DidManifest, out statusCode, out contents, headers )) {
                 _log.LogError("HttpStatus {0} fetching manifest {1}", statusCode, this.AppSettings.DidManifest );
                 return null;
             }
@@ -60,6 +62,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
             }
             return claims;
         }
+
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// REST APIs
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +79,7 @@ namespace AspNetCoreVerifiableCredentialsB2C
                     host = GetRequestHostName(),
                     api = GetApiPath(),
                     didIssuer = manifest["input"]["issuer"], 
-                    credentialType = manifest["id"], 
+                    credentialType = this.AppSettings.CredentialType, 
                     displayCard = manifest["display"]["card"],
                     buttonColor = "#000080",
                     contract = manifest["display"]["contract"],
@@ -129,18 +132,16 @@ namespace AspNetCoreVerifiableCredentialsB2C
                         state = stateId,
                         headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
                     },
-                    issuance = new Issuance() {
-                        type = this.AppSettings.CredentialType,
-                        manifest = this.AppSettings.DidManifest,
-                        pin = null
-                    }
+                    type = this.AppSettings.CredentialType,
+                    manifest = this.AppSettings.DidManifest,
+                    pin = null
                 };
 
                 // if pincode is required, set it up in the request
                 if (this.AppSettings.IssuancePinCodeLength > 0) {
                     int pinCode = RandomNumberGenerator.GetInt32(1, int.Parse("".PadRight(this.AppSettings.IssuancePinCodeLength, '9')));
                     _log.LogTrace("pin={0}", pinCode);
-                    request.issuance.pin = new Pin() {
+                    request.pin = new Pin() {
                         length = this.AppSettings.IssuancePinCodeLength,
                         value = string.Format("{0:D" + this.AppSettings.IssuancePinCodeLength.ToString() + "}", pinCode)
                     };
@@ -150,27 +151,27 @@ namespace AspNetCoreVerifiableCredentialsB2C
                 JObject manifest = GetIssuanceManifest();
                 Dictionary<string, string> claims = GetSelfAssertedClaims(manifest);
                 if (claims.Count > 0 ) {
-                    request.issuance.claims = new Dictionary<string, string>();
+                    request.claims = new Dictionary<string, string>();
                     // If we have received claims from B2C, use tham. Otherwise, pick the queryString params (for testing only)
                     if ( cachedClaims != null ) {
                         // for the claims mentioned in the issuance payload, get the values we cached from B2C
                         foreach (KeyValuePair<string, string> kvp in claims) {
                             if (cachedClaims.ContainsKey(kvp.Key) ) {
-                                request.issuance.claims.Add(kvp.Key, cachedClaims[kvp.Key].ToString());
+                                request.claims.Add(kvp.Key, cachedClaims[kvp.Key].ToString());
                             }
                         }
                         // if B2C gave us a pincode, then set it
                         if ( cachedClaims.ContainsKey("pinCode") ) {
                             string pinCode = cachedClaims["pinCode"].ToString();
                             _log.LogTrace("B2C pin={0}", pinCode);
-                            request.issuance.pin = new Pin() { length = pinCode.Length, value = pinCode };
+                            request.pin = new Pin() { length = pinCode.Length, value = pinCode };
                         }
                     } else {
                         // set self-asserted claims passed as query string parameters
                         // This part assumes that ALL claims comes from the UX (and it should only be used in testing)
                         if (claims.Count > 0) {
                             foreach (KeyValuePair<string, string> kvp in claims) {
-                                request.issuance.claims.Add(kvp.Key, this.Request.Query[kvp.Key].ToString());
+                                request.claims.Add(kvp.Key, this.Request.Query[kvp.Key].ToString());
                             }
                         }
                     }
@@ -183,14 +184,14 @@ namespace AspNetCoreVerifiableCredentialsB2C
 
                 string contents = "";
                 HttpStatusCode statusCode = HttpStatusCode.OK;
-                if ( !HttpPost(jsonString, out statusCode, out contents) ) {
+                if ( !HttpPost( this.AppSettings.ApiEndpoint + "createIssuanceRequest", jsonString, out statusCode, out contents) ) {
                     _log.LogError("VC Client API Error Response\n{0}", contents);
                     return ReturnErrorMessage( contents );
                 }
                 // add the id and the pin to the response we give the browser since they need them
                 JObject requestConfig = JObject.Parse(contents);
                 if (this.AppSettings.IssuancePinCodeLength > 0) {
-                    requestConfig["pin"] = request.issuance.pin.value;
+                    requestConfig["pin"] = request.pin.value;
                 }
                 requestConfig.Add(new JProperty("id", stateId));
                 jsonString = JsonConvert.SerializeObject(requestConfig);
@@ -232,14 +233,14 @@ namespace AspNetCoreVerifiableCredentialsB2C
                     return ReturnErrorMessage("Missing argument 'id'");
                 }
                 if (GetCachedObject<VCCallbackEvent>(correlationId, out VCCallbackEvent callback)) {
-                    if (callback.code == "request_retrieved") {
+                    if (callback.requestStatus == "request_retrieved") {
                         return ReturnJson(JsonConvert.SerializeObject(new { status = 1, message = "QR Code is scanned. Waiting for issuance to complete." }));
                     }
-                    if (callback.code == "issuance_successful") {
+                    if (callback.requestStatus == "issuance_successful") {
                         RemoveCacheValue(correlationId);
                         return ReturnJson(JsonConvert.SerializeObject(new { status = 2, message = "Issuance process is completed" }));
                     }
-                    if (callback.code == "issuance_failed") {
+                    if (callback.requestStatus == "issuance_error") {
                         RemoveCacheValue(correlationId);
                         return ReturnJson(JsonConvert.SerializeObject(new { status = 99, message = "Issuance process failed with reason: " + callback.error.message }));
                     }
