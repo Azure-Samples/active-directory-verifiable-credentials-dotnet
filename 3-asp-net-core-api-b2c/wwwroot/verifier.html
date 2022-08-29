@@ -74,18 +74,27 @@
                                                             respMsg = JSON.parse(response);
                                                             document.getElementById('message-wrapper').style.display = "block";
                                                             document.getElementById('qrText').style.display = "none";
-                                                            document.getElementById('qrcodeFrame').style.display = "none";
-                                                            document.getElementById('qrcode').style.display = "none";
                                                             document.getElementById('sign-in').textContent = 'Verify Again';
                                                             // respMsg.status == 1 -> QR Code scanned
                                                             if (respMsg.status == 1) {
                                                                 document.getElementById('message').innerHTML = respMsg.message;
+                                                                document.getElementById("qrcode").getElementsByTagName("img")[0].style.opacity = "0.1";
                                                             }
                                                             // respMsg.status == 2 -> VC presented and validated
                                                             if (respMsg.status == 2) {
+                                                                document.getElementById('qrcodeFrame').style.display = "none";
+                                                                document.getElementById('qrcode').style.display = "none";
                                                                 document.getElementById('message').innerHTML = respMsg.message + " validated successfully as " + cardTitle;
                                                                 clearInterval(checkStatus);
                                                             }
+                                                            if (respMsg.status == 99) {
+                                                                document.getElementById('qrcodeFrame').style.display = "none";
+                                                                document.getElementById('qrcode').style.display = "none";
+                                                                document.getElementById('message').innerHTML = respMsg.message;
+                                                                document.getElementById('message').style.textColor = "red";
+                                                                clearInterval(checkStatus);
+                                                            }
+
                                                         }
                                                     })
                                             }, 3000);

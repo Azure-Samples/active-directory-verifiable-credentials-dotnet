@@ -20,7 +20,7 @@ namespace AspNetCoreVerifiableCredentials
         /// </summary>
         public string Instance { get; set; }
         /// <summary>
-        /// URL of the client REST API endpoint, still need to use tenantID, use ApiEndpoint instead.
+        /// URL of the client REST API endpoint.
         /// </summary>
         public string Endpoint { get; set; }
         /// <summary>
@@ -55,13 +55,7 @@ namespace AspNetCoreVerifiableCredentials
                 return String.Format(CultureInfo.InvariantCulture, Instance, TenantId);
             }
         }
-        public string ApiEndpoint
-        {
-            get
-            {
-                return String.Format(CultureInfo.InvariantCulture, Endpoint, TenantId);
-            }
-        }
+
         /// <summary>
         /// Client secret (application password)
         /// </summary>

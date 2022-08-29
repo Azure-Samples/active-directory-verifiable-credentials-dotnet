@@ -22,12 +22,16 @@
     "requestedCredentials": [
       {
         "type": "VerifiedCredentialExpert",
-        "purpose": "So we can see that you a verifiable credentials expert",
+        "purpose": "So we can see that you are a verifiable credentials expert",
         //You can trust multiple issuers who might be issuing the same credential type (for example certifications or diplomas)
         //You need to specify at least 1 trusted issuer DID, for this sample code we copy the IssuerAuthority from appsettings to the request
         "acceptedIssuers": [ "did:ion: copied from your VC portal in this sample the code copies it from APPSETTINGS.JSON" ]
       }
-
-    ]
+  ],
+  "configuration": {
+    "validation": {
+      "allowRevoked": true,
+      "validateLinkedDomain": true
+    }
   }
 }
