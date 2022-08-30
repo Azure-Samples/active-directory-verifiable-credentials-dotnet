@@ -15,8 +15,11 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
         public bool includeQRCode { get; set; }
         public Registration registration { get; set; }
         public Callback callback { get; set; }
-        public Issuance issuance { get; set; }
-    } 
+        public string type { get; set; }
+        public string manifest { get; set; }
+        public Pin pin { get; set; }
+        public Dictionary<string, string> claims;
+    }
 
     /// <summary>
     /// VC Presentation
@@ -27,7 +30,27 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
         public bool includeQRCode { get; set; }
         public Registration registration { get; set; }
         public Callback callback { get; set; }
-        public Presentation presentation { get; set; }
+        //public Presentation presentation { get; set; }
+        public bool includeReceipt { get; set; }
+        public List<RequestedCredential> requestedCredentials { get; set; }
+        public Configuration configuration { get; set; }
+
+    }
+
+    /// <summary>
+    /// Configuration - presentation validation configuration
+    /// </summary>
+    public class Configuration
+    {
+        public Validation validation { get; set; }
+    }
+    /// <summary>
+    /// Validation - presentation validation configuration
+    /// </summary>
+    public class Validation
+    {
+        public bool allowRevoked { get; set; } // default false
+        public bool validateLinkedDomain { get; set; } // default false
     }
 
     /// <summary>
@@ -64,6 +87,7 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
     /// <summary>
     /// Issuance - the specific details when you do VC issuance
     /// </summary>
+    /*
     public class Issuance
     {
         public string type { get; set; }
@@ -71,16 +95,17 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
         public Pin pin { get; set; }
         public Dictionary<string,string> claims;
     }
-
+    */
     /// <summary>
     /// Presentation - the specific details when you do VC presentation
     /// </summary>
+    /*
     public class Presentation
     {
         public bool includeReceipt { get; set; }
         public List<RequestedCredential> requestedCredentials { get; set; }
     }
-
+    */
     /// <summary>
     /// Presentation can involve asking for multiple VCs
     /// </summary>
@@ -97,11 +122,11 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
     public class VCCallbackEvent
     {
         public string requestId { get; set; }
-        public string code { get; set; }
+        public string requestStatus { get; set; }
         public Error error { get; set; }
         public string state { get; set; }
         public string subject { get; set; }
-        public ClaimsIssuer[] issuers { get; set; }
+        public ClaimsIssuer[] verifiedCredentialsData { get; set; }
         public Receipt receipt { get; set; }
     }
 
@@ -130,7 +155,7 @@ namespace AspNetCoreVerifiableCredentialsB2C.Models
     /// </summary>
     public class ClaimsIssuer
     {
-        public string authority { get; set; }
+        public string issuer { get; set; }
         public string domain { get; set; }
         public string verified { get; set; }
         public string[] type { get; set; }
