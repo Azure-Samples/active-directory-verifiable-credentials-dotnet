@@ -1,0 +1,168 @@
+﻿@page
+@model AspNetCoreVerifiableCredentials.Pages.VerifierModel
+@{
+    ViewData["Title"] = "Verifier";
+}
+<div id="wrap">
+    <div style="text-align: center;">
+        <img src="VerifiedCredentialExpert-icon.png" height=200px; />
+        <h1 id="vcType">VerifiedEmployee Presentation</h1>
+
+
+        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message"></div>
+            <br />
+
+            <table id="claims">
+                <thead>
+                <th style="width:25%">Claims</th>
+                <th>Value</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <br />
+
+            <table id="vcinfo">
+                <thead>
+                <th style="width:25%">VC Details</th>
+                <th>Value</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <br />
+            <input type="checkbox" id="showPayload" style="text-align:left" value="noshow" onclick="showPayload()">Show Payload</input>
+
+            <br />
+        </div>
+
+        <script>
+
+            function showPayload() {
+                var v1 = document.getElementById("showPayload");
+                if (v1.value == "show") {
+                    document.getElementById("payload").style.display = "none";
+                    v1.value = "noshow";
+                } else {
+                    document.getElementById("payload").style.display = "block";
+                    v1.value = "show";
+                }
+            }
+
+            function ToDate(inDate) {
+                return new Date(inDate * 1000).toLocaleString();
+            }
+            function addTableRowLabel(tbodyRef, key) {
+                var row = tbodyRef.insertRow(0);
+                (row.insertCell(0)).innerHTML = key;
+                return row;
+            }
+            function addTableRow(tbodyRef, key, value) {
+                var row = addTableRowLabel(tbodyRef, key);
+                (row.insertCell(1)).innerHTML = value;
+            }
+
+            function drawClaimsTable(claims) {
+                if (Object.keys(claims).length > 0) {
+                    var tbodyRef = document.getElementById('claims').getElementsByTagName('tbody')[0];
+                    var idx = 0;
+                    for (idx = Object.keys(claims).length - 1; idx >= 0; idx--) {
+                        var claimName = Object.keys(claims)[idx];
+                        if (claimName == "photo" || claimName == "picture") {
+                            var img = document.createElement('img');
+                            img.width = 100;
+                            img.src = "data:image/*;base64," + decodeURI(claims[Object.keys(claims)[idx]]).replaceAll("_", "/").replaceAll("-", "+");
+                            var row = addTableRowLabel(tbodyRef, claimName);
+                            (row.insertCell(1)).appendChild(img);
+                        } else {
+                            addTableRow(tbodyRef, claimName, claims[Object.keys(claims)[idx]]);
+                        }
+                    }
+                }
+            }
+            function drawVcInfoTable(respMsg, payload) {
+                if (Object.keys(payload).length > 0) {
+                    var tbodyRef = document.getElementById('vcinfo').getElementsByTagName('tbody')[0];
+                    var idx = 0;
+                    for (idx = Object.keys(payload).length - 1; idx >= 0; idx--) {
+                        var claimName = Object.keys(payload)[idx];
+                        if (claimName !== "claims") {
+                            if (Object.keys(payload[Object.keys(payload)[idx]]).length > 0) {
+                                addTableRow(tbodyRef, claimName, JSON.stringify(payload[Object.keys(payload)[idx]]))
+                            } else {
+                                addTableRow(tbodyRef, claimName, payload[Object.keys(payload)[idx]])
+                            }
+                        }
+                    }
+                    if (respMsg.iat) {
+                        addTableRow(tbodyRef, "issuedAt", ToDate(respMsg.iat));
+                    }
+                    if (respMsg.exp) {
+                        addTableRow(tbodyRef, "expires", ToDate(respMsg.exp));
+                    }
+                    if (respMsg.jti) {
+                        addTableRow(tbodyRef, "jti", respMsg.jti);
+                    }
+                    var vcSubject = respMsg.subject.split(":");
+                    addTableRow(tbodyRef, "subject", vcSubject[0] + ":" + vcSubject[1] + vcSubject[2] + "...");
+                }
+            }
+            function getPresentationResult(requestId) {
+                fetch('api/verifier/presentation-response?id=' + requestId)
+                    .then(response => response.text())
+                    .catch(error => document.getElementById("message").innerHTML = error)
+                    .then(response => {
+                        if (response.length > 0) {
+                            console.log(response)
+                            respMsg = JSON.parse(response);
+                            if (respMsg.status == 'request_created') {
+                                document.getElementById('message').innerHTML = "Waiting for user to present VC";
+                            }
+                            if (respMsg.status == 'request_retrieved') {
+                                document.getElementById('message').innerHTML = respMsg.message;
+                            }
+                            if (respMsg.status == 'presentation_verified') {
+                                document.getElementById('vcType').innerText = respMsg.payload[0].type[1] + " " + respMsg.message;
+                                document.getElementById('message').innerHTML = "";
+                                document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
+                                drawClaimsTable(respMsg.payload[0].claims);
+                                drawVcInfoTable(respMsg, respMsg.payload[0]);
+                            }
+                            if (respMsg.status == 'issuance_failed') {
+                                document.getElementById('message').innerHTML = "Verification error occurred.";
+                                document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
+                                document.getElementById('message').style.textColor = "red";
+                            }
+                        }
+                    })
+            }
+
+
+            function parseParms(str) {
+                var pieces = str.split("&"), data = {}, i, parts;
+                for (i = 0; i < pieces.length; i++) {
+                    parts = pieces[i].split("=");
+                    if (parts.length < 2) {
+                        parts.push("");
+                    }
+                    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+                }
+                return data;
+            }
+
+            window.onload = function () {
+                var requestId = parseParms(document.location.search.substring(1)).id;
+                if (requestId) {
+                    getPresentationResult(requestId)
+                }
+            }
+        </script>
+    </div>
+
+
+</div>
+<div id="payload" style="text-align:left; display:none; margin:25px"></div>

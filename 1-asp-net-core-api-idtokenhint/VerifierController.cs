@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -48,71 +49,15 @@ namespace AspNetCoreVerifiableCredentials
         {
             try
             {
-
-                string jsonString = null;
-                //they payload template is loaded from disk and modified in the code below to make it easier to get started
-                //and having all config in a central location appsettings.json. 
-                //if you want to manually change the payload in the json file make sure you comment out the code below which will modify it automatically
-                //
-                string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), PRESENTATIONPAYLOAD);
-                _log.LogTrace("IssuanceRequest file: {0}", payloadpath);
-                if (!System.IO.File.Exists(payloadpath))
+                if (!LoadPresentationRequestFile(out JObject payload, out String errorMessage))
                 {
-                    _log.LogError("File not found: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " not found" });
-                }
-                jsonString = System.IO.File.ReadAllText(payloadpath);
-                if (string.IsNullOrEmpty(jsonString))
-                {
-                    _log.LogError("Error reading file: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = PRESENTATIONPAYLOAD + " error reading file" });
+                    return BadRequest(new { error = "400", error_description = errorMessage });
                 }
 
                 string state = Guid.NewGuid().ToString();
+                UpdatePresentationRequestPayload(payload, state);
+                string jsonString = JsonConvert.SerializeObject(payload);
 
-                //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
-                JObject payload = JObject.Parse(jsonString);
-                if (payload["callback"]["state"] != null)
-                {
-                    payload["callback"]["state"] = state;
-                }
-
-                //get the VerifierDID from the appsettings
-                if (payload["authority"] != null)
-                {
-                    payload["authority"] = AppSettings.VerifierAuthority;
-                }
-
-                //copy the issuerDID from the settings and fill in the trustedIssuer part of the payload
-                //this means only that issuer should be trusted for the requested credentialtype
-                //this value is an array in the payload, you can trust multiple issuers for the same credentialtype
-                //very common to accept the test VCs and the Production VCs coming from different verifiable credential services
-                if (payload["requestedCredentials"][0]["acceptedIssuers"][0] != null)
-                {
-                    payload["requestedCredentials"][0]["acceptedIssuers"][0] = AppSettings.IssuerAuthority;
-                }                
-
-                //modify the callback method to make it easier to debug with tools like ngrok since the URI changes all the time
-                //this way you don't need to modify the callback URL in the payload every time ngrok changes the URI
-                if (payload["callback"]["url"] != null)
-                {
-                    //localhost hostname can't work for callbacks so we won't overwrite it.
-                    //this happens for example when testing with sign-in to an IDP and https://localhost is used as redirect URI
-                    //in that case the callback should be configured in the payload directly instead of being modified in the code here
-                    string host = GetRequestHostName();
-                    if (!host.Contains("//localhost"))
-                    {
-                        payload["callback"]["url"] = String.Format("{0}:/api/verifier/presentationCallback", host);
-                    }
-                }
-
-                // set our api-key in the request so we can check it in the callbacks we receive
-                if (payload["callback"]["headers"]["api-key"] != null)
-                {
-                    payload["callback"]["headers"]["api-key"] = this._apiKey;
-                }
-
-                jsonString = JsonConvert.SerializeObject(payload);
                  //CALL REST API WITH PAYLOAD
                 HttpStatusCode statusCode = HttpStatusCode.OK;
                 string response = null;
@@ -194,44 +139,45 @@ namespace AspNetCoreVerifiableCredentials
                     return new ContentResult() { StatusCode = (int)HttpStatusCode.Unauthorized, Content = "api-key wrong or missing" };
                 }               
                 JObject presentationResponse = JObject.Parse(content);
+                var requestStatus = presentationResponse["requestStatus"].ToString();
                 var state = presentationResponse["state"].ToString();
-
-                //there are 2 different callbacks. 1 if the QR code is scanned (or deeplink has been followed)
-                //Scanning the QR code makes Authenticator download the specific request from the server
-                //the request will be deleted from the server immediately.
-                //That's why it is so important to capture this callback and relay this to the UI so the UI can hide
-                //the QR code to prevent the user from scanning it twice (resulting in an error since the request is already deleted)
-                if (presentationResponse["requestStatus"].ToString() == "request_retrieved")
+                Dictionary<string, object> cacheData = new Dictionary<string, object>{ { "status", requestStatus } };
+                switch ( requestStatus ) 
                 {
-                    var cacheData = new
-                    {
-                        status = "request_retrieved",
-                        message = "QR Code is scanned. Waiting for validation...",
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+                    // Request is retrieved (QR code scanned)
+                    case "request_retrieved":
+                        cacheData.Add("message", "QR Code is scanned. Waiting for validation...");
+                        break;
+                    // VC is submitted to VerifiedID and verified
+                    case "presentation_verified":
+                        cacheData.Add("message", "Presentation verified");
+                        cacheData.Add("subject", presentationResponse["subject"].ToString() );
+                        cacheData.Add("payload", presentationResponse["verifiedCredentialsData"] );
+                        //firstName = presentationResponse["verifiedCredentialsData"][0]["claims"]["firstName"].ToString(),
+                        //lastName = presentationResponse["verifiedCredentialsData"][0]["claims"]["lastName"].ToString(),
+                        cacheData.Add("presentationResponse", presentationResponse );
+                        // get details on VC, when it was issued, when it expires, etc
+                        if (presentationResponse.ContainsKey("receipt") )
+                        {                                                        
+                            JObject vpToken = GetJsonFromJwtToken(presentationResponse["receipt"]["vp_token"].ToString() );
+                            JObject vc = GetJsonFromJwtToken(vpToken["vp"]["verifiableCredential"][0].ToString());
+                            cacheData.Add("jti", vc["jti"].ToString() );
+                            cacheData.Add("iat", vc["iat"].ToString());
+                            cacheData.Add("exp", vc["exp"].ToString());
+                        }
+                        break;
+                    // return error if unsupported request status
+                    default:
+                        _log.LogTrace($"Unsupported requestStatus {requestStatus}");
+                        return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unsupported requestStatus {requestStatus}" };
                 }
-
-                // the 2nd callback is the result with the verified credential being verified.
-                // typically here is where the business logic is written to determine what to do with the result
-                // the response in this callback contains the claims from the Verifiable Credential(s) being presented by the user
-                // In this case the result is put in the in memory cache which is used by the UI when polling for the state so the UI can be updated.
-                if (presentationResponse["requestStatus"].ToString() == "presentation_verified")
+                // return error if state is unknown
+                if (!_cache.TryGetValue(state, out string buf))
                 {
-                    var cacheData = new
-                    {
-                        status = "presentation_verified",
-                        message = "Presentation verified",
-                        payload = presentationResponse["verifiedCredentialsData"].ToString(),
-                        subject = presentationResponse["subject"].ToString(),
-                        firstName = presentationResponse["verifiedCredentialsData"][0]["claims"]["firstName"].ToString(),
-                        lastName = presentationResponse["verifiedCredentialsData"][0]["claims"]["lastName"].ToString(),
-                        presentationResponse = presentationResponse // need to cache the entire presentation response for B2C
-
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-
+                    _log.LogTrace($"Unknown state {state}");
+                    return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unknown state {state}" };
                 }
-
+                _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 return new OkResult();
             }
             catch (Exception ex)
@@ -275,6 +221,31 @@ namespace AspNetCoreVerifiableCredentials
                 return BadRequest(new { error = "400", error_description = ex.Message });
             }
         }
+        //
+        //this function is called from the UI to get some details to display in the UI about what
+        //credential is being asked for
+        //
+        [HttpGet("/api/verifier/get-presentation-details")]
+        public ActionResult getPresentationDetails() {
+            try {
+                if ( !LoadPresentationRequestFile( out JObject presentationRequest, out String errorMessage ))
+                {
+                    return BadRequest(new { error = "400", error_description = errorMessage });
+                }
+                UpdatePresentationRequestPayload( presentationRequest, "" );
+                var details = new {
+                    clientName = presentationRequest["registration"]["clientName"].ToString(),
+                    purpose = presentationRequest["registration"]["purpose"].ToString(),
+                    VerifierAuthority = AppSettings.VerifierAuthority,
+                    type = presentationRequest["requestedCredentials"][0]["type"].ToString(),
+                    acceptedIssuers = presentationRequest["requestedCredentials"][0]["acceptedIssuers"]
+                };
+                return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(details) };
+            } catch (Exception ex) {
+                return BadRequest(new { error = "400", error_description = ex.Message });
+            }
+        }
+
         //some helper functions
         protected async Task<(string token, string error, string error_description)> GetAccessToken()
         {
@@ -346,5 +317,73 @@ namespace AspNetCoreVerifiableCredentials
             else hostname = string.Format("{0}://{1}", scheme, this.Request.Host);
             return hostname;
         }
+        // load the presentation_request_config.json file
+        public bool LoadPresentationRequestFile( out JObject payload, out string errorMessage ) 
+        {
+            payload = null;
+            errorMessage = null;
+            string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), PRESENTATIONPAYLOAD);
+            _log.LogTrace("IssuanceRequest file: {0}", payloadpath);
+            if (!System.IO.File.Exists(payloadpath)) {
+                _log.LogError("File not found: {0}", payloadpath);
+                errorMessage = PRESENTATIONPAYLOAD + " not found";
+                return false;
+            }
+            String jsonString = System.IO.File.ReadAllText(payloadpath);
+            if (string.IsNullOrEmpty(jsonString)) {
+                _log.LogError("Error reading file: {0}", payloadpath);
+                errorMessage = PRESENTATIONPAYLOAD + " error reading file";
+                return false;
+            }
+            payload = JObject.Parse(jsonString);
+            return true;
+        }
+
+        // update the loaded presentation_request_config.json file with config value
+        private void UpdatePresentationRequestPayload(JObject presentationRequest, string state) 
+        {
+            //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
+            if (presentationRequest["callback"]["state"] != null) {
+                presentationRequest["callback"]["state"] = state;
+            }
+
+            //get the VerifierDID from the appsettings
+            if (presentationRequest["authority"] != null) {
+                presentationRequest["authority"] = AppSettings.VerifierAuthority;
+            }
+
+            //copy the issuerDID from the settings and fill in the trustedIssuer part of the payload
+            //this means only that issuer should be trusted for the requested credentialtype
+            //this value is an array in the payload, you can trust multiple issuers for the same credentialtype
+            //very common to accept the test VCs and the Production VCs coming from different verifiable credential services
+            if (presentationRequest["requestedCredentials"][0]["acceptedIssuers"][0] != null) {
+                presentationRequest["requestedCredentials"][0]["acceptedIssuers"][0] = AppSettings.IssuerAuthority;
+            }
+
+            //modify the callback method to make it easier to debug with tools like ngrok since the URI changes all the time
+            //this way you don't need to modify the callback URL in the payload every time ngrok changes the URI
+            if (presentationRequest["callback"]["url"] != null) {
+                //localhost hostname can't work for callbacks so we won't overwrite it.
+                //this happens for example when testing with sign-in to an IDP and https://localhost is used as redirect URI
+                //in that case the callback should be configured in the payload directly instead of being modified in the code here
+                string host = GetRequestHostName();
+                if (!host.Contains("//localhost")) {
+                    presentationRequest["callback"]["url"] = String.Format("{0}:/api/verifier/presentationCallback", host);
+                }
+            }
+
+            // set our api-key in the request so we can check it in the callbacks we receive
+            if (presentationRequest["callback"]["headers"]["api-key"] != null) {
+                presentationRequest["callback"]["headers"]["api-key"] = this._apiKey;
+            }
+        }
+
+        public JObject GetJsonFromJwtToken(string jwtToken)
+        {            
+            jwtToken = jwtToken.Replace("_", "/").Replace("-", "+").Split(".")[1];
+            jwtToken = jwtToken.PadRight(4 * ((jwtToken.Length + 3) / 4), '=');
+            return JObject.Parse(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(jwtToken)) );
+        }
+
     }
 }

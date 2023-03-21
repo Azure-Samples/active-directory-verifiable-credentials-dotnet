@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
@@ -49,6 +50,13 @@ namespace AspNetCoreVerifiableCredentials
         {
             try
             {
+                string manifestTenantId = AppSettings.CredentialManifest.Split("/")[5];
+                if ( manifestTenantId != AppSettings.TenantId )
+                {
+                    string errmsg = $"TenantId in ManifestURL {manifestTenantId}. does not match tenantId in config file {AppSettings.TenantId}";
+                    _log.LogError(errmsg);
+                    return BadRequest(new { error = "400", error_description = errmsg });
+                }
                 //they payload template is loaded from disk and modified in the code below to make it easier to get started
                 //and having all config in a central location appsettings.json. 
                 //if you want to manually change the payload in the json file make sure you comment out the code below which will modify it automatically
@@ -140,8 +148,17 @@ namespace AspNetCoreVerifiableCredentials
                 }
 
                 //here you could change the payload manifest and change the firstname and lastname
-                payload["claims"]["given_name"] = "Megan";
-                payload["claims"]["family_name"] = "Bowen";
+                if ( payload.ContainsKey("claims") )
+                {
+                    if ( ((JObject)payload["claims"]).ContainsKey("given_name") )
+                    {
+                        payload["claims"]["given_name"] = "Megan";
+                    }
+                    if (((JObject)payload["claims"]).ContainsKey("family_name"))
+                    {
+                        payload["claims"]["family_name"] = "Bowen";
+                    }
+                }
 
                 jsonString = JsonConvert.SerializeObject(payload);
 
@@ -163,7 +180,6 @@ namespace AspNetCoreVerifiableCredentials
                     var client = _httpClientFactory.CreateClient();
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
-
                     HttpResponseMessage res = await client.PostAsync(AppSettings.Endpoint + "verifiableCredentials/createIssuanceRequest", new StringContent(jsonString, Encoding.UTF8, "application/json"));
                     response = await res.Content.ReadAsStringAsync();
                     statusCode = res.StatusCode;
@@ -177,7 +193,6 @@ namespace AspNetCoreVerifiableCredentials
                         jsonString = JsonConvert.SerializeObject(requestConfig);
 
                         //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
-
                         var cacheData = new
                         {
                             status = "notscanned",
@@ -185,7 +200,6 @@ namespace AspNetCoreVerifiableCredentials
                             expiry = requestConfig["expiry"].ToString()
                         };
                         _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-
                         return new ContentResult { ContentType = "application/json", Content = jsonString };
                     }
                     else
@@ -225,51 +239,37 @@ namespace AspNetCoreVerifiableCredentials
                 }
                 JObject issuanceResponse = JObject.Parse(content);
                 var state = issuanceResponse["state"].ToString();
-
-                //there are 2 different callbacks. 1 if the QR code is scanned (or deeplink has been followed)
-                //Scanning the QR code makes Authenticator download the specific request from the server
-                //the request will be deleted from the server immediately.
-                //That's why it is so important to capture this callback and relay this to the UI so the UI can hide
-                //the QR code to prevent the user from scanning it twice (resulting in an error since the request is already deleted)
-                if (issuanceResponse["requestStatus"].ToString() == "request_retrieved")
+                var requestStatus = issuanceResponse["requestStatus"].ToString();
+                Dictionary<string, object> cacheData = new Dictionary<string, object> { { "status", requestStatus } };
+                switch (requestStatus) 
                 {
-                    var cacheData = new
-                    {
-                        status = "request_retrieved",
-                        message = "QR Code is scanned. Waiting for issuance...",
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-                }
-
-                //
-                //This callback is called when issuance is completed.
-                //
-                if (issuanceResponse["requestStatus"].ToString() == "issuance_successful")
-                {
-                    var cacheData = new
-                    {
-                        status = "issuance_successful",
-                        message = "Credential successfully issued",
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-                }
-                //
-                //We capture if something goes wrong during issuance. See documentation with the different error codes
-                //
-                if (issuanceResponse["requestStatus"].ToString() == "issuance_error")
-                {
-                    var cacheData = new
-                    {
-                        status = "issuance_error",
-                        payload = issuanceResponse["error"]["code"].ToString(),
+                    // Request is retrieved (QR code scanned)
+                    case "request_retrieved":
+                        cacheData.Add("message", "QR Code is scanned. Waiting for issuance...");
+                        break;
+                    // This callback is called when issuance is completed
+                    case "issuance_successful":
+                        cacheData.Add("message", "Credential successfully issued");
+                        break;
+                    // We capture if something goes wrong during issuance. See documentation with the different error codes
+                    case "issuance_error":
+                        cacheData.Add("payload", issuanceResponse["error"]["code"].ToString() );
                         //at the moment there isn't a specific error for incorrect entry of a pincode.
                         //So assume this error happens when the users entered the incorrect pincode and ask to try again.
-                        message = issuanceResponse["error"]["message"].ToString()
-
-                    };
-                    _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+                        cacheData.Add("message", issuanceResponse["error"]["message"].ToString() );
+                        break;
+                    // return error if unsupported request status
+                    default:
+                        _log.LogTrace($"Unsupported requestStatus {requestStatus}");
+                        return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unsupported requestStatus {requestStatus}" };
                 }
-
+                // return error if state is unknown
+                if (!_cache.TryGetValue(state, out string buf))
+                {
+                    _log.LogTrace($"Unknown state {state}");
+                    return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unknown state {state}" };
+                }
+                _cache.Set(state, JsonConvert.SerializeObject(cacheData));
                 return new OkResult();
             }
             catch (Exception ex)
@@ -308,6 +308,32 @@ namespace AspNetCoreVerifiableCredentials
             }
             catch (Exception ex)
             {
+                return BadRequest(new { error = "400", error_description = ex.Message });
+            }
+        }
+
+        [HttpGet("/api/issuer/get-manifest")]
+        public ActionResult getManifest() {
+            try {
+                if (!_cache.TryGetValue("manifest", out string manifest))
+                {                    
+                    var client = _httpClientFactory.CreateClient();
+                    HttpResponseMessage res = client.GetAsync(AppSettings.CredentialManifest).Result;
+                    string response = res.Content.ReadAsStringAsync().Result;
+                    if (res.StatusCode != HttpStatusCode.OK)
+                    {
+                        return BadRequest(new { error = "400", 
+                            error_description = $"HTTP status {(int)res.StatusCode} retrieving manifest from URL {AppSettings.CredentialManifest}" });
+                    }
+                    JObject resp = JObject.Parse(response);
+                    string jwtToken = resp["token"].ToString();
+                    jwtToken = jwtToken.Replace("_", "/").Replace("-", "+").Split(".")[1];
+                    jwtToken = jwtToken.PadRight(4 * ((jwtToken.Length + 3) / 4), '=');
+                    manifest = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(jwtToken));
+                    _cache.Set( "manifest", manifest );
+                }
+                return new ContentResult { ContentType = "application/json", Content = manifest };
+            } catch (Exception ex) {
                 return BadRequest(new { error = "400", error_description = ex.Message });
             }
         }
