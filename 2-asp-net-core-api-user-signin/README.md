@@ -15,13 +15,11 @@ As a developer, you'd probably want users to sign-in  with their work or school 
 Then provide them an option to get verifiable credentials. Further you want the applications to accept these verifiable credentials
 to allow access. 
 
-This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue verifiable credentials for a signed in user and then consume those verifiable credentials. 
+This code sample demonstrates how to use Microsoft Entra Verified ID to issue verifiable credentials for a signed in user and then consume those verifiable credentials. 
 
 ## About this sample
 
-Welcome to Azure Active Directory Verifiable Credentials. In this sample, we'll teach you to issue your first verifiable credential: a Verified Credential Expert Card. You'll then use this card to prove to a verifier that you are a Verified Credential Expert, mastered in the art of digital credentialing. The sample uses the preview REST API which supports ID Token hints to pass a payload for the verifiable credential.
-
-> **Important**: Azure Active Directory Verifiable Credentials is currently in public preview. This preview version is provided without a service level agreement, and it's not recommended for production workloads. Certain features might not be supported or might have constrained capabilities. For more information, see [Supplemental Terms of Use for Microsoft Azure Previews](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
+Welcome to Microsoft Entra Verified ID. In this sample, we'll teach you to issue your first verifiable credential: a Verified Credential Expert Card. You'll then use this card to prove to a verifier that you are a Verified Credential Expert, mastered in the art of digital credentialing. The sample uses the preview REST API which supports ID Token hints to pass a payload for the verifiable credential.
 
 ## Contents
 

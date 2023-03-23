@@ -11,7 +11,7 @@ urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
 # Verifiable Credentials Code Sample
 
-This code sample demonstrates how to use Microsoft's Azure Active Directory Verifiable Credentials preview to issue and consume verifiable credentials. 
+This code sample demonstrates how to use Microsoft Entra Verified ID to issue and consume verifiable credentials.
 
 ## About this sample
 
@@ -20,7 +20,6 @@ Welcome to Microsoft Entra Verified ID. In this sample, we'll teach you to issue
 ## Contents
 
 The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a verifiedcredentialexpert VC and verify that as well.
-
 
 | Issuance | |
 |------|--------|
@@ -39,26 +38,29 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/didfordevs).
 
 ### Create application registration
+
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
-Register an application in Azure Active Directory: 
+Register an application in Azure Active Directory:
+
 1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
-2. Navigate to the Microsoft identity platform for developers App registrations page.
-3.	Select New registration
-    -  In the Name section, enter a meaningful application name for your issuance and/or verification application
-    - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
-    - Select Register to create the application
-4.	On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
-5.	From the Certificates & secrets page, in the Client secrets section, choose New client secret:
-    - Type a key description (for instance app secret)
-    - Select a key duration.
-    - When you press the Add button, the key value will be displayed, copy and save the value in a safe location.
-    - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
-6.	In the list of pages for the app, select API permissions
-    - Click the Add a permission button
-    - Search for APIs in my organization for 3db474b9-6a0c-4840-96ac-1fceb342124f or Verifiable Credential and click the “Verifiable Credential Request Service”
-    - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
-    - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
+1. Navigate to the Microsoft identity platform for developers App registrations page.
+1. Select New registration
+  -  In the Name section, enter a meaningful application name for your issuance and/or verification application
+  - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
+  - Select Register to create the application
+1. On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
+1. From the Certificates & secrets page, in the Client secrets section, choose New client secret:
+  - Type a key description (for instance app secret)
+  - Select a key duration.
+  - When you press the Add button, the key value will be displayed, copy and save the value in a safe location.
+  - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
+1. In the list of pages for the app, select API permissions
+  - Click the Add a permission button
+  - Search for APIs in my organization for 3db474b9-6a0c-4840-96ac-1fceb342124f or Verifiable Credential and click the “Verifiable Credential Request Service”
+  - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
+  - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
+
 ![Admin concent](ReadmeFiles/AdminConcent.PNG)
 
 ## Setting up and running the sample
@@ -90,32 +92,40 @@ Make sure you copy the `ClientId`, `ClientSecret` and `TenantTd` you copied when
 ## Running the sample
 
 1. Open a command prompt and run the following command:
+
 ```Powershell
 dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net5
 dotnet run
 ```
 
-2. Using a different command prompt, run ngrok to set up a URL on 5000. You can install ngrok globally by using the [ngrok npm package](https://www.npmjs.com/package/ngrok/).
+1. Using a different command prompt, run ngrok to set up a URL on 5000. You can install ngrok globally by using the [ngrok npm package](https://www.npmjs.com/package/ngrok/).
+
 ```Powershell
 ngrok http 5000
 ```
-3. Open the HTTPS URL generated by ngrok.
+
+1. Open the HTTPS URL generated by ngrok.
 ![API Overview](ReadmeFiles/ngrok-url-screen.png)
 The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
 
 1. Select GET CREDENTIAL
-1. In Authenticator, scan the QR code. 
-> If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
-6. If you see the 'This app or website may be risky screen', select **Advanced**.
-1. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
-1. On the Add a credential screen, notice that:
 
+1. In Authenticator, scan the QR code.
+
+> If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
+
+1. If you see the 'This app or website may be risky screen', select **Advanced**.
+
+1. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
+
+1. On the Add a credential screen, notice that:
   - At the top of the screen, you can see a red **Not verified** message.
   - The credential is based on the information you uploaded as the display file.
 
-9. Select **Add**.
+1. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
+
 1. Navigate back and click on the Verify Credential link
 2. Click Verify Credential button
 3. Scan the QR code
@@ -130,20 +140,25 @@ The endpoint of the API is https://verifiedid.did.msidentity.com/v1.0/verifiable
 
 To get an access token we are using MSAL as library. MSAL supports the creation and caching of access token which are used when calling Azure Active Directory protected resources like the verifiable credential request API.
 Typicall calling the libary looks something like this:
+
 ```C#
 app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
     .WithClientSecret(AppSettings.ClientSecret)
     .WithAuthority(new Uri(AppSettings.Authority))
     .Build();
 ```
+
 And creating an access token:
+
 ```C#
 result = await app.AcquireTokenForClient(scopes)
                   .ExecuteAsync();
 ```
+
 > **Important**: At this moment the scope needs to be: **3db474b9-6a0c-4840-96ac-1fceb342124f/.default** This might change in the future
 
 Calling the API looks like this:
+
 ```C#
 HttpClient client = new HttpClient();
 var defaultRequestHeaders = client.DefaultRequestHeaders;
@@ -156,6 +171,7 @@ response = await res.Content.ReadAsStringAsync();
 ## Troubleshooting
 
 ### Did you forget to provide admin consent? This is needed for confidential apps.
+
 If you get an error when calling the API `Insufficient privileges to complete the operation.`, this is because the tenant administrator has not granted permissions
 to the application. See step 6 of 'Register the client app' above.
 
@@ -177,10 +193,10 @@ Content: {
 
 
 ## Best practices
+
 When deploying applications which need client credentials and use secrets or certificates the more secure practice is to use certificates. If you are hosting your application on azure make sure you check how to deploy managed identities. This takes away the management and risks of secrets in your application.
 You can find more information here:
 - [Integrate a daemon app with Key Vault and MSI](https://github.com/Azure-Samples/active-directory-dotnetcore-daemon-v2/tree/master/3-Using-KeyVault)
-
 
 ## More information
 

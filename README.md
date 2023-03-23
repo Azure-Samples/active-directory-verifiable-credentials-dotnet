@@ -1,17 +1,16 @@
-# Azure AD Verifiable Credentials Samples
+# Microsoft Entra Verified ID Samples
 
-This repo contains a set of Azure AD Verifiable Credentials samples
+This repo contains a set of Microsoft Entra Verified ID samples
 
 ## Samples
+
 | Sample | Description |
 |------|--------|
-| 1-asp-net-core-api-idtokenhint | dotnet sample for using the VC Request API to issue and verify verifiable credentials with a credential contract which allows the VC Request API to pass in a payload for the Verifiable Credentials|
-| 2-asp-net-core-api-user-signin | dotnet sample for a developer who wants to provide the signed-in users an option to get and present Verifiable credentials using the VC Request API. **Note:** This is different from 1-asp-net-core-api-idtokenhint sample as follows : User sign-in is a requirement to issue credentials since the credentials have claims (first name, last name) based on the signed-in user's idToken.'|
-| 3-asp-net-core-api-b2c | dotnet sample for using the VC Request API to issue and verify verifiable credentials in a B2C policy|
+| 1-asp-net-core-api-idtokenhint | dotnet sample for using the VC Request Service API to issue and verify verifiable credentials with a credential contract which allows the VC Request API to pass in a payload for the Verifiable Credentials|
+| 2-asp-net-core-api-user-signin | dotnet sample for a developer who wants to provide the signed-in users an option to get and present Verifiable credentials using the VC Request Service API. **Note:** This is different from 1-asp-net-core-api-idtokenhint sample as follows : User sign-in is a requirement to issue credentials since the credentials have claims (first name, last name) based on the signed-in user's idToken.'|
+| 3-asp-net-core-api-b2c | dotnet sample for using the VC Request Service API to issue and verify verifiable credentials in a B2C policy|
 
-
-
-Microsoft provides a simple to use REST API to issue and verify verifiable credentials. You can use the programming language you prefer to the REST API. Instead of needing to understand the different protocols and encryption algoritms for Verifiable Credentials and DIDs you only need to understand how to format a JSON structure as parameter for the VC Request API.
+Microsoft provides a simple to use REST API to issue and verify verifiable credentials. You can use the programming language you prefer to the REST API. Instead of needing to understand the different protocols and encryption algorithms for Verifiable Credentials and DIDs you only need to understand how to format a JSON structure as parameter for the VC Request API.
 
 ![API Overview](ReadmeFiles/SampleArchitectureOverview.svg)
 
@@ -56,15 +55,15 @@ To call the VC Client API to start the issuance process, the VC Request API need
 - **callback.headers** - Any HTTP Header values that you would like the VC Request API to pass back in the callbacks. Here you could set your own API key, for instance
 - **type** - the name of your credentialType. This value is configured in the rules definition.
 - **manifest** - url of your manifest for your VC. This comes from your defined Verifiable Credential in portal.azure.com
-- **pin** - If you want to require a pin code in the Microsoft Authenticator for this issuance request. This can be useful if it is a self issuing situation where there is no possibility of asking the user to prove their identity via a login. If you don't want to use the pin functionality, you should not have the pin section in the JSON structure. The appsettings.PinCode.json contains a settings for issuing with pin code.
+- **pin** - If you want to require a pin code in the Microsoft Authenticator for this issuance request. This can be useful if it is a self issuing situation where there is no possibility of asking the user to prove their identity via a login. If you don't want to use the pin functionality, you should not have the pin section in the JSON structure. The appsettings.PinCode.json contains a settings for issuing with pin code. **Notice** that pin code only works for `id_token_hint` attestation flow. If you are not using that flow, issuance will fail. 
 - **claims** - optional, extra claims you want to include in the VC.
 
-In the response message from the VC Request API, it will include a URL to the request which is hosted at the Microsoft VC request service, which means that once the Microsoft Authenticator has scanned the QR code, it will contact the VC Request service directly and not your application directly. Your application will get a callback from the VC Request service via the callback.
+In the response message from the VC Request Service API, it will include a URL to the request which is hosted at the Microsoft VC request service, which means that once the Microsoft Authenticator has scanned the QR code, it will contact the VC Request Service directly and not your application directly. Your application will get a callback from the VC Request service via the callback.
 
 ```json
 {
-    "requestId": "799f23ea-524a-45af-99ad-cf8e5018814e",
-    "url": "openid-vc://vc?request_uri=https://beta.did.msidentity.com/v1.0/abc/verifiablecredentials/request/178319f7-20be-4945-80fb-7d52d47ae82e",
+    "requestId": "178319f7-20be-4945-80fb-7d52d47ae82",
+    "url": "openid-vc://vc?request_uri=https://verifiedid.did.msidentity.com/v1.0/abc/verifiablecredentials/request/178319f7-20be-4945-80fb-7d52d47ae82e",
     "expiry": 1622227690,
     "qrCode": "data:image/png;base64,iVBORw0KGgoA<SNIP>"
 }
@@ -77,7 +76,7 @@ In your callback endpoint, you will get a callback with the below message when t
 ```JSON
 {
   "requestStatusCode": "request_retrieved",
-  "requestId": "9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "requestId": "178319f7-20be-4945-80fb-7d52d47ae82",
   "state": "...what you passed as the state value..."
 }
 ```
@@ -87,18 +86,21 @@ Once the VC is issued, you get a second callback which contains information if t
 This callback is typically used to notify the user on the issuance website the process is completed and continue with whatever the website needs or wants the user to do.
 
 ### Successful Issuance flow response
+
 ```JSON
 {
   "requestStatus": "issuance_successful",
-  "requestId": "9463da82-e397-45b6-a7a2-2c4223b9fdd0",
+  "requestId": "178319f7-20be-4945-80fb-7d52d47ae82",
   "state": "...what you passed as the state value..."
 }
 ```
+
 ### Unuccesful Issuance flow response
+
 ```JSON
 {
   "requestStatus":"issuance_failed",
-  "requestId":"9463da82-e397-45b6-a7a2-2c4223b9fdd0", 
+  "requestId": "178319f7-20be-4945-80fb-7d52d47ae82",
   "state": "...what you passed as the state value...",
   "error": {
       "code":"IssuanceFlowFailed",
@@ -106,6 +108,7 @@ This callback is typically used to notify the user on the issuance website the p
     }
 }
 ```
+
 When the issuance fails this can be caused by several reasons. The following details are currently provided in the error part of the response:
 | Message | Definition |
 |---|---|
@@ -115,12 +118,12 @@ When the issuance fails this can be caused by several reasons. The following det
 
 ### Changes from public preview
 
-* renamed `issuers` to `verifiedCredentialsData` to have a more meaningful name
-* renamed `code` to `requestStatusCode` to differentiate it with http status code
-* added `domainValidation` object containing link domain validation fields
-* added `credentialState` containing the vc status information
-  * `isExpired`: true if the card is expired, false by default
-  * `revocationStatus`: evolvable enum containing the revocation status
+- renamed `issuers` to `verifiedCredentialsData` to have a more meaningful name
+- renamed `code` to `requestStatusCode` to differentiate it with http status code
+- added `domainValidation` object containing link domain validation fields
+- added `credentialState` containing the vc status information
+  - `isExpired`: true if the card is expired, false by default
+  - `revocationStatus`: evolvable enum containing the revocation status
 
 
 ## Verification
@@ -149,7 +152,6 @@ To call the VC Request API to start the verification process, the application cr
   "requestedCredentials": [
     {
       "type": "your credentialType",
-      "purpose": "the purpose why the verifier asks for a VC",
       "acceptedIssuers": [ "did:ion: ...of the Issuer" ]
     },
     "configuration": {
@@ -173,6 +175,7 @@ Much of the data is the same in this JSON structure, but some differences needs 
 In your callback endpoint, you will get a callback with the below message when the QR code is scanned.
 
 When the QR code is scanned, you get a short callback like this.
+
 ```JSON
 {
   "code":"request_retrieved",
@@ -210,23 +213,26 @@ Once the VC is verified, you get a second, more complete, callback which contain
     }
   ],
   "receipt":{
-      "id_token": "...JWT Token of VC..."
+      "id_token": "...JWT Token of VC...",
+      "vp_token": "...JWT Token of VC..."
     }
   }
 }
 ```
+
 Some notable attributes in the message:
+
 - **claims** - parsed claims from the VC
 - **receipt.id_token** - the ID token of the presentation, this is the full presentation Authenticator has send to the Request service. Great for debugging and also to retrieve information not available in the payload. To keep the responses small the receipt property in the request should be set to false.
 
 ### Changes from public preview
-* Removed the presentation object because this endpoint will only handle presentation requests.
-* added the `configuration` object, which is used to specify additional behavioural configuration for the endpoint. It contain configuration for the `validation`, but in the future it could be extended to configure other portions of the flow.
+
+- Removed the presentation object because this endpoint will only handle presentation requests.
+- added the `configuration` object, which is used to specify additional behavioural configuration for the endpoint. It contain configuration for the `validation`, but in the future it could be extended to configure other portions of the flow.
 
 ## Setup
 
 Before you can run any of these samples make sure your environment is setup correctly. You can follow the setup instructions [here](https://aka.ms/vcsetup)
-
 
 ## Resources
 
