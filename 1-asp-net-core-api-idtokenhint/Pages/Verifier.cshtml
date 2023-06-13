@@ -48,21 +48,21 @@
                             if (response.length > 0) {
                                 console.log(response)
                                 respMsg = JSON.parse(response);
-                                if (respMsg.status == 'request_created') {
+                                if (respMsg.status == 'notscanned') {
                                     document.getElementById('message').innerHTML = "Waiting for user to present VC";
-                                }
+                                } 
                                 if (respMsg.status == 'request_retrieved') {
                                     document.getElementById('message-wrapper').style.display = "block";
                                     document.getElementById("qrcode").getElementsByTagName("img")[0].style.opacity = "0.1";
                                     document.getElementById('qrText').style.display = "none";
                                     document.getElementById('message').innerHTML = respMsg.message;
-                                }
+                                } 
                                 if (respMsg.status == 'presentation_verified') {
                                     document.getElementById('qrcode').style.display = "none";
                                     clearInterval(checkStatus);
                                     window.location = "PresentationVerified?id=" + requestId
                                 }
-                                if (respMsg.status == 'issuance_failed') {
+                                if (respMsg.status.includes("error") ) {
                                     document.getElementById('qrcode').style.display = "none";
                                     document.getElementById('message').innerHTML = "Verification error occurred.";
                                     document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
