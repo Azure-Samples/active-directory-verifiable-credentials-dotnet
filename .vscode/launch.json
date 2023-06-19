@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/1-asp-net-core-api-idtokenhint/bin/Debug/net5.0/AspNetCoreVerifiableCredentials.dll",
+            "program": "${workspaceFolder}/1-asp-net-core-api-idtokenhint/bin/Debug/net7.0/AspNetCoreVerifiableCredentials.dll",
             "args": [],
             "cwd": "${workspaceFolder}/1-asp-net-core-api-idtokenhint",
             "stopAtEntry": false,
