@@ -57,9 +57,7 @@
                             // if the manifest has a claim with type image/jp[e]g, then we should support adding a photo
                             if (message.includes("image/jp")) {
                                 havePhotoClaim = true;
-                                document.getElementById("take-selfie").style.display = "";
-                                document.getElementById("imageUpload").style.display = "";
-                                document.getElementById("photo-help").style.display = "";
+                                hideShowPhotoElements("");
                             }
                         }).catch(error => { console.log(error.message); })
                 }).catch(error => { console.log(error.message); })
@@ -67,9 +65,7 @@
             document.getElementById('issue-credential').addEventListener('click', () => {
                 if ( havePhotoClaim ) {
                     setUserPhoto();
-                    document.getElementById('selfie').style.display = "none";
-                    document.getElementById('take-selfie').style.display = "none";
-                    document.getElementById("imageUpload").style.display = "none";
+                    hideShowPhotoElements("none");
                     // make sure the photo is sent to API in backend before we continue
                     setTimeout(requestService.createIssuanceRequest(), 250);
                 } else {
@@ -89,25 +85,8 @@
             });
 
             document.getElementById('imageUpload').addEventListener('change', function (e) {
-                if (e.target.files) {
-                    var reader = new FileReader();
-                    reader.readAsDataURL(e.target.files[0]);
-                    reader.onloadend = function (e) {
-                        var imageObj = new Image();
-                        imageObj.src = e.target.result;
-                        imageObj.onload = function (ev) {
-                            var canvas = document.createElement("canvas");
-                            canvas.width = 480;
-                            canvas.height = 640;
-                            console.log(`img size: ${imageObj.naturalWidth} x ${imageObj.naturalHeight}`);
-                            canvas.getContext('2d').drawImage(imageObj, 0, 0, imageObj.naturalWidth, imageObj.naturalHeight, 0, 0, canvas.width, canvas.height);
-                            document.getElementById("selfie").src = canvas.toDataURL('image/jpeg');
-                            document.getElementById("selfie").style.display = "block";
-                        }
-                    }
-                }
+                uploadImage(e)
             });
-
         </script>
     </div>
 </div>

@@ -75,6 +75,34 @@ function setUserPhoto() {
         photoId = requestService.setUserPhoto(document.getElementById('selfie').src);
     }
 }
+
+function hideShowPhotoElements(val) {
+    document.getElementById("take-selfie").style.display = val;
+    document.getElementById("imageUpload").style.display = val;
+    document.getElementById("photo-help").style.display = val;
+}
+
+function uploadImage(e) {
+    if (e.target.files) {
+        var reader = new FileReader();
+        reader.readAsDataURL(e.target.files[0]);
+        reader.onloadend = function (e) {
+            var imageObj = new Image();
+            imageObj.src = e.target.result;
+            imageObj.onload = function (ev) {
+                var canvas = document.createElement("canvas");
+                canvas.width = 480;
+                canvas.height = 640;
+                console.log(`img size: ${imageObj.naturalWidth} x ${imageObj.naturalHeight}`);
+                canvas.getContext('2d').drawImage(imageObj, 0, 0, imageObj.naturalWidth, imageObj.naturalHeight, 0, 0, canvas.width, canvas.height);
+                document.getElementById("selfie").src = canvas.toDataURL('image/jpeg');
+                document.getElementById("selfie").style.display = "block";
+            }
+        }
+    }
+}
+
+
 // RequestService object that drives the interaction with backend APIs
 // verifiedid.requestservice.client.js
 var requestService = new RequestService(drawQRCode,
