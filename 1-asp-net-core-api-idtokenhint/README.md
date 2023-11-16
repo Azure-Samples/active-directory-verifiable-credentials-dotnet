@@ -23,7 +23,7 @@ Welcome to Microsoft Entra Verified ID. In this sample, we'll teach you to issue
 
 You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
 
-![Deployment Parameters](ReadmeFiles/DeployToAzure.svg)
+![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
 
 Please complete the [setup](Setup) before deploying to Azure.
 
@@ -101,7 +101,7 @@ The `appsettings.json` needs to be updated with the following from the Verified 
 - Copy the credential manifest URL in the `CredentialManifest`. 
 - Optionally update the CredentialType if you plan use anothe credential than the `VerifiedCredentialExpert` type.
 
-- The `appsettings.json` needs to be updated with the following from the Entra ID app registration portal blade:
+The `appsettings.json` needs to be updated with the following from the Entra ID app registration portal blade:
 - `ClientId` should be updated with the App registrations app id should
 - `ClientSecret` should be updated with the generated client secret.
 - `TenantTd` should be updated with the guid of your tenant/directory id.
