@@ -116,9 +116,9 @@ namespace AspNetCoreVerifiableCredentials
                         NullValueHandling = NullValueHandling.Ignore
                     } );
 
+                    _log.LogTrace( $"Request API payload: {jsonString}" );
                     var client = _httpClientFactory.CreateClient();
-                    var defaultRequestHeaders = client.DefaultRequestHeaders;
-                    defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
                     string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createIssuanceRequest";
                     HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));
                     string response = await res.Content.ReadAsStringAsync();
