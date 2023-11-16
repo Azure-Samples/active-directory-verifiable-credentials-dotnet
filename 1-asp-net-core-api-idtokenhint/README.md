@@ -19,7 +19,7 @@ Welcome to Microsoft Entra Verified ID. In this sample, we'll teach you to issue
 
 ## Deploy to Azure
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fcljung-dev%2Fnode%2FARMTemplate%2Ftemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fcljung-dev%2F1-asp-net-core-api-idtokenhint%2FARMTemplate%2Ftemplate.json)
 
 ## Contents
 
