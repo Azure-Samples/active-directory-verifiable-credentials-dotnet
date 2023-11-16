@@ -18,6 +18,11 @@ using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
+using System.Reflection.Metadata.Ecma335;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Http;
 
 namespace AspNetCoreVerifiableCredentials
 {
@@ -25,146 +30,70 @@ namespace AspNetCoreVerifiableCredentials
     [ApiController]
     public class IssuerController : ControllerBase
     {
-        const string ISSUANCEPAYLOAD = "issuance_request_config.json";
-
-        protected readonly AppSettingsModel AppSettings;
+        //protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
         protected readonly ILogger<IssuerController> _log;
         private IHttpClientFactory _httpClientFactory;
+        private IConfiguration _configuration;
         private string _apiKey;
-        public IssuerController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<IssuerController> log, IHttpClientFactory httpClientFactory)
+        public IssuerController(IConfiguration configuration, /*IOptions<AppSettingsModel> appSettings,*/ IMemoryCache memoryCache, ILogger<IssuerController> log, IHttpClientFactory httpClientFactory)
         {
-            this.AppSettings = appSettings.Value;
+            //this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
+            _configuration = configuration;
             _httpClientFactory = httpClientFactory;
             _apiKey = System.Environment.GetEnvironmentVariable("API-KEY");
+        }
+
+        private IssuanceRequest SetClaims( IssuanceRequest request ) {
+            request.claims = new Dictionary<string, string>();
+            request.claims.Add( "given_name", "Megan" );
+            request.claims.Add( "family_name", "Bowen" );
+
+            // If apsettings.json say we should have a photo claim
+            string photoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "");
+            if (!string.IsNullOrWhiteSpace( photoClaimName) ) {
+                // if we have a photoId in the Session
+                string photoId = this.Request.Headers["rsid"];
+                if ( !string.IsNullOrWhiteSpace(photoId) ) {
+                    // if we have a photo in-mem cache
+                    if ( _cache.TryGetValue( photoId, out string photo ) ) {
+                        _log.LogTrace( $"Adding user photo to credential. photoId: {photoId}");
+                        request.claims.Add( photoClaimName, photo );
+                    } else {
+                        _log.LogTrace( $"Couldn't find a user photo to add to credential. photoId: {photoId}" );
+                    }
+                }
+            }
+            return request;
         }
 
         /// <summary>
         /// This method is called from the UI to initiate the issuance of the verifiable credential
         /// </summary>
         /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
+        [AllowAnonymous]
         [HttpGet("/api/issuer/issuance-request")]
         public async Task<ActionResult> IssuanceRequest()
         {
+            _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
             try
             {
-                string manifestTenantId = AppSettings.CredentialManifest.Split("/")[5];
-                if ( manifestTenantId != AppSettings.TenantId )
+                string manifestUrl = _configuration["VerifiedID:CredentialManifest"];
+                if ( string.IsNullOrWhiteSpace(manifestUrl ) ) {
+                    string errmsg = $"Manifest missing in config file";
+                    _log.LogError( errmsg );
+                    return BadRequest( new { error = "400", error_description = errmsg } );
+                }
+                string tenantId = _configuration["VerifiedID:TenantId"];
+                string manifestTenantId = manifestUrl.Split("/")[5];
+                if ( manifestTenantId != tenantId)
                 {
-                    string errmsg = $"TenantId in ManifestURL {manifestTenantId}. does not match tenantId in config file {AppSettings.TenantId}";
+                    string errmsg = $"TenantId in ManifestURL {manifestTenantId}. does not match tenantId in config file {tenantId}";
                     _log.LogError(errmsg);
                     return BadRequest(new { error = "400", error_description = errmsg });
                 }
-                //they payload template is loaded from disk and modified in the code below to make it easier to get started
-                //and having all config in a central location appsettings.json. 
-                //if you want to manually change the payload in the json file make sure you comment out the code below which will modify it automatically
-                //
-                string jsonString = null;
-                string newpin = null;
-
-                string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), ISSUANCEPAYLOAD);
-                _log.LogTrace("IssuanceRequest file: {0}", payloadpath);
-                if (!System.IO.File.Exists(payloadpath))
-                {
-                    _log.LogError("File not found: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = ISSUANCEPAYLOAD + " not found" });
-                }
-                jsonString = System.IO.File.ReadAllText(payloadpath);
-                if (string.IsNullOrEmpty(jsonString))
-                {
-                    _log.LogError("Error reading file: {0}", payloadpath);
-                    return BadRequest(new { error = "400", error_description = ISSUANCEPAYLOAD + " error reading file" });
-                }
-
-                //check if pin is required, if found make sure we set a new random pin
-                //pincode is only used when the payload contains claim value pairs which results in an IDTokenhint
-                JObject payload = JObject.Parse(jsonString);
-                if (payload["pin"] != null)
-                {
-                    if (IsMobile())
-                    {
-                        _log.LogTrace("pin element found in JSON payload, but on mobile so remove pin since we will be using deeplinking");
-                        //consider providing the PIN through other means to your user instead of removing it.
-                        payload["pin"].Parent.Remove();
-
-                    }
-                    else
-                    {
-                        _log.LogTrace("pin element found in JSON payload, modifying to a random number of the specific length");
-                        var length = (int)payload["pin"]["length"];
-                        var pinMaxValue = (int)Math.Pow(10, length) - 1;
-                        var randomNumber = RandomNumberGenerator.GetInt32(1, pinMaxValue);
-                        newpin = string.Format("{0:D" + length.ToString() + "}", randomNumber);
-                        payload["pin"]["value"] = newpin;
-                    }
-
-                }
-                string state = Guid.NewGuid().ToString();
-
-                //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
-                if (payload["callback"]["state"] != null)
-                {
-                    payload["callback"]["state"] = state;
-                }
-
-                //get the IssuerDID from the appsettings
-                if (payload["authority"] != null)
-                {
-                    payload["authority"] = AppSettings.IssuerAuthority;
-                }
-
-                //modify the callback method to make it easier to debug 
-                //with tools like ngrok since the URI changes all the time
-                //this way you don't need to modify the callback URL in the payload every time
-                //ngrok changes the URI
-
-                if (payload["callback"]["url"] != null)
-                {
-                    //localhost hostname can't work for callbacks so we won't overwrite it.
-                    //this happens for example when testing with sign-in to an IDP and https://localhost is used as redirect URI
-                    //in that case the callback should be configured in the payload directly instead of being modified in the code here
-                    string host = GetRequestHostName();
-                    if (!host.Contains("//localhost"))
-                    {
-                        payload["callback"]["url"] = String.Format("{0}:/api/issuer/issuanceCallback", host);
-                    }
-                }
-
-                // set our api-key in the request so we can check it in the callbacks we receive
-                if (payload["callback"]["headers"]["api-key"] != null) 
-                {
-                    payload["callback"]["headers"]["api-key"] = this._apiKey;
-                }
-
-                //get the manifest from the appsettings, this is the URL to the credential created in the azure portal. 
-                //the display and rules file to create the credential can be dound in the credentialfiles directory
-                //make sure the credentialtype in the issuance payload matches with the rules file
-                //for this sample it should be VerifiedCredentialExpert
-                if (payload["manifest"] != null)
-                {
-                    payload["manifest"] = AppSettings.CredentialManifest;
-                }
-
-                //here you could change the payload manifest and change the firstname and lastname
-                if ( payload.ContainsKey("claims") )
-                {
-                    if ( ((JObject)payload["claims"]).ContainsKey("given_name") )
-                    {
-                        payload["claims"]["given_name"] = "Megan";
-                    }
-                    if (((JObject)payload["claims"]).ContainsKey("family_name"))
-                    {
-                        payload["claims"]["family_name"] = "Bowen";
-                    }
-                }
-
-                jsonString = JsonConvert.SerializeObject(payload);
-
-                //CALL REST API WITH PAYLOAD
-                HttpStatusCode statusCode = HttpStatusCode.OK;
-                string response = null;
 
                 try
                 {
@@ -177,29 +106,40 @@ namespace AspNetCoreVerifiableCredentials
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
 
+                    IssuanceRequest request = CreateIssuanceRequest();
+
+                    // If the credential uses the idTokenHint attestation flow, then you must set the claims before
+                    // calling the Request Service API
+                    SetClaims( request );
+
+                    string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
+                        NullValueHandling = NullValueHandling.Ignore
+                    } );
+
                     var client = _httpClientFactory.CreateClient();
                     var defaultRequestHeaders = client.DefaultRequestHeaders;
                     defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
-                    HttpResponseMessage res = await client.PostAsync(AppSettings.Endpoint + "verifiableCredentials/createIssuanceRequest", new StringContent(jsonString, Encoding.UTF8, "application/json"));
-                    response = await res.Content.ReadAsStringAsync();
-                    statusCode = res.StatusCode;
+                    string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createIssuanceRequest";
+                    HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    string response = await res.Content.ReadAsStringAsync();
 
-                    if (statusCode == HttpStatusCode.Created)
+                    if (res.StatusCode == HttpStatusCode.Created)
                     {
                         _log.LogTrace("succesfully called Request API");
                         JObject requestConfig = JObject.Parse(response);
-                        if (newpin != null) { requestConfig["pin"] = newpin; }
-                        requestConfig.Add(new JProperty("id", state));
+                        if (request.pin != null) { requestConfig["pin"] = request.pin.value; }
+                        requestConfig.Add(new JProperty("id", request.callback.state));
                         jsonString = JsonConvert.SerializeObject(requestConfig);
 
                         //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
                         var cacheData = new
                         {
-                            status = "notscanned",
-                            message = "Request ready, please scan with Authenticator",
+                            status = "request_created",
+                            message = "Waiting for QR code to be scanned",
                             expiry = requestConfig["expiry"].ToString()
                         };
-                        _cache.Set(state, JsonConvert.SerializeObject(cacheData));
+                        _cache.Set(request.callback.state, JsonConvert.SerializeObject(cacheData)
+                                      , DateTimeOffset.Now.AddSeconds( _configuration.GetValue<int>( "AppSettings:CacheExpiresInSeconds", 300 ) ) );
                         return new ContentResult { ContentType = "application/json", Content = jsonString };
                     }
                     else
@@ -207,7 +147,6 @@ namespace AspNetCoreVerifiableCredentials
                         _log.LogError("Unsuccesfully called Request API" + response);
                         return BadRequest(new { error = "400", error_description = "Something went wrong calling the API: " + response });
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -220,110 +159,25 @@ namespace AspNetCoreVerifiableCredentials
             }
         }
 
-        /// <summary>
-        /// This method is called by the VC Request API when the user scans a QR code and accepts the issued Verifiable Credential
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost]
-        public async Task<ActionResult> IssuanceCallback()
-        {
-            try
-            {
-                string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
-                _log.LogTrace("callback!: " + content);
-                this.Request.Headers.TryGetValue("api-key", out var apiKey);
-                if (this._apiKey != apiKey)
-                {
-                    _log.LogTrace("api-key wrong or missing");
-                    return new ContentResult() { StatusCode = (int)HttpStatusCode.Unauthorized, Content = "api-key wrong or missing" };
-                }
-                JObject issuanceResponse = JObject.Parse(content);
-                var state = issuanceResponse["state"].ToString();
-                var requestStatus = issuanceResponse["requestStatus"].ToString();
-                Dictionary<string, object> cacheData = new Dictionary<string, object> { { "status", requestStatus } };
-                switch (requestStatus) 
-                {
-                    // Request is retrieved (QR code scanned)
-                    case "request_retrieved":
-                        cacheData.Add("message", "QR Code is scanned. Waiting for issuance...");
-                        break;
-                    // This callback is called when issuance is completed
-                    case "issuance_successful":
-                        cacheData.Add("message", "Credential successfully issued");
-                        break;
-                    // We capture if something goes wrong during issuance. See documentation with the different error codes
-                    case "issuance_error":
-                        cacheData.Add("payload", issuanceResponse["error"]["code"].ToString() );
-                        //at the moment there isn't a specific error for incorrect entry of a pincode.
-                        //So assume this error happens when the users entered the incorrect pincode and ask to try again.
-                        cacheData.Add("message", issuanceResponse["error"]["message"].ToString() );
-                        break;
-                    // return error if unsupported request status
-                    default:
-                        _log.LogTrace($"Unsupported requestStatus {requestStatus}");
-                        return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unsupported requestStatus {requestStatus}" };
-                }
-                // return error if state is unknown
-                if (!_cache.TryGetValue(state, out string buf))
-                {
-                    _log.LogTrace($"Unknown state {state}");
-                    return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unknown state {state}" };
-                }
-                _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-                return new OkResult();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = "400", error_description = ex.Message });
-            }
-        }
-
-        //
-        //this function is called from the UI polling for a response from the AAD VC Service.
-        //when a callback is recieved at the issuanceCallback service the session will be updated
-        //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the issuance process
-        //
-        [HttpGet("/api/issuer/issuance-response")]
-        public ActionResult IssuanceResponse()
-        {
-            try
-            {
-                //the id is the state value initially created when the issuanc request was requested from the request API
-                //the in-memory database uses this as key to get and store the state of the process so the UI can be updated
-                string state = this.Request.Query["id"];
-                if (string.IsNullOrEmpty(state))
-                {
-                    return BadRequest(new { error = "400", error_description = "Missing argument 'id'" });
-                }
-                JObject value = null;
-                if (_cache.TryGetValue(state, out string buf))
-                {
-                    value = JObject.Parse(buf);
-
-                    Debug.WriteLine("check if there was a response yet: " + value);
-                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) };
-                }
-
-                return new OkResult();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = "400", error_description = ex.Message });
-            }
-        }
-
         [HttpGet("/api/issuer/get-manifest")]
         public ActionResult getManifest() {
+            _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
             try {
                 if (!_cache.TryGetValue("manifest", out string manifest))
-                {                    
+                {
+                    string manifestUrl = _configuration["VerifiedID:CredentialManifest"];
+                    if (string.IsNullOrWhiteSpace( manifestUrl )) {
+                        string errmsg = $"Manifest missing in config file";
+                        _log.LogError( errmsg );
+                        return BadRequest( new { error = "400", error_description = errmsg } );
+                    }
                     var client = _httpClientFactory.CreateClient();
-                    HttpResponseMessage res = client.GetAsync(AppSettings.CredentialManifest).Result;
+                    HttpResponseMessage res = client.GetAsync(manifestUrl).Result;
                     string response = res.Content.ReadAsStringAsync().Result;
                     if (res.StatusCode != HttpStatusCode.OK)
                     {
                         return BadRequest(new { error = "400", 
-                            error_description = $"HTTP status {(int)res.StatusCode} retrieving manifest from URL {AppSettings.CredentialManifest}" });
+                            error_description = $"HTTP status {(int)res.StatusCode} retrieving manifest from URL {manifestUrl}" });
                     }
                     JObject resp = JObject.Parse(response);
                     string jwtToken = resp["token"].ToString();
@@ -338,28 +192,81 @@ namespace AspNetCoreVerifiableCredentials
             }
         }
 
+        [HttpGet( "/api/issuer/selfie-request" )]
+        public ActionResult SelfieRequest() {
+            _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
+            try {
+                string hostname = GetRequestHostName();
+                string id = Guid.NewGuid().ToString();
+                var request = new {
+                    id = id,
+                    url = $"{hostname}/selfie.html?callbackUrl={hostname}/api/issuer/selfie/{id}",
+                    expiry = DateTimeOffset.UtcNow.AddMinutes( 5 ).ToUnixTimeSeconds(),
+                    photo = "",
+                    status = "request_created"
+                };
+                string resp = _cache.Set( id, JsonConvert.SerializeObject( request )
+                    , DateTimeOffset.Now.AddSeconds( _configuration.GetValue<int>( "AppSettings:CacheExpiresInSeconds", 300 ) ) );
+                return new ContentResult { StatusCode = (int)HttpStatusCode.Created, ContentType = "application/json", Content = resp };
+            } catch (Exception ex) {
+                return BadRequest( new { error = "400", error_description = ex.Message } );
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost( "/api/issuer/userphoto" )]
+        public ActionResult SetUserPhoto() {
+            _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
+            try {
+                string body = new System.IO.StreamReader( this.Request.Body ).ReadToEndAsync().Result;
+                _log.LogTrace( body );
+                int idx = body.IndexOf( ";base64," );
+                if (-1 == idx) {
+                    return BadRequest( new { error = "400", error_description = $"Image must be 'data:image/jpeg;base64,'" } );
+                }
+                string photo = body.Substring( idx + 8 );
+                string photoId = this.Request.Headers["rsid"];
+                int cacheSeconds = _configuration.GetValue<int>( "AppSettings:CacheExpiresInSeconds", 300 );
+                _cache.Set( photoId, photo, DateTimeOffset.Now.AddSeconds( cacheSeconds ) );
+                _log.LogTrace( $"User set photo to add to credential. photoId: {photoId}" );
+                return new ContentResult { StatusCode = (int)HttpStatusCode.Created, ContentType = "application/json"
+                                , Content = JsonConvert.SerializeObject( new { id = photoId, message = $"Photo will be cached for {cacheSeconds} seconds" } ) };
+            } catch (Exception ex) {
+                return BadRequest( new { error = "400", error_description = ex.Message } );
+            }
+        }
+
         //some helper functions
+        private X509Certificate2 ReadCertificate( string certificateName ) {
+            if (string.IsNullOrWhiteSpace( certificateName )) {
+                throw new ArgumentException( "certificateName should not be empty. Please set the CertificateName setting in the appsettings.json", "certificateName" );
+            }
+            CertificateDescription certificateDescription = CertificateDescription.FromStoreWithDistinguishedName( certificateName );
+            DefaultCertificateLoader defaultCertificateLoader = new DefaultCertificateLoader();
+            defaultCertificateLoader.LoadIfNeeded( certificateDescription );
+            return certificateDescription.Certificate;
+        }
+
         protected async Task<(string token, string error, string error_description)> GetAccessToken()
         {
-
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
-            bool isUsingClientSecret = AppSettings.AppUsesClientSecret(AppSettings);
-
+            string authority = $"{_configuration["VerifiedID:Authority"]}{_configuration["VerifiedID:TenantId"]}";
+            string clientSecret = _configuration.GetValue("VerifiedID:ClientSecret", "");
             // Since we are using application permissions this will be a confidential client application
             IConfidentialClientApplication app;
-            if (isUsingClientSecret)
+            if (!string.IsNullOrWhiteSpace( clientSecret ))
             {
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-                    .WithClientSecret(AppSettings.ClientSecret)
-                    .WithAuthority(new Uri(AppSettings.Authority))
+                app = ConfidentialClientApplicationBuilder.Create(_configuration["VerifiedID:ClientId"])
+                    .WithClientSecret(clientSecret)
+                    .WithAuthority(new Uri(authority))
                     .Build();
             }
             else
             {
-                X509Certificate2 certificate = AppSettings.ReadCertificate(AppSettings.CertificateName);
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
+                X509Certificate2 certificate = ReadCertificate( _configuration["VerifiedID:CertificateName"] );
+                app = ConfidentialClientApplicationBuilder.Create( _configuration["VerifiedID:ClientId"] )
                     .WithCertificate(certificate)
-                    .WithAuthority(new Uri(AppSettings.Authority))
+                    .WithAuthority( new Uri( authority ) )
                     .Build();
             }
 
@@ -375,7 +282,7 @@ namespace AspNetCoreVerifiableCredentials
             // With client credentials flows the scopes is ALWAYS of the shape "resource/.default", as the 
             // application permissions need to be set statically (in the portal or by PowerShell), and then granted by
             // a tenant administrator. 
-            string[] scopes = new string[] { AppSettings.VCServiceScope };
+            string[] scopes = new string[] { _configuration["VerifiedID:scope"] };
 
             AuthenticationResult result = null;
             try
@@ -414,11 +321,86 @@ namespace AspNetCoreVerifiableCredentials
         protected bool IsMobile()
         {
             string userAgent = this.Request.Headers["User-Agent"];
-
-            if (userAgent.Contains("Android") || userAgent.Contains("iPhone"))
-                return true;
-            else
-                return false;
+            return (userAgent.Contains("Android") || userAgent.Contains("iPhone"));
         }
+
+        public IssuanceRequest CreateIssuanceRequest( string? stateId = null ) {
+            IssuanceRequest request = new IssuanceRequest() {
+                includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
+                authority = _configuration["VerifiedID:DidAuthority"],
+                registration = new Registration() {
+                    clientName = _configuration["VerifiedID:client_name"],
+                    purpose = _configuration.GetValue( "VerifiedID:purpose", "" )
+                },
+                callback = new Callback() {
+                    url = $"{GetRequestHostName()}/api/issuer/issuecallback",
+                    state = string.IsNullOrEmpty( stateId ) ? Guid.NewGuid().ToString() : stateId,
+                    headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
+                },
+                type = "ignore-this",
+                manifest = _configuration["VerifiedID:CredentialManifest"],
+                pin = null
+            };
+            if ("" == request.registration.purpose) {
+                request.registration.purpose = null;
+            }
+            int issuancePinCodeLength = _configuration.GetValue( "VerifiedID:IssuancePinCodeLength", 0 );
+            // if pincode is required, set it up in the request
+            if (issuancePinCodeLength > 0 && !IsMobile() ) {
+                int pinCode = RandomNumberGenerator.GetInt32( 1, int.Parse( "".PadRight( issuancePinCodeLength, '9' ) ) );
+                SetPinCode( request, string.Format( "{0:D" + issuancePinCodeLength.ToString() + "}", pinCode ) );
+            }
+            SetExpirationDate( request );
+            return request;
+        }
+        private IssuanceRequest SetExpirationDate( IssuanceRequest request) {
+            string credentialExpiration = _configuration.GetValue( "VerifiedID:CredentialExpiration", "" );
+            DateTime expDateUtc;
+            DateTime utcNow = DateTime.UtcNow;
+            // This is just examples for how to specify your own expiry dates
+            switch (credentialExpiration.ToUpperInvariant()) {
+                case "EOD":
+                    expDateUtc = DateTime.UtcNow;
+                    break;
+                case "EOW":
+                    int start = (int)utcNow.DayOfWeek;
+                    int target = (int)DayOfWeek.Sunday;
+                    if (target <= start)
+                        target += 7;
+                    expDateUtc = utcNow.AddDays( target - start );
+                    break;
+                case "EOM":
+                    expDateUtc = new DateTime( utcNow.Year, utcNow.Month, DateTime.DaysInMonth( utcNow.Year, utcNow.Month ) );
+                    break;
+                case "EOQ":
+                    int quarterEndMonth = (int)(3 * Math.Ceiling( (double)utcNow.Month / 3 ));
+                    expDateUtc = new DateTime( utcNow.Year, quarterEndMonth, DateTime.DaysInMonth( utcNow.Year, quarterEndMonth ) );
+                    break;
+                case "EOY":
+                    expDateUtc = new DateTime( utcNow.Year, 12, 31 );
+                    break;
+                default:
+                    return request;
+            }
+            // Remember that this date is expressed in UTC and Wallets/Authenticator displays the expiry date 
+            // in local timezone. So for example, EOY will be displayed as "Jan 1" if the user is in a timezone
+            // east of GMT. Also, if you issue a VC that should expire 5pm locally, then you need to calculate
+            // what 5pm locally is in UTC time
+            request.expirationDate = $"{Convert.ToDateTime( expDateUtc ).ToString( "yyyy-MM-dd" )}T23:59:59.000Z";
+            return request;
+        }
+        public IssuanceRequest SetPinCode( IssuanceRequest request, string pinCode = null ) {
+            _log.LogTrace( "pin={0}", pinCode );
+            if (string.IsNullOrWhiteSpace( pinCode )) {
+                request.pin = null;
+            } else {
+                request.pin = new Pin() {
+                    length = pinCode.Length,
+                    value = pinCode
+                };
+            }
+            return request;
+        }
+
     }
 }

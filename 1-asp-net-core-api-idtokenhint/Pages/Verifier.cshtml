@@ -11,145 +11,86 @@
         <h3 id="idSub3Title"></h3>
 
 
-        <button type="button" id="sign-in" class="button">VERIFY CREDENTIAL</button>
-        <button type="button" id="check-result" class="button" style="display:none">CHECK RESULT</button>
-        <div id="qrText" style="display:none;">
-            <p class="small-text">
-                <img src="authenticator-icon.png" alt="Authenticator icon" class="icon-small"><br>
-                Scan with Microsoft Authenticator or Custom Wallet
-            </p>
-        </div>
-        <a id="deeplink" style="display: none;margin-top: 10px;">Tap to open Authenticator on mobile</a>
-        <div id="qrcode" style="text-align: center"></div>
-
         <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
             <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
             <div id="message"></div>
             <br />
-            <div id="subject"></div>
-            <br />
-            <div id="payload"></div>
         </div>
 
+        <button type="button" id="verify-credential" class="button">Verify Credential</button>
+        <button type="button" id="check-result" class="button" style="display:none">Check Result</button>
+        <input type="checkbox" id="useFaceCheck" name="useFaceCheck" value="0" style="display:none">
+        <label for="useFaceCheck" id="labelFaceCheck" style="display:none"> Use FaceCheck</label>
+        <input type="checkbox" id="useConstraints" name="useConstraints" value="0">
+        <label for="useConstraints" id="labelConstraints"> Use Constraints</label><br>
+        <br />
+        <table id="constraints" style="display:none">
+            <tbody>
+            <td>
+                Claim 
+                <input type="text" id="claimName" name="claimName" placeholder="name of the claim"></td>
+            <td>
+                Operator
+                <select name="constrainOp" id="constrainOp">
+                    <option>value</option>
+                    <option>contains</option>
+                    <option>startsWith</option>
+                </select>
+            </td>
+            <td>
+                Value 
+                <input type="text" id="claimValue" name="claimValue" placeholder="claim value.">
+            </td>
+            </tbody>
+        </table>
+
+        <br />
+
+        <div id="qrcode" style="text-align:center;display:none"></div>
+
         <script src="qrcode.min.js"></script>
+        <script src="verifiedid.requestservice.client.js"></script>
+        <script src="verifiedid.uihandler.js"></script>
+
         <script>
-            var signIn = document.getElementById('sign-in');
-            var checkResult = document.getElementById('check-result');
-            var display = document.getElementById('display');
-            var qrcode = new QRCode("qrcode", { width: 200, height: 200 });
-            var respPresentationReq = null;
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
 
-            function pollRequestStatus(requestId, frequencyMs) {
-                var checkStatus = setInterval(function () {
-                    fetch('api/verifier/presentation-response?id=' + requestId)
-                        .then(response => response.text())
-                        .catch(error => document.getElementById("message").innerHTML = error)
-                        .then(response => {
-                            if (response.length > 0) {
-                                console.log(response)
-                                respMsg = JSON.parse(response);
-                                if (respMsg.status == 'request_created') {
-                                    document.getElementById('message').innerHTML = "Waiting for user to present VC";
-                                }
-                                if (respMsg.status == 'request_retrieved') {
-                                    document.getElementById('message-wrapper').style.display = "block";
-                                    document.getElementById("qrcode").getElementsByTagName("img")[0].style.opacity = "0.1";
-                                    document.getElementById('qrText').style.display = "none";
-                                    document.getElementById('message').innerHTML = respMsg.message;
-                                }
-                                if (respMsg.status == 'presentation_verified') {
-                                    document.getElementById('qrcode').style.display = "none";
-                                    clearInterval(checkStatus);
-                                    window.location = "PresentationVerified?id=" + requestId
-                                }
-                                if (respMsg.status == 'issuance_failed') {
-                                    document.getElementById('qrcode').style.display = "none";
-                                    document.getElementById('message').innerHTML = "Verification error occurred.";
-                                    document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
-                                    document.getElementById('message').style.textColor = "red";
-                                    clearInterval(checkStatus);
-                                }
-                            }
-                        })
-                }, frequencyMs);
-            }
+            document.getElementById('verify-credential').addEventListener('click', () => {
+                var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
+                if (true == document.getElementById('useConstraints').checked) {
+                    var claimName = document.getElementById('claimName').value;
+                    var claimValue = document.getElementById('claimValue').value;
+                    var constraintOp = document.getElementById('constrainOp').value;
+                    if ( claimName && constraintOp && claimValue ) {
+                        qp += "&claim=" + claimName + "&op=" + constraintOp + "&value=" + claimValue;
+                    }
+                }
+                requestService.apiCreatePresentationRequest += qp;
+                requestService.createPresentationRequest();
+            });
 
-            checkResult.addEventListener('click', () => {
-                document.getElementById('check-result').style.display = "none";
-                pollRequestStatus(respPresentationReq.id, 3000)
-            })
-
-            signIn.addEventListener('click', () => {
-                fetch('api/verifier/presentation-request')
-                    .then(function (response) {
-                        response.text()
-                            .catch(error => document.getElementById("message").innerHTML = error)
-                            .then(function (message) {
-                                respPresentationReq = JSON.parse(message);
-                                if (/Android/i.test(navigator.userAgent)) {
-                                    console.log(`Android device! Using deep link (${respPresentationReq.url}).`);
-                                    document.getElementById('check-result').style.display = "inline-block";
-                                    document.getElementById('sign-in').style.display = "none";
-                                    window.location.href = respPresentationReq.url;
-                                    setTimeout(function () {
-                                        window.location.href = "https://play.google.com/store/apps/details?id=com.azure.authenticator";
-                                    }, 2000);
-                                } else if (/iPhone/i.test(navigator.userAgent)) {
-                                    console.log(`iOS device! Using deep link (${respPresentationReq.url}).`);
-                                    document.getElementById('check-result').style.display = "inline-block";
-                                    document.getElementById('sign-in').style.display = "none";
-                                    window.location.replace(respPresentationReq.url);
-                                } else {
-                                    console.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
-                                    if (respPresentationReq.error_description) {
-                                        document.getElementById("message").innerHTML = respPresentationReq.error_description;
-                                        document.getElementById('message-wrapper').style.display = "block";
-                                        respPresReq = null;
-                                    } else {
-                                        qrcode.makeCode(respPresentationReq.url);
-                                        document.getElementById('sign-in').style.visibility = "hidden";
-                                        document.getElementById('qrText').style.display = "block";
-                                        pollRequestStatus(respPresentationReq.id, 1000)
-                                    }
-                                }
-                            }).catch(error => { console.log(error.message); })
-                    }).catch(error => { console.log(error.message); })
-            })
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+            document.getElementById('useConstraints').addEventListener('click', () => {
+                document.getElementById('constraints').style.display = (document.getElementById('useConstraints').checked ? "" : "none");
+            });
 
             fetch('api/verifier/get-presentation-details')
                 .then(function (response) {
                     response.text()
                         .catch(error => displayMessage(error))
                         .then(function (message) {
-                            details = JSON.parse(message);
-                            var acceptedIssuers = "Accepted issuer(s): any";
-                            if (details.acceptedIssuers.length > 0) {
-                                acceptedIssuers = "Accepted issuer(s): " + details.acceptedIssuers.join();
+                            var resp = JSON.parse(message);
+                            document.getElementById('idTitle').innerHTML = "Presentation of " + resp.type;
+                            document.getElementById('idSubTitle').innerHTML = "Accepted issuers: " + resp.acceptedIssuers;
+                            if (resp.sourcePhotoClaimName) {
+                                document.getElementById('useFaceCheck').style.display = "";
+                                document.getElementById('labelFaceCheck').style.display = "";
                             }
-                            document.getElementById('idTitle').innerHTML = "Presentation of credential type: " + details.type;
-                            document.getElementById('idSubTitle').innerHTML = details.purpose;
-                            document.getElementById('idSub3Title').innerHTML = acceptedIssuers;
                         }).catch(error => { console.log(error.message); })
                 }).catch(error => { console.log(error.message); })
 
-            function parseParms(str) {
-                var pieces = str.split("&"), data = {}, i, parts;
-                for (i = 0; i < pieces.length; i++) {
-                    parts = pieces[i].split("=");
-                    if (parts.length < 2) {
-                        parts.push("");
-                    }
-                    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
-                }
-                return data;
-            }
-
-            window.onload = function () {
-                var autoclick = parseParms(document.location.search.substring(1)).autoclick;
-                if (autoclick) {
-                    document.getElementById('sign-in').click();
-                }
-            }
         </script>
     </div>
 
