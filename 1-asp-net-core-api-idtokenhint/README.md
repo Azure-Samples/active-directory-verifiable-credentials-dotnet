@@ -4,12 +4,12 @@ languages:
 - dotnet
 - powershell
 products:
-- active-directory
-- verifiable credentials
+- Entra
+- Verified ID
 description: "A code sample demonstrating issuance and verification of verifiable credentials."
 urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
-# Verifiable Credentials Code Sample
+# Verified ID idTokenHint Sample for ASPNet Core
 
 This code sample demonstrates how to use Microsoft Entra Verified ID to issue and consume verifiable credentials.
 
@@ -19,23 +19,35 @@ Welcome to Microsoft Entra Verified ID. In this sample, we'll teach you to issue
 
 ## Deploy to Azure
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fcljung-dev%2F1-asp-net-core-api-idtokenhint%2FARMTemplate%2Ftemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F1-asp-net-core-api-idtokenhint%2FARMTemplate%2Ftemplate.json)
+
+You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
+
+![Deployment Parameters](ReadmeFiles/DeployToAzure.svg)
+
+Please complete the [setup](Setup) before deploying to Azure.
 
 ## Contents
 
-The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a verifiedcredentialexpert VC and verify that as well.
+The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a `VerifiedCredentialExpert` credential and verify that as well.
 
 | Issuance | |
 |------|--------|
-| Pages/Issuer.cshtml|The basic webpage containing the javascript to call the APIs for issuance. |
+| Pages/Issuer.cshtml|The basic webpage containing the javascript to call the APIs for issuance. Depending if you use a photo, you will see options to take a selfie or upload a stock photo of you to be issued with the credential. |
+| wwwroot/selfie.html|HTML page used on mobile device to take the selfie. |
 | IssuerController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL. |
-| issuance_request_config.json | The sample payload send to the server to start issuing a vc. |
 
 | Verification | |
 |------|--------|
-| Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential.
+| Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential. Depending if you use a photo, you will have a checkbox that let's you create a presentation request with FaceCheck. |
 | VerifierController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL and helps verifying the presented verifiable credential.
-| presentation_request_config.json | The sample payload send to the server to start issuing a vc.
+
+| Common | |
+|------|--------|
+| Pages/Index.cshtml|Start page with option to continue with issuance or varification. |
+| wwwroot/verifiedid.requestservice.client.js|js lib that handles all the API calls to the app |
+| wwwroot/verifiedid.uihandler.js |js lib that handles common UI updates |
+| CallbackController.cs | Controller that handles common functions between issuance and verification. It handles callback event from Request Service API, the polling requests from the browser and generating the selfie request. |
 
 ## Setup
 
@@ -67,7 +79,8 @@ Register an application in Azure Active Directory:
 
 ![Admin concent](ReadmeFiles/AdminConcent.PNG)
 
-## Setting up and running the sample
+## Setting up and running the sample locally
+
 To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use a tool like  `ngrok` as a reverse proxy to reach your app.
 
 ```Powershell
@@ -76,22 +89,22 @@ cd active-directory-verifiable-credentials-dotnet/1-asp-net-core-api-idtokenhint
 ```
 
 ### Create your credential
+
 To use the sample we need a configured Verifiable Credential in the azure portal.
 In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplayDefinition.json` file and the `VerifiedCredentialExpertRulesDefinition.json` file. Use these 2 files to create your own VerifiedCredentialExpert credential. 
 
 You can find the instructions on how to create a Verifiable Credential in the azure portal [here](https://aka.ms/didfordevs)
 
-Make sure you copy the value of the credential URL after you created the credential in the portal. 
-Copy the URL in the `CredentialManifest` part of the `appsettings.json`. 
-You need to manually copy your Microsoft AAD Verifiable Credential service created Decentralized Identifier (did:..) value from this page as well and paste that in the appsettings.json file for `IssuerAuthority`.
+The `appsettings.json` needs to be updated with the following from the Verified ID portal blade:
 
-### API Payloads
-The API is called with special payloads for issuing and verifying verifiable credentials. The sample payload files are modified by the sample code by copying the correct values from the `appsettings.json` file.
-If you want to modify the payloads `issuance_request_config.json` and `presentation_request_config.json` files yourself, make sure you comment out the code overwriting the values in the VerifierController.cs and IssuerController.cs files. The code overwrites the Authority, Manifest and trustedIssuers values. The callback URI is modified in code to match your hostname.
+- Copy the authority DID and set the value for `DidAuthority`. 
+- Copy the credential manifest URL in the `CredentialManifest`. 
+- Optionally update the CredentialType if you plan use anothe credential than the `VerifiedCredentialExpert` type.
 
-For issuance you don't need to change anything, for verifying make sure you follow the instructions from the quickstart and copy paste the correct payload to the `presentation_request_config.json`
-
-Make sure you copy the `ClientId`, `ClientSecret` and `TenantTd` you copied when creating the app registration to the `appsettings.json` as well.
+- The `appsettings.json` needs to be updated with the following from the Entra ID app registration portal blade:
+- `ClientId` should be updated with the App registrations app id should
+- `ClientSecret` should be updated with the generated client secret.
+- `TenantTd` should be updated with the guid of your tenant/directory id.
 
 ## Running the sample
 
@@ -112,21 +125,13 @@ ngrok http 5000
 ![API Overview](ReadmeFiles/ngrok-url-screen.png)
 The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
 
-4. Select GET CREDENTIAL
+4. Select Issue Credential
 
 5. In Authenticator, scan the QR code.
 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
 
-6. If you see the 'This app or website may be risky screen', select **Advanced**.
-
-7. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
-
-8. On the Add a credential screen, notice that:
-  - At the top of the screen, you can see a red **Not verified** message.
-  - The credential is based on the information you uploaded as the display file.
-
-9. Select **Add**.
+6. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
 
@@ -135,65 +140,6 @@ The sample dynamically copies the hostname to be part of the callback URL, this 
 3. Scan the QR code
 4. select the VerifiedCredentialExpert credential and click allow
 5. You should see the result presented on the screen.
-
-
-
-## About the code
-Since the API is a multi-tenant API it needs to receive an access token when it's called. 
-The endpoint of the API is https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/createIssuanceRequest and https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/createPresentationRequest 
-
-To get an access token we are using MSAL as library. MSAL supports the creation and caching of access token which are used when calling Azure Active Directory protected resources like the verifiable credential request API.
-Typicall calling the libary looks something like this:
-
-```C#
-app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-    .WithClientSecret(AppSettings.ClientSecret)
-    .WithAuthority(new Uri(AppSettings.Authority))
-    .Build();
-```
-
-And creating an access token:
-
-```C#
-result = await app.AcquireTokenForClient(scopes)
-                  .ExecuteAsync();
-```
-
-> **Important**: At this moment the scope needs to be: **3db474b9-6a0c-4840-96ac-1fceb342124f/.default** This might change in the future
-
-Calling the API looks like this:
-
-```C#
-HttpClient client = new HttpClient();
-var defaultRequestHeaders = client.DefaultRequestHeaders;
-defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
-
-HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
-response = await res.Content.ReadAsStringAsync();
-```
-
-## Troubleshooting
-
-### Did you forget to provide admin consent? This is needed for confidential apps.
-
-If you get an error when calling the API `Insufficient privileges to complete the operation.`, this is because the tenant administrator has not granted permissions
-to the application. See step 6 of 'Register the client app' above.
-
-You will typically see, on the output window, something like the following:
-
-```Json
-Failed to call the Web Api: Forbidden
-Content: {
-  "error": {
-    "code": "Authorization_RequestDenied",
-    "message": "Insufficient privileges to complete the operation.",
-    "innerError": {
-      "request-id": "<a guid>",
-      "date": "<date>"
-    }
-  }
-}
-```
 
 
 ## Best practices

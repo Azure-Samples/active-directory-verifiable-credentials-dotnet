@@ -76,9 +76,9 @@
     "PhotoClaimName": {
       "type": "string",
       "metadata": {
-        "description": "claim name for photo - if you are issuing credentials with a photo"
+        "description": "claim name for photo - if you are issuing credentials with a photo. Otherwise leave this field blank"
       },
-      "defaultValue": "<claim name or leave blank>"
+      "defaultValue": ""
     }
   },
   "variables": {
