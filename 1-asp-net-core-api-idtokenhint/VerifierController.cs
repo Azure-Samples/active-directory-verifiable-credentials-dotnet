@@ -17,23 +17,28 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using System.Security.Policy;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Azure.Core;
 
 namespace AspNetCoreVerifiableCredentials
 {
     [Route("api/[controller]/[action]")]
     public class VerifierController : Controller
     {
-        const string PRESENTATIONPAYLOAD = "presentation_request_config.json";
-        //        const string PRESENTATIONPAYLOAD = "presentation_request_config - TrueIdentitySample.json";
-
-        protected readonly AppSettingsModel AppSettings;
+        //protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
         protected readonly ILogger<VerifierController> _log;
         private IHttpClientFactory _httpClientFactory;
         private string _apiKey;
-        public VerifierController(IOptions<AppSettingsModel> appSettings, IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
+        private IConfiguration _configuration;
+        public VerifierController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
         {
-            this.AppSettings = appSettings.Value;
+            _configuration = configuration;
             _cache = memoryCache;
             _log = log;
             _httpClientFactory = httpClientFactory;
@@ -44,201 +49,103 @@ namespace AspNetCoreVerifiableCredentials
         /// This method is called from the UI to initiate the presentation of the verifiable credential
         /// </summary>
         /// <returns>JSON object with the address to the presentation request and optionally a QR code and a state value which can be used to check on the response status</returns>
+        [AllowAnonymous]
         [HttpGet("/api/verifier/presentation-request")]
         public async Task<ActionResult> PresentationRequest()
         {
+            _log.LogTrace( this.Request.GetDisplayUrl() );
             try
             {
-                if (!LoadPresentationRequestFile(out JObject payload, out String errorMessage))
+                //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
+                //needs to be send as bearer to the VC Request API
+                var accessToken = await GetAccessToken();
+                if (accessToken.Item1 == String.Empty)
                 {
-                    return BadRequest(new { error = "400", error_description = errorMessage });
+                    _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
+                    return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                 }
 
-                string state = Guid.NewGuid().ToString();
-                UpdatePresentationRequestPayload(payload, state);
-                string jsonString = JsonConvert.SerializeObject(payload);
-
-                 //CALL REST API WITH PAYLOAD
-                HttpStatusCode statusCode = HttpStatusCode.OK;
-                string response = null;
-                try
-                {
-                    //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
-                    //needs to be send as bearer to the VC Request API
-                    var accessToken = await GetAccessToken();
-                    if (accessToken.Item1 == String.Empty)
-                    {
-                        _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
-                        return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
-                    }
-
-                    _log.LogTrace( $"Request API payload: {jsonString}" );
-                    var client = _httpClientFactory.CreateClient();
-                    var defaultRequestHeaders = client.DefaultRequestHeaders;
-                    defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
-
-                    HttpResponseMessage res = await client.PostAsync(AppSettings.Endpoint + "verifiableCredentials/createPresentationRequest", new StringContent(jsonString, Encoding.UTF8, "application/json"));
-                    response = await res.Content.ReadAsStringAsync();
-                    statusCode = res.StatusCode;
-
-                    if (statusCode == HttpStatusCode.Created)
-                    {
-                        _log.LogTrace("succesfully called Request API");
-                        JObject requestConfig = JObject.Parse(response);
-                        requestConfig.Add(new JProperty("id", state));
-                        jsonString = JsonConvert.SerializeObject(requestConfig);
-
-                        //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
-
-                        var cacheData = new
-                        {
-                            status = "notscanned",
-                            message = "Request ready, please scan with Authenticator",
-                            expiry = requestConfig["expiry"].ToString()
-                        };
-                        _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-
-                        //the response from the VC Request API call is returned to the caller (the UI). It contains the URI to the request which Authenticator can download after
-                        //it has scanned the QR code. If the payload requested the VC Request service to create the QR code that is returned as well
-                        //the javascript in the UI will use that QR code to display it on the screen to the user.
-
-                        return new ContentResult { ContentType = "application/json", Content = jsonString };
-                    }
-                    else
-                    {
-                        _log.LogError("Unsuccesfully called Request API");
-                        return BadRequest(new { error = "400", error_description = "Something went wrong calling the API: " + response });
-                    }
+                string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
+                string template = HttpContext.Session.GetString( "presentationRequestTemplate" );
+                PresentationRequest request = null;
+                if ( !string.IsNullOrWhiteSpace(template) ) {
+                    request = CreatePresentationRequestFromTemplate( template );
+                } else {
+                    request = CreatePresentationRequest();
                 }
-                catch (Exception ex)
+
+                string faceCheck = this.Request.Query["faceCheck"];
+                bool useFaceCheck = (!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true"));
+                if (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false )) {
+                    AddFaceCheck( request );
+                    // FaceCheck requires beta endpoint - remove after preview
+                    url = url.Replace( "/v1.0/", "/beta/" );
+                }
+
+                AddClaimsConstrains( request);
+
+                string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
+                    NullValueHandling = NullValueHandling.Ignore
+                } );
+
+                _log.LogTrace( $"Request API payload: {jsonString}" );
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
+                HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                string response = await res.Content.ReadAsStringAsync();
+                HttpStatusCode statusCode = res.StatusCode;
+
+                if (statusCode == HttpStatusCode.Created)
                 {
-                    return BadRequest(new { error = "400", error_description = "Something went wrong calling the API: " + ex.Message });
+                    _log.LogTrace("succesfully called Request Service API");
+                    JObject requestConfig = JObject.Parse(response);
+                    requestConfig.Add(new JProperty("id", request.callback.state));
+                    jsonString = JsonConvert.SerializeObject(requestConfig);
+
+                    //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
+                    var cacheData = new
+                    {
+                        status = "request_created",
+                        message = "Waiting for QR code to be scanned",
+                        expiry = requestConfig["expiry"].ToString()
+                    };
+                    _cache.Set(request.callback.state, JsonConvert.SerializeObject(cacheData)
+                                    , DateTimeOffset.Now.AddSeconds( _configuration.GetValue<int>( "AppSettings:CacheExpiresInSeconds", 300 ) ) );
+                    //the response from the VC Request API call is returned to the caller (the UI). It contains the URI to the request which Authenticator can download after
+                    //it has scanned the QR code. If the payload requested the VC Request service to create the QR code that is returned as well
+                    //the javascript in the UI will use that QR code to display it on the screen to the user.
+                    return new ContentResult { ContentType = "application/json", Content = jsonString };
+                }
+                else
+                {
+                    _log.LogError("Error calling Verified ID API: "  + response );
+                    return BadRequest(new { error = "400", error_description = "Verified ID API error response: " + response, request = jsonString });
                 }
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "400", error_description = ex.Message });
-            }
+                _log.LogError( "Exception: " + ex.Message );
+                return BadRequest(new { error = "400", error_description = "Exception: " + ex.Message });
+            }            
         }
 
-        /// <summary>
-        /// This method is called by the VC Request API when the user scans a QR code and presents a Verifiable Credential to the service
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost]
-        public async Task<ActionResult> PresentationCallback()
-        {
-            try
-            {
-                string content = await new System.IO.StreamReader(this.Request.Body).ReadToEndAsync();
-                _log.LogTrace("callback!: " + content);
-                this.Request.Headers.TryGetValue("api-key", out var apiKey);
-                if (this._apiKey != apiKey) 
-                {
-                    _log.LogTrace("api-key wrong or missing");
-                    return new ContentResult() { StatusCode = (int)HttpStatusCode.Unauthorized, Content = "api-key wrong or missing" };
-                }               
-                JObject presentationResponse = JObject.Parse(content);
-                var requestStatus = presentationResponse["requestStatus"].ToString();
-                var state = presentationResponse["state"].ToString();
-                Dictionary<string, object> cacheData = new Dictionary<string, object>{ { "status", requestStatus } };
-                switch ( requestStatus ) 
-                {
-                    // Request is retrieved (QR code scanned)
-                    case "request_retrieved":
-                        cacheData.Add("message", "QR Code is scanned. Waiting for validation...");
-                        break;
-                    // VC is submitted to VerifiedID and verified
-                    case "presentation_verified":
-                        cacheData.Add("message", "Presentation verified");
-                        cacheData.Add("subject", presentationResponse["subject"].ToString() );
-                        cacheData.Add("payload", presentationResponse["verifiedCredentialsData"] );
-                        //firstName = presentationResponse["verifiedCredentialsData"][0]["claims"]["firstName"].ToString(),
-                        //lastName = presentationResponse["verifiedCredentialsData"][0]["claims"]["lastName"].ToString(),
-                        cacheData.Add("presentationResponse", presentationResponse );
-                        // get details on VC, when it was issued, when it expires, etc
-                        if (presentationResponse.ContainsKey("receipt") )
-                        {                                                        
-                            JObject vpToken = GetJsonFromJwtToken(presentationResponse["receipt"]["vp_token"].ToString() );
-                            JObject vc = GetJsonFromJwtToken(vpToken["vp"]["verifiableCredential"][0].ToString());
-                            cacheData.Add("jti", vc["jti"].ToString() );
-                            cacheData.Add("iat", vc["iat"].ToString());
-                            cacheData.Add("exp", vc["exp"].ToString());
-                        }
-                        break;
-                    // return error if unsupported request status
-                    default:
-                        _log.LogTrace($"Unsupported requestStatus {requestStatus}");
-                        return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unsupported requestStatus {requestStatus}" };
-                }
-                // return error if state is unknown
-                if (!_cache.TryGetValue(state, out string buf))
-                {
-                    _log.LogTrace($"Unknown state {state}");
-                    return new ContentResult() { StatusCode = (int)HttpStatusCode.BadRequest, Content = $"Unknown state {state}" };
-                }
-                _cache.Set(state, JsonConvert.SerializeObject(cacheData));
-                return new OkResult();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = "400", error_description = ex.Message });
-            }
-        }
-        //
-        //this function is called from the UI polling for a response from the AAD VC Service.
-        //when a callback is recieved at the presentationCallback service the session will be updated
-        //this method will respond with the status so the UI can reflect if the QR code was scanned and with the result of the presentation
-        //
-        [HttpGet("/api/verifier/presentation-response")]
-        public ActionResult PresentationResponse()
-        {
-            try
-            {
-                //the id is the state value initially created when the issuanc request was requested from the request API
-                //the in-memory database uses this as key to get and store the state of the process so the UI can be updated
-                string state = this.Request.Query["id"];
-                if (string.IsNullOrEmpty(state))
-                {
-                    return BadRequest(new { error = "400", error_description = "Missing argument 'id'" });
-                }
-                JObject value = null;
-                if (_cache.TryGetValue(state, out string buf))
-                {
-                    _log.LogTrace( $"id {state}, cache: {buf}");
-                    value = JObject.Parse(buf);
-                    // the browser doesn't need the full presentationResponse
-                    if ( value.ContainsKey("presentationResponse") )
-                    {
-                        value.Remove("presentationResponse");
-                    }
-                    return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(value) };
-                }
-                return new OkResult();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = "400", error_description = ex.Message });
-            }
-        }
         //
         //this function is called from the UI to get some details to display in the UI about what
         //credential is being asked for
         //
+        [AllowAnonymous]
         [HttpGet("/api/verifier/get-presentation-details")]
         public ActionResult getPresentationDetails() {
+            _log.LogTrace( this.Request.GetDisplayUrl() );
             try {
-                if ( !LoadPresentationRequestFile( out JObject presentationRequest, out String errorMessage ))
-                {
-                    return BadRequest(new { error = "400", error_description = errorMessage });
-                }
-                UpdatePresentationRequestPayload( presentationRequest, "" );
+                PresentationRequest request = CreatePresentationRequest();
                 var details = new {
-                    clientName = presentationRequest["registration"]["clientName"].ToString(),
-                    purpose = presentationRequest["registration"]["purpose"].ToString(),
-                    VerifierAuthority = AppSettings.VerifierAuthority,
-                    type = presentationRequest["requestedCredentials"][0]["type"].ToString(),
-                    acceptedIssuers = presentationRequest["requestedCredentials"][0]["acceptedIssuers"]
+                    clientName = request.registration.clientName,
+                    purpose = request.registration.purpose,
+                    VerifierAuthority = request.authority,
+                    type = request.requestedCredentials[0].type,
+                    acceptedIssuers = request.requestedCredentials[0].acceptedIssuers.ToArray(),
+                    PhotoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "" )
                 };
                 return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(details) };
             } catch (Exception ex) {
@@ -247,26 +154,33 @@ namespace AspNetCoreVerifiableCredentials
         }
 
         //some helper functions
+        private X509Certificate2 ReadCertificate( string certificateName ) {
+            if (string.IsNullOrWhiteSpace( certificateName )) {
+                throw new ArgumentException( "certificateName should not be empty. Please set the CertificateName setting in the appsettings.json", "certificateName" );
+            }
+            CertificateDescription certificateDescription = CertificateDescription.FromStoreWithDistinguishedName( certificateName );
+            DefaultCertificateLoader defaultCertificateLoader = new DefaultCertificateLoader();
+            defaultCertificateLoader.LoadIfNeeded( certificateDescription );
+            return certificateDescription.Certificate;
+        }
+
         protected async Task<(string token, string error, string error_description)> GetAccessToken()
         {
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
-            bool isUsingClientSecret = AppSettings.AppUsesClientSecret(AppSettings);
-
+            string authority = $"{_configuration["VerifiedID:Authority"]}{_configuration["VerifiedID:TenantId"]}";
+            string clientSecret = _configuration.GetValue( "VerifiedID:ClientSecret", "" );
             // Since we are using application permissions this will be a confidential client application
             IConfidentialClientApplication app;
-            if (isUsingClientSecret)
-            {
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-                    .WithClientSecret(AppSettings.ClientSecret)
-                    .WithAuthority(new Uri(AppSettings.Authority))
+            if (!string.IsNullOrWhiteSpace( clientSecret )) {
+                app = ConfidentialClientApplicationBuilder.Create( _configuration["VerifiedID:ClientId"] )
+                    .WithClientSecret( clientSecret )
+                    .WithAuthority( new Uri( authority ) )
                     .Build();
-            }
-            else
-            {
-                X509Certificate2 certificate = AppSettings.ReadCertificate(AppSettings.CertificateName);
-                app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-                    .WithCertificate(certificate)
-                    .WithAuthority(new Uri(AppSettings.Authority))
+            } else {
+                X509Certificate2 certificate = ReadCertificate( _configuration["VerifiedID:CertificateName"] );
+                app = ConfidentialClientApplicationBuilder.Create( _configuration["VerifiedID:ClientId"] )
+                    .WithCertificate( certificate )
+                    .WithAuthority( new Uri( authority ) )
                     .Build();
             }
 
@@ -282,7 +196,7 @@ namespace AspNetCoreVerifiableCredentials
             // With client credentials flows the scopes is ALWAYS of the shape "resource/.default", as the 
             // application permissions need to be set statically (in the portal or by PowerShell), and then granted by
             // a tenant administrator. 
-            string[] scopes = new string[] { AppSettings.VCServiceScope };
+            string[] scopes = new string[] { _configuration["VerifiedID:scope"] };
 
             AuthenticationResult result = null;
             try
@@ -317,73 +231,139 @@ namespace AspNetCoreVerifiableCredentials
             else hostname = string.Format("{0}://{1}", scheme, this.Request.Host);
             return hostname;
         }
-        // load the presentation_request_config.json file
-        public bool LoadPresentationRequestFile( out JObject payload, out string errorMessage ) 
-        {
-            payload = null;
-            errorMessage = null;
-            string payloadpath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), PRESENTATIONPAYLOAD);
-            _log.LogTrace("IssuanceRequest file: {0}", payloadpath);
-            if (!System.IO.File.Exists(payloadpath)) {
-                _log.LogError("File not found: {0}", payloadpath);
-                errorMessage = PRESENTATIONPAYLOAD + " not found";
-                return false;
-            }
-            String jsonString = System.IO.File.ReadAllText(payloadpath);
-            if (string.IsNullOrEmpty(jsonString)) {
-                _log.LogError("Error reading file: {0}", payloadpath);
-                errorMessage = PRESENTATIONPAYLOAD + " error reading file";
-                return false;
-            }
-            payload = JObject.Parse(jsonString);
-            return true;
+        /// <summary>
+        /// This method creates a PresentationRequest object instance from a JSON template
+        /// </summary>
+        /// <param name="template">JSON template of a Request Service API presentation payload</param>
+        /// <param name="stateId"></param>
+        /// <returns></returns>
+        public PresentationRequest CreatePresentationRequestFromTemplate( string template, string? stateId = null ) {
+            PresentationRequest request = JsonConvert.DeserializeObject<PresentationRequest>( template );
+            request.authority = _configuration["VerifiedID:DidAuthority"];
+            request.callback.url = $"{GetRequestHostName()}/api/verifier/presentationcallback";
+            request.callback.state = (string.IsNullOrWhiteSpace( stateId ) ? Guid.NewGuid().ToString() : stateId);
+            request.callback.headers = new Dictionary<string, string>() { { "api-key", this._apiKey } };
+            return request;
         }
-
-        // update the loaded presentation_request_config.json file with config value
-        private void UpdatePresentationRequestPayload(JObject presentationRequest, string state) 
-        {
-            //modify payload with new state, the state is used to be able to update the UI when callbacks are received from the VC Service
-            if (presentationRequest["callback"]["state"] != null) {
-                presentationRequest["callback"]["state"] = state;
+        /// <summary>
+        /// This method creates a PresentationRequest object instance from configuration
+        /// </summary>
+        /// <param name="stateId"></param>
+        /// <param name="credentialType"></param>
+        /// <param name="acceptedIssuers"></param>
+        /// <returns></returns>
+        public PresentationRequest CreatePresentationRequest( string? stateId = null, string? credentialType = null, string[]? acceptedIssuers = null ) {
+            PresentationRequest request = new PresentationRequest() {
+                includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
+                authority = _configuration["VerifiedID:DidAuthority"],
+                registration = new Registration() {
+                    clientName = _configuration["VerifiedID:client_name"],
+                    purpose = _configuration.GetValue( "VerifiedID:purpose", "" )
+                },
+                callback = new Callback() {
+                    url = $"{GetRequestHostName()}/api/verifier/presentationcallback",
+                    state = (string.IsNullOrWhiteSpace( stateId ) ? Guid.NewGuid().ToString() : stateId),
+                    headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
+                },
+                includeReceipt = _configuration.GetValue( "VerifiedID:includeReceipt", false ),
+                requestedCredentials = new List<RequestedCredential>(),
+            };
+            if ("" == request.registration.purpose) {
+                request.registration.purpose = null;
             }
-
-            //get the VerifierDID from the appsettings
-            if (presentationRequest["authority"] != null) {
-                presentationRequest["authority"] = AppSettings.VerifierAuthority;
+            if (string.IsNullOrEmpty( credentialType )) {
+                credentialType = _configuration["VerifiedID:CredentialType"];
             }
-
-            //copy the issuerDID from the settings and fill in the trustedIssuer part of the payload
-            //this means only that issuer should be trusted for the requested credentialtype
-            //this value is an array in the payload, you can trust multiple issuers for the same credentialtype
-            //very common to accept the test VCs and the Production VCs coming from different verifiable credential services
-            if (presentationRequest["requestedCredentials"][0]["acceptedIssuers"][0] != null) {
-                presentationRequest["requestedCredentials"][0]["acceptedIssuers"][0] = AppSettings.IssuerAuthority;
+            List<string> okIssuers;
+            if (acceptedIssuers == null) {
+                okIssuers = new List<string>( new string[] { _configuration["VerifiedID:DidAuthority"] } );
+            } else {
+                okIssuers = new List<string>( acceptedIssuers );
             }
-
-            //modify the callback method to make it easier to debug with tools like ngrok since the URI changes all the time
-            //this way you don't need to modify the callback URL in the payload every time ngrok changes the URI
-            if (presentationRequest["callback"]["url"] != null) {
-                //localhost hostname can't work for callbacks so we won't overwrite it.
-                //this happens for example when testing with sign-in to an IDP and https://localhost is used as redirect URI
-                //in that case the callback should be configured in the payload directly instead of being modified in the code here
-                string host = GetRequestHostName();
-                if (!host.Contains("//localhost")) {
-                    presentationRequest["callback"]["url"] = String.Format("{0}:/api/verifier/presentationCallback", host);
+            bool allowRevoked = _configuration.GetValue( "VerifiedID:allowRevoked", false );
+            bool validateLinkedDomain = _configuration.GetValue( "VerifiedID:validateLinkedDomain", true );
+            AddRequestedCredential( request, credentialType, okIssuers, allowRevoked, validateLinkedDomain );
+            return request;
+        }
+        public PresentationRequest AddRequestedCredential( PresentationRequest request
+                                                , string credentialType, List<string> acceptedIssuers
+                                                , bool allowRevoked = false, bool validateLinkedDomain = true ) {
+            request.requestedCredentials.Add( new RequestedCredential() {
+                type = credentialType,
+                acceptedIssuers = (null == acceptedIssuers ? new List<string>() : acceptedIssuers),
+                configuration = new Configuration() {
+                    validation = new Validation() {
+                        allowRevoked = allowRevoked,
+                        validateLinkedDomain = validateLinkedDomain
+                    }
+                }
+            } );
+            return request;
+        }
+        private PresentationRequest AddFaceCheck( PresentationRequest request ) {
+            string sourcePhotoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "photo" );
+            int matchConfidenceThreshold = _configuration.GetValue( "VerifiedID:matchConfidenceThreshold", 70 );
+            return AddFaceCheck( request, request.requestedCredentials[0].type, sourcePhotoClaimName, matchConfidenceThreshold );
+        }
+        private PresentationRequest AddFaceCheck( PresentationRequest request, string credentialType, string sourcePhotoClaimName = "photo", int matchConfidenceThreshold = 70 ) {
+            foreach (var requestedCredential in request.requestedCredentials) {
+                if (requestedCredential.type == credentialType) {
+                    requestedCredential.configuration.validation.faceCheck = new FaceCheck() { sourcePhotoClaimName = sourcePhotoClaimName, matchConfidenceThreshold = matchConfidenceThreshold };
+                    request.includeReceipt = false; // not supported while doing faceCheck
                 }
             }
+            return request;
+        }
 
-            // set our api-key in the request so we can check it in the callbacks we receive
-            if (presentationRequest["callback"]["headers"]["api-key"] != null) {
-                presentationRequest["callback"]["headers"]["api-key"] = this._apiKey;
+        private PresentationRequest AddClaimsConstrains( PresentationRequest request ) {
+            // This illustrates who you can set constraints of claims in requested credential.
+            // The example just sets one constraint, but you can set multiple. If you set
+            // multiple, all constraints must evaluate to true (AND logic)
+            string constraintClaim = this.Request.Query["claim"];
+            if (string.IsNullOrWhiteSpace( constraintClaim )) {
+                return request;
             }
-        }
+            string constraintOp = this.Request.Query["op"];
+            string constraintValue = this.Request.Query["value"];
 
-        public JObject GetJsonFromJwtToken(string jwtToken)
-        {            
-            jwtToken = jwtToken.Replace("_", "/").Replace("-", "+").Split(".")[1];
-            jwtToken = jwtToken.PadRight(4 * ((jwtToken.Length + 3) / 4), '=');
-            return JObject.Parse(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(jwtToken)) );
+            Constraint constraint = null;
+            if ( constraintOp == "value" ) {
+                constraint = new Constraint() {
+                    claimName = constraintClaim,
+                    values = new List<string>() { constraintValue }
+                };            
+            }
+            if (constraintOp == "contains") {
+                constraint = new Constraint() {
+                    claimName = constraintClaim,
+                    contains = constraintValue
+                };
+            }
+            if (constraintOp == "startsWith") {
+                constraint = new Constraint() {
+                    claimName = constraintClaim,
+                    startsWith = constraintValue
+                };
+            }
+            if ( null != constraint ) {
+                // if request was created from template, constraint may already exist - update it if so
+                if (null != request.requestedCredentials[0].constraints) {
+                    bool found = false;
+                    for( int i = 0; i < request.requestedCredentials[0].constraints.Count; i++ ) {
+                        if (request.requestedCredentials[0].constraints[i].claimName == constraintClaim) {
+                            request.requestedCredentials[0].constraints[i] = constraint;
+                            found = true;
+                        }
+                    }
+                    if ( !found ) {
+                        request.requestedCredentials[0].constraints.Add( constraint );
+                    }
+                } else {
+                    request.requestedCredentials[0].constraints = new List<Constraint>();
+                    request.requestedCredentials[0].constraints.Add( constraint );
+                }
+            }
+            return request;
         }
-
-    }
-}
+    } // cls
+} // ns

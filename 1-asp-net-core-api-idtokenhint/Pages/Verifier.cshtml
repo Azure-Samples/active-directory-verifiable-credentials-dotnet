@@ -7,149 +7,97 @@
     <div style="text-align: center;">
         <img src="VerifiedCredentialExpert-icon.png" height=200px; />
         <h1 id="idTitle">Verifiable Credential Presentation</h1>
-        <h2 id="idSubTitle"></h2>
-        <h3 id="idSub3Title"></h3>
+        <h2 id="idSubTitle">Presentation request for type @ViewData["CredentialType"]</h2>
+        <h3 id="idSub3Title">Accepted issuers: @string.Join( ", ", (string[])ViewData["acceptedIssuers"] )</h3>
 
-
-        <button type="button" id="sign-in" class="button">VERIFY CREDENTIAL</button>
-        <button type="button" id="check-result" class="button" style="display:none">CHECK RESULT</button>
-        <div id="qrText" style="display:none;">
-            <p class="small-text">
-                <img src="authenticator-icon.png" alt="Authenticator icon" class="icon-small"><br>
-                Scan with Microsoft Authenticator or Custom Wallet
-            </p>
-        </div>
-        <a id="deeplink" style="display: none;margin-top: 10px;">Tap to open Authenticator on mobile</a>
-        <div id="qrcode" style="text-align: center"></div>
-
-        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
+        <div id="message-wrapper" class="margin-bottom-75">
             <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
-            <div id="message"></div>
+            <div id="message">@ViewData["Message"]</div>
             <br />
-            <div id="subject"></div>
-            <br />
-            <div id="payload"></div>
         </div>
+
+        <button type="button" id="verify-credential" class="button">Verify Credential</button>
+        <button type="button" id="check-result" class="button" style="display:none">Check Result</button>
+        @if (!string.IsNullOrWhiteSpace((string)ViewData["PhotoClaimName"])) {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" @((bool)ViewData["useFaceCheck"] ? "checked" : "")>
+            <label for="useFaceCheck" id="labelFaceCheck"> Use FaceCheck</label>
+        } else {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" value="0" style="display:none">
+            <label for="useFaceCheck" id="labelFaceCheck" style="display:none"> Use FaceCheck</label>
+        }
+        <input type="checkbox" id="useConstraints" name="useConstraints" @((bool)ViewData["useConstraints"] ? "checked" : "")>
+        <label for="useConstraints" id="labelConstraints"> Use Constraints</label><br>
+        <br />
+        <table id="constraints" style="display:none")>
+            <tbody>
+            <td>
+                Claim 
+                <input type="text" id="claimName" name="claimName" placeholder="name of the claim" value="@ViewData["constraintName"]"></td>
+            <td>
+                Operator
+                <select name="constrainOp" id="constrainOp">
+                    @if ( "value" == (string)ViewData["constraintOp"]) {
+                    <option selected>value</option>
+                    }else {
+                    <option>value</option>
+                    }
+                    @if ("contains" == (string)ViewData["constraintOp"]) {
+                    <option selected>contains</option>
+                    } else {
+                    <option>contains</option>
+                    }
+                    @if ("startsWith" == (string)ViewData["constraintOp"]) {
+                    <option selected>startsWith</option>
+                    } else {
+                    <option>startsWith</option>
+                    }
+                </select>
+            </td>
+            <td>
+                Value 
+                <input type="text" id="claimValue" name="claimValue" placeholder="claim value." value="@ViewData["constraintValue"]">
+            </td>
+            </tbody>
+        </table>
+
+        <br />
+
+        <div id="qrcode" style="text-align:center;display:none"></div>
 
         <script src="qrcode.min.js"></script>
+        <script src="verifiedid.requestservice.client.js"></script>
+        <script src="verifiedid.uihandler.js"></script>
+
         <script>
-            var signIn = document.getElementById('sign-in');
-            var checkResult = document.getElementById('check-result');
-            var display = document.getElementById('display');
-            var qrcode = new QRCode("qrcode", { width: 200, height: 200 });
-            var respPresentationReq = null;
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
 
-            function pollRequestStatus(requestId, frequencyMs) {
-                var checkStatus = setInterval(function () {
-                    fetch('api/verifier/presentation-response?id=' + requestId)
-                        .then(response => response.text())
-                        .catch(error => document.getElementById("message").innerHTML = error)
-                        .then(response => {
-                            if (response.length > 0) {
-                                console.log(response)
-                                respMsg = JSON.parse(response);
-                                if (respMsg.status == 'notscanned') {
-                                    document.getElementById('message').innerHTML = "Waiting for user to present VC";
-                                } 
-                                if (respMsg.status == 'request_retrieved') {
-                                    document.getElementById('message-wrapper').style.display = "block";
-                                    document.getElementById("qrcode").getElementsByTagName("img")[0].style.opacity = "0.1";
-                                    document.getElementById('qrText').style.display = "none";
-                                    document.getElementById('message').innerHTML = respMsg.message;
-                                } 
-                                if (respMsg.status == 'presentation_verified') {
-                                    document.getElementById('qrcode').style.display = "none";
-                                    clearInterval(checkStatus);
-                                    window.location = "PresentationVerified?id=" + requestId
-                                }
-                                if (respMsg.status.includes("error") ) {
-                                    document.getElementById('qrcode').style.display = "none";
-                                    document.getElementById('message').innerHTML = "Verification error occurred.";
-                                    document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
-                                    document.getElementById('message').style.textColor = "red";
-                                    clearInterval(checkStatus);
-                                }
-                            }
-                        })
-                }, frequencyMs);
-            }
-
-            checkResult.addEventListener('click', () => {
-                document.getElementById('check-result').style.display = "none";
-                pollRequestStatus(respPresentationReq.id, 3000)
-            })
-
-            signIn.addEventListener('click', () => {
-                fetch('api/verifier/presentation-request')
-                    .then(function (response) {
-                        response.text()
-                            .catch(error => document.getElementById("message").innerHTML = error)
-                            .then(function (message) {
-                                respPresentationReq = JSON.parse(message);
-                                if (/Android/i.test(navigator.userAgent)) {
-                                    console.log(`Android device! Using deep link (${respPresentationReq.url}).`);
-                                    document.getElementById('check-result').style.display = "inline-block";
-                                    document.getElementById('sign-in').style.display = "none";
-                                    window.location.href = respPresentationReq.url;
-                                    setTimeout(function () {
-                                        window.location.href = "https://play.google.com/store/apps/details?id=com.azure.authenticator";
-                                    }, 2000);
-                                } else if (/iPhone/i.test(navigator.userAgent)) {
-                                    console.log(`iOS device! Using deep link (${respPresentationReq.url}).`);
-                                    document.getElementById('check-result').style.display = "inline-block";
-                                    document.getElementById('sign-in').style.display = "none";
-                                    window.location.replace(respPresentationReq.url);
-                                } else {
-                                    console.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
-                                    if (respPresentationReq.error_description) {
-                                        document.getElementById("message").innerHTML = respPresentationReq.error_description;
-                                        document.getElementById('message-wrapper').style.display = "block";
-                                        respPresReq = null;
-                                    } else {
-                                        qrcode.makeCode(respPresentationReq.url);
-                                        document.getElementById('sign-in').style.visibility = "hidden";
-                                        document.getElementById('qrText').style.display = "block";
-                                        pollRequestStatus(respPresentationReq.id, 1000)
-                                    }
-                                }
-                            }).catch(error => { console.log(error.message); })
-                    }).catch(error => { console.log(error.message); })
-            })
-
-            fetch('api/verifier/get-presentation-details')
-                .then(function (response) {
-                    response.text()
-                        .catch(error => displayMessage(error))
-                        .then(function (message) {
-                            details = JSON.parse(message);
-                            var acceptedIssuers = "Accepted issuer(s): any";
-                            if (details.acceptedIssuers.length > 0) {
-                                acceptedIssuers = "Accepted issuer(s): " + details.acceptedIssuers.join();
-                            }
-                            document.getElementById('idTitle').innerHTML = "Presentation of credential type: " + details.type;
-                            document.getElementById('idSubTitle').innerHTML = details.purpose;
-                            document.getElementById('idSub3Title').innerHTML = acceptedIssuers;
-                        }).catch(error => { console.log(error.message); })
-                }).catch(error => { console.log(error.message); })
-
-            function parseParms(str) {
-                var pieces = str.split("&"), data = {}, i, parts;
-                for (i = 0; i < pieces.length; i++) {
-                    parts = pieces[i].split("=");
-                    if (parts.length < 2) {
-                        parts.push("");
+            document.getElementById('verify-credential').addEventListener('click', () => {
+                var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
+                if (true == document.getElementById('useConstraints').checked) {
+                    var claimName = document.getElementById('claimName').value;
+                    var claimValue = document.getElementById('claimValue').value;
+                    var constraintOp = document.getElementById('constrainOp').value;
+                    if ( claimName && constraintOp && claimValue ) {
+                        qp += "&claim=" + claimName + "&op=" + constraintOp + "&value=" + claimValue;
                     }
-                    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
                 }
-                return data;
-            }
+                requestService.apiCreatePresentationRequest += qp;
+                requestService.createPresentationRequest();
+                document.getElementById('useConstraints').style.display = "none";
+                document.getElementById('labelConstraints').style.display = "none";
+                document.getElementById('constraints').style.display = "none";
+            });
 
-            window.onload = function () {
-                var autoclick = parseParms(document.location.search.substring(1)).autoclick;
-                if (autoclick) {
-                    document.getElementById('sign-in').click();
-                }
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+            function hideShowConstraints() {
+                document.getElementById('constraints').style.display = (document.getElementById('useConstraints').checked ? "" : "none");
             }
+            document.getElementById('useConstraints').addEventListener('click', () => {
+                hideShowConstraints();
+            });
+            hideShowConstraints();
         </script>
     </div>
 

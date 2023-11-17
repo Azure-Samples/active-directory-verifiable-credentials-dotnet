@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,7 +36,7 @@ namespace AspNetCoreVerifiableCredentials
                     // .WithOrigins("http://example.com","http://www.contoso.com");
             }));
 
-            services.Configure<AppSettingsModel>(Configuration.GetSection("AppSettings"));
+            //services.Configure<AppSettingsModel>(Configuration.GetSection("AppSettings"));
 
 
             services.AddDistributedMemoryCache();
@@ -43,7 +44,8 @@ namespace AspNetCoreVerifiableCredentials
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(1);//You can set Time   
                 options.Cookie.IsEssential = true;
-            });
+                options.Cookie.HttpOnly = true;
+            } );
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -58,6 +60,10 @@ namespace AspNetCoreVerifiableCredentials
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseForwardedHeaders( new ForwardedHeadersOptions {
+                ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+            } );
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -68,10 +74,10 @@ namespace AspNetCoreVerifiableCredentials
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            app.UseSession();
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseSession();
             app.UseCors("MyPolicy");
 
             app.UseEndpoints(endpoints =>

@@ -35,27 +35,13 @@
             </table>
 
             <br />
-            <input type="checkbox" id="showPayload" style="text-align:left" value="noshow" onclick="showPayload()">Show Payload</input>
-
-            <br />
         </div>
+
+        <script src="verifiedid.requestservice.client.js"></script>
+        <script src="verifiedid.uihandler.js"></script>
 
         <script>
 
-            function showPayload() {
-                var v1 = document.getElementById("showPayload");
-                if (v1.value == "show") {
-                    document.getElementById("payload").style.display = "none";
-                    v1.value = "noshow";
-                } else {
-                    document.getElementById("payload").style.display = "block";
-                    v1.value = "show";
-                }
-            }
-
-            function ToDate(inDate) {
-                return new Date(inDate * 1000).toLocaleString();
-            }
             function addTableRowLabel(tbodyRef, key) {
                 var row = tbodyRef.insertRow(0);
                 (row.insertCell(0)).innerHTML = key;
@@ -90,6 +76,7 @@
                     var idx = 0;
                     for (idx = Object.keys(payload).length - 1; idx >= 0; idx--) {
                         var claimName = Object.keys(payload)[idx];
+                        console.log(claimName);
                         if (claimName !== "claims") {
                             if (Object.keys(payload[Object.keys(payload)[idx]]).length > 0) {
                                 addTableRow(tbodyRef, claimName, JSON.stringify(payload[Object.keys(payload)[idx]]))
@@ -98,44 +85,35 @@
                             }
                         }
                     }
-                    if (respMsg.iat) {
-                        addTableRow(tbodyRef, "issuedAt", ToDate(respMsg.iat));
-                    }
-                    if (respMsg.exp) {
-                        addTableRow(tbodyRef, "expires", ToDate(respMsg.exp));
-                    }
                     if (respMsg.jti) {
                         addTableRow(tbodyRef, "jti", respMsg.jti);
                     }
                     var vcSubject = respMsg.subject.split(":");
                     addTableRow(tbodyRef, "subject", vcSubject[0] + ":" + vcSubject[1] + vcSubject[2] + "...");
+                    if (respMsg.revocationStatus) {
+                        addTableRow(tbodyRef, "revocationStatus", respMsg.revocationStatus);
+                    }
+                    if (respMsg.domainValidation) {
+                        addTableRow(tbodyRef, "domainValidation url", respMsg.domainValidation);
+                    }
+                    if (respMsg.matchConfidenceScore) {
+                        addTableRow(tbodyRef, "faceCheck matchConfidenceScore", respMsg.matchConfidenceScore);
+                    }
                 }
             }
             function getPresentationResult(requestId) {
-                fetch('api/verifier/presentation-response?id=' + requestId)
+                fetch(`${requestService.apiPollPresentationRequest}?id=${requestId}`)
                     .then(response => response.text())
                     .catch(error => document.getElementById("message").innerHTML = error)
                     .then(response => {
                         if (response.length > 0) {
                             console.log(response)
                             respMsg = JSON.parse(response);
-                            if (respMsg.status == 'request_created') {
-                                document.getElementById('message').innerHTML = "Waiting for user to present VC";
-                            }
-                            if (respMsg.status == 'request_retrieved') {
-                                document.getElementById('message').innerHTML = respMsg.message;
-                            }
                             if (respMsg.status == 'presentation_verified') {
-                                document.getElementById('vcType').innerText = respMsg.payload[0].type[1] + " " + respMsg.message;
+                                document.getElementById('vcType').innerText = respMsg.type[1] + " " + respMsg.message;
                                 document.getElementById('message').innerHTML = "";
-                                document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
                                 drawClaimsTable(respMsg.payload[0].claims);
                                 drawVcInfoTable(respMsg, respMsg.payload[0]);
-                            }
-                            if (respMsg.status == 'issuance_failed') {
-                                document.getElementById('message').innerHTML = "Verification error occurred.";
-                                document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
-                                document.getElementById('message').style.textColor = "red";
                             }
                         }
                     })

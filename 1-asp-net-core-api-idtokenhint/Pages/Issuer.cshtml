@@ -9,144 +9,84 @@
         <h1 id="idTitle">Verifiable Credential Issuance</h1>
         <h2 id="idSubTitle"></h2>
 
-        <button type="button" id="sign-in" class="button">GET CREDENTIAL</button>
-        <div id="qrText" style="display:none;">
-            <p class="small-text">
-                <img src="authenticator-icon.png" alt="Authenticator icon" class="icon-small"><br>
-                Scan with Microsoft Authenticator or Custom Wallet
-            </p>
-        </div>
-        <a id="deeplink" style="display: none;margin-top: 10px;">Tap to open Authenticator on mobile</a>
-        <div id="qrcode" style="text-align: center"></div>
-        <div id="pinCodeText" style="display: none"></div>
+        <p id="photo-help" style="text-align:left; display:none">
+            This verifiable credential includes a photo claim that you can be used for biometric face check during presentation. You can either take a selfie or upload an existing picture of you before you issue the credential.
+            <br /><br />
+            For selfie, click the Take Selfie button, then scan the QR code with the <strong>QR Code Reader app</strong> on your mobile, click 'Open Camera' in the page, take selfie and then click 'Use photo' in the mobile.
+            The photo is not persisted anywhere and is just added to the credential you will have in your wallet.
+            <br /><br />
+            Then click Issue Credential to start the issuance process. When the QR code appears, scan it with your <strong>Microsoft Authenticator</strong> or your <strong>custom wallet</strong> app.
+            <br /><br />
+            The photo should be a portrait photo of atleast 200x200 pixels. Glasses, masks, hats, headphones, head coverings and face coverings will result in failure in liveness checks during presentations.
+        </p>
 
-        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
+        <div id="message-wrapper" class="margin-bottom-75" style="display: none">
             <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
             <div id="message"></div>
-            <br />
-            <div id="payload"></div>
         </div>
 
+        <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white">Issue Credential</button>
+        <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
+        <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" style="display:none">Take Selfie</button>
+
+        <input type='file' id="imageUpload" accept="image/*" class="button bg-nw-blue text-nw-white" style="display:none" />
+        <br /><br />
+        <div id="qrcode" style="text-align:center; display:none"></div>
+        <br />
+        <div id="pinCode" style="display: none"></div>
+        <br />
+        <img id="selfie" width="240" height="320" style="display:none" />
+
         <script src="qrcode.min.js"></script>
+        <script src="verifiedid.requestservice.client.js"></script>
+        <script src="verifiedid.uihandler.js"></script>
+
         <script>
-            var signIn = document.getElementById('sign-in');
-            var signOut = document.getElementById('sign-out');
-            var display = document.getElementById('display');
-            var qrcode = new QRCode("qrcode", { width: 200, height: 200 });
-            var respIssuanceReq = null;
-            signIn.addEventListener('click', () => {
-                fetch('api/issuer/issuance-request')
-                    .then(function (response) {
-                        response.text()
-                            .catch(error => displayMessage(error))
-                            .then(function (message) {
-                                respIssuanceReq = JSON.parse(message);
-                                if (/Android/i.test(navigator.userAgent)) {
-                                    console.log(`Android device! Using deep link (${respIssuanceReq.url}).`);
-                                    window.location.href = respIssuanceReq.url; setTimeout(function () {
-                                        window.location.href = "https://play.google.com/store/apps/details?id=com.azure.authenticator";
-                                    }, 2000);
-                                } else if (/iPhone/i.test(navigator.userAgent)) {
-                                    console.log(`iOS device! Using deep link (${respIssuanceReq.url}).`);
-                                    window.location.replace(respIssuanceReq.url);
-                                } else {
-                                    if (response.status > 299) {
-                                        displayMessage(message);
-                                    } else {
-                                        console.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
-                                        qrcode.makeCode(respIssuanceReq.url);
-                                        document.getElementById('sign-in').style.display = "none";
-                                        document.getElementById('qrText').style.display = "block";
-                                        if (respIssuanceReq.pin) {
-                                            document.getElementById('pinCodeText').innerHTML = "Pin code: " + respIssuanceReq.pin;
-                                            document.getElementById('pinCodeText').style.display = "block";
-                                        }
-                                        checkIssuanceResponse();
-                                    }
-                                }
-                            }).catch(error => { console.log(error.message); })
-                    }).catch(error => { console.log(error.message); })
-
-
-            });
-
-            function displayMessage(msg) {
-                document.getElementById('message-wrapper').style.display = "block";
-                document.getElementById("message").innerHTML = msg;
-            }
-
-            function checkIssuanceResponse() {
-                var checkStatus = setInterval(function () {
-                    fetch('api/issuer/issuance-response?id=' + respIssuanceReq.id)
-                        .then(response => response.text())
-                        .catch(error => displayMessage(error))
-                        .then(response => {
-                            if (response.length > 0) {
-                                console.log(response)
-                                respMsg = JSON.parse(response);
-                                // QR Code scanned, show pincode if pincode is required
-                                if (respMsg.status == 'request_retrieved') {
-                                    document.getElementById("qrcode").getElementsByTagName("img")[0].style.opacity = "0.1";
-                                    document.getElementById('qrText').style.display = "none";
-                                    if (respMsg.pin) {
-                                        document.getElementById('pinCodeText').style.display = "visible";
-                                    }
-                                    displayMessage(respMsg.message);
-                                }
-                                if (respMsg.status == 'issuance_successful') {
-                                    document.getElementById('qrcode').style.display = "none";
-                                    document.getElementById('pinCodeText').style.display = "none";
-                                    document.getElementById('message').innerHTML = respMsg.message;
-                                    clearInterval(checkStatus);
-                                }
-                                if (respMsg.status == 'issuance_error') {
-                                    document.getElementById('qrcode').style.display = "none";
-                                    document.getElementById('pinCodeText').style.display = "none";
-                                    document.getElementById('message').innerHTML = "Issuance error occurred, did you enter the wrong pincode? Please refresh the page and try again.";
-                                    document.getElementById('payload').innerHTML = "Payload: " + respMsg.payload;
-                                    clearInterval(checkStatus);
-                                }
-                            }
-                        })
-                }, 2500);
-            }
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var havePhotoClaim = false;
 
             fetch('api/issuer/get-manifest')
                 .then(function (response) {
                     response.text()
                         .catch(error => displayMessage(error))
                         .then(function (message) {
-                            console.log(message);
-                            if (!response.ok) {
-                                displayMessage(message)
-                            } else {
-                                var manifest = JSON.parse(message);
-                                document.getElementById('idTitle').innerHTML = "Issuance of " + manifest.display.card.title + " by " + manifest.display.card.issuedBy;
-                                document.getElementById('idSubTitle').innerHTML = manifest.display.card.description;
-                                document.getElementById('logo').src = manifest.display.card.logo.uri;
+                            var manifest = JSON.parse(message);
+                            document.getElementById('idTitle').innerHTML = "Issuance of " + manifest.display.card.title + " by " + manifest.display.card.issuedBy;
+                            document.getElementById('idSubTitle').innerHTML = manifest.display.card.description;
+                            document.getElementById('logo').src = manifest.display.card.logo.uri;
+                            // if the manifest has a claim with type image/jp[e]g, then we should support adding a photo
+                            if (message.includes("image/jp")) {
+                                havePhotoClaim = true;
+                                hideShowPhotoElements("");
                             }
                         }).catch(error => { console.log(error.message); })
-                }).catch(error => { console.log(error); })
+                }).catch(error => { console.log(error.message); })
 
-            function parseParms(str) {
-                var pieces = str.split("&"), data = {}, i, parts;
-                for (i = 0; i < pieces.length; i++) {
-                    parts = pieces[i].split("=");
-                    if (parts.length < 2) {
-                        parts.push("");
-                    }
-                    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+            document.getElementById('issue-credential').addEventListener('click', () => {
+                if ( havePhotoClaim ) {
+                    setUserPhoto();
+                    hideShowPhotoElements("none");
+                    // make sure the photo is sent to API in backend before we continue
+                    setTimeout(requestService.createIssuanceRequest(), 250);
+                } else {
+                    requestService.createIssuanceRequest();
                 }
-                return data;
-            }
+            });
 
-            window.onload = function () {
-                var autoclick = parseParms(document.location.search.substring(1)).autoclick;
-                if (autoclick) {
-                    document.getElementById('sign-in').click();
-                }
-            }
+            document.getElementById('take-selfie').addEventListener('click', () => {
+                document.getElementById("selfie").src = "";
+                document.getElementById("selfie").style.display = "none";
+                document.getElementById("imageUpload").style.display = "none";
+                requestService.createSelfieRequest();
+            });
 
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+
+            document.getElementById('imageUpload').addEventListener('change', function (e) {
+                uploadImage(e)
+            });
         </script>
     </div>
 </div>
