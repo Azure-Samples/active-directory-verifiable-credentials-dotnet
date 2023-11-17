@@ -98,22 +98,6 @@
                 hideShowConstraints();
             });
             hideShowConstraints();
-            /*
-            fetch('api/verifier/get-presentation-details')
-                .then(function (response) {
-                    response.text()
-                        .catch(error => displayMessage(error))
-                        .then(function (message) {
-                            var resp = JSON.parse(message);
-                            document.getElementById('idTitle').innerHTML = "Presentation of " + resp.type;
-                            document.getElementById('idSubTitle').innerHTML = "Accepted issuers: " + resp.acceptedIssuers;
-                            if (resp.PhotoClaimName) {
-                                document.getElementById('useFaceCheck').style.display = "";
-                                document.getElementById('labelFaceCheck').style.display = "";
-                            }
-                        }).catch(error => { console.log(error.message); })
-                }).catch(error => { console.log(error.message); })
-            */
         </script>
     </div>
 
