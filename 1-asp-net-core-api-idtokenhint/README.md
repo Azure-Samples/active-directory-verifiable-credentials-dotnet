@@ -27,6 +27,28 @@ You will be asked to enter some parameters during deployment about your app regi
 
 Please complete the [setup](Setup) before deploying to Azure.
 
+## Test Issuance and Verification
+
+Once you have deployed this sample to Azure AppServices with a working configuration, you can issue yourself a `VerifiedCredentialExpert` credential and then test verification. 
+This requires completing the [Verified ID onboarding and creation](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-issuer) of the `VerifiedCredentialExpert`.
+If you want to test presenting and verifying other types and credentials, follow the next section.
+
+## Test Verification via templates
+
+The sample creates a [presentation request](https://learn.microsoft.com/en-us/entra/verified-id/get-started-request-api?tabs=http%2Cconstraints#presentation-request-example) in code based on your configuration in `appsettings.json`. 
+You can also use JSON templates to create other presentation requests without changing the configuration to quickly test different scenarios. 
+This github repo provises four templates for your convenience. Right-click and copy the below links and change `localhost` to your webapp's hostname. 
+You can issue yourself a `VerifiedEmployee` credential at [MyAccount](https://myaccound.microsoft.com) if your organization have onboarded to Verified ID and enabled MyAccount (doc [here](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials)).
+
+| Template | Description | Link |
+|------|--------|--------|
+| TrueIdentity | A presentation request for a [TrueIdentity](https://trueidentityinc.azurewebsites.net/) credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_TrueIdentity.json) |
+| VerifiedEmployee | A presentation request for a [VerifiedEmployee](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart-verifiedemployee) credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee.json) |
+| VerifiedEmployee with FaceCheck*| A presentation request for a VerifiedEmployee credential that will perform a liveness check in the Authenticator. This requires that you have a good photo of yourself in the VerifiedEmployee credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee-FaceCheck.json) |
+| VerifiedEmployee with constraints | A presentation request for a VerifiedEmployee credential that uses a claims constraints that `jobTitle` contains the word `manager` | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee-Constraints.json) |
+
+*Note - FaceCheck is in preview. If you plan to test it, make sure you have the latest Microsoft Authenticator.
+
 ## Contents
 
 The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a `VerifiedCredentialExpert` credential and verify that as well.
@@ -140,20 +162,6 @@ The sample dynamically copies the hostname to be part of the callback URL, this 
 3. Scan the QR code
 4. select the VerifiedCredentialExpert credential and click allow
 5. You should see the result presented on the screen.
-
-## Test Verification via templates
-
-The sample creates a [presentation request](https://learn.microsoft.com/en-us/entra/verified-id/get-started-request-api?tabs=http%2Cconstraints#presentation-request-example) in code based on your configuration in `appsettings.json`. 
-You can also use JSON templates to create other presentation requests without changing the configuration to quickly test different scenarios. 
-This github repo provises four templates for your convenience. Right-click and copy the below links and change `localhost` to your webapps hostname. 
-You can issue yourself a `VerifiedEmployee` credential at [MyAccount](https://myaccound.microsoft.com) if your organization have onboarded to Verified ID and enabled MyAccount (doc [here](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials)).
-
-| Template | Description | Link |
-|------|--------|--------|
-| TrueIdentity | a presentation request for a [TrueIdentity](https://trueidentityinc.azurewebsites.net/) credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/cljung-dev/1-asp-net-core-api-idtokenhint/Templates/presentation_request_TrueIdentity.json) |
-| VerifiedEmployee | a presentation request for a VerifiedEmployee credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/cljung-dev/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee.json) |
-| VerifiedEmployee with FaceCheck| a presentation request for a VerifiedEmployee credential that will perform a liveness check in the Authenticator. This requires that you have a good photo of yourself in the VerifiedEmployee credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/cljung-dev/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee-FaceCheck.json) |
-| VerifiedEmployee with constraints | a presentation request for a VerifiedEmployee credential that uses a claims constraints that `jobTitle` contains the word `manager` | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/cljung-dev/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee-Constraints.json) |
 
 ## Best practices
 
