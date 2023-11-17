@@ -22,7 +22,7 @@
       "metadata": {
         "description": "Github repo branch"
       },
-      "defaultValue": "cljung-dev"
+      "defaultValue": "main"
     },
     "Project": {
       "type": "string",
