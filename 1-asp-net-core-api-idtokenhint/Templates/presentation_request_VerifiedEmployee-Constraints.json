@@ -1,0 +1,35 @@
+{
+  "includeQRCode": false,
+  "callback": {
+    "url": "...set at runtime...",
+    "state": "...set at runtime...",
+    "headers": {
+      "api-key": "...set at runtime..."
+    }
+  },
+  "authority": "...set at runtime...",
+  "registration": {
+    "clientName": "VerifiedEmployee Verifier",
+    "purpose": "So we can see you're a verified employee and a manager"
+  },
+
+  "includeReceipt": true,
+  "requestedCredentials": [
+    {
+      "type": "VerifiedEmployee",
+      "acceptedIssuers": [],
+      "constraints": [
+        {
+          "claimName": "jobTitle",
+          "contains": "manager"
+        }
+      ],
+      "configuration": {
+        "validation": {
+          "allowRevoked": true,
+          "validateLinkedDomain": true
+        }
+      }
+    }
+  ]
+}

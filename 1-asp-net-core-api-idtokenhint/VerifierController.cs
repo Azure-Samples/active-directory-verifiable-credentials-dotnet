@@ -22,6 +22,8 @@ using System.Security.Policy;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Azure.Core;
 
 namespace AspNetCoreVerifiableCredentials
 {
@@ -34,10 +36,9 @@ namespace AspNetCoreVerifiableCredentials
         private IHttpClientFactory _httpClientFactory;
         private string _apiKey;
         private IConfiguration _configuration;
-        public VerifierController(IConfiguration configuration, /*IOptions<AppSettingsModel> appSettings,*/ IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
+        public VerifierController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
-            //this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
             _httpClientFactory = httpClientFactory;
@@ -65,7 +66,14 @@ namespace AspNetCoreVerifiableCredentials
                 }
 
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
-                PresentationRequest request = CreatePresentationRequest();
+                string template = HttpContext.Session.GetString( "presentationRequestTemplate" );
+                PresentationRequest request = null;
+                if ( !string.IsNullOrWhiteSpace(template) ) {
+                    request = CreatePresentationRequestFromTemplate( template );
+                } else {
+                    request = CreatePresentationRequest();
+                }
+
                 string faceCheck = this.Request.Query["faceCheck"];
                 bool useFaceCheck = (!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true"));
                 if (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false )) {
@@ -137,7 +145,7 @@ namespace AspNetCoreVerifiableCredentials
                     VerifierAuthority = request.authority,
                     type = request.requestedCredentials[0].type,
                     acceptedIssuers = request.requestedCredentials[0].acceptedIssuers.ToArray(),
-                    sourcePhotoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "" )
+                    PhotoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "" )
                 };
                 return new ContentResult { ContentType = "application/json", Content = JsonConvert.SerializeObject(details) };
             } catch (Exception ex) {
@@ -223,6 +231,27 @@ namespace AspNetCoreVerifiableCredentials
             else hostname = string.Format("{0}://{1}", scheme, this.Request.Host);
             return hostname;
         }
+        /// <summary>
+        /// This method creates a PresentationRequest object instance from a JSON template
+        /// </summary>
+        /// <param name="template">JSON template of a Request Service API presentation payload</param>
+        /// <param name="stateId"></param>
+        /// <returns></returns>
+        public PresentationRequest CreatePresentationRequestFromTemplate( string template, string? stateId = null ) {
+            PresentationRequest request = JsonConvert.DeserializeObject<PresentationRequest>( template );
+            request.authority = _configuration["VerifiedID:DidAuthority"];
+            request.callback.url = $"{GetRequestHostName()}/api/verifier/presentationcallback";
+            request.callback.state = (string.IsNullOrWhiteSpace( stateId ) ? Guid.NewGuid().ToString() : stateId);
+            request.callback.headers = new Dictionary<string, string>() { { "api-key", this._apiKey } };
+            return request;
+        }
+        /// <summary>
+        /// This method creates a PresentationRequest object instance from configuration
+        /// </summary>
+        /// <param name="stateId"></param>
+        /// <param name="credentialType"></param>
+        /// <param name="acceptedIssuers"></param>
+        /// <returns></returns>
         public PresentationRequest CreatePresentationRequest( string? stateId = null, string? credentialType = null, string[]? acceptedIssuers = null ) {
             PresentationRequest request = new PresentationRequest() {
                 includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
@@ -296,6 +325,7 @@ namespace AspNetCoreVerifiableCredentials
             }
             string constraintOp = this.Request.Query["op"];
             string constraintValue = this.Request.Query["value"];
+
             Constraint constraint = null;
             if ( constraintOp == "value" ) {
                 constraint = new Constraint() {
@@ -316,8 +346,22 @@ namespace AspNetCoreVerifiableCredentials
                 };
             }
             if ( null != constraint ) {
-                request.requestedCredentials[0].constraints = new List<Constraint>();
-                request.requestedCredentials[0].constraints.Add( constraint );
+                // if request was created from template, constraint may already exist - update it if so
+                if (null != request.requestedCredentials[0].constraints) {
+                    bool found = false;
+                    for( int i = 0; i < request.requestedCredentials[0].constraints.Count; i++ ) {
+                        if (request.requestedCredentials[0].constraints[i].claimName == constraintClaim) {
+                            request.requestedCredentials[0].constraints[i] = constraint;
+                            found = true;
+                        }
+                    }
+                    if ( !found ) {
+                        request.requestedCredentials[0].constraints.Add( constraint );
+                    }
+                } else {
+                    request.requestedCredentials[0].constraints = new List<Constraint>();
+                    request.requestedCredentials[0].constraints.Add( constraint );
+                }
             }
             return request;
         }

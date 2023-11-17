@@ -7,39 +7,55 @@
     <div style="text-align: center;">
         <img src="VerifiedCredentialExpert-icon.png" height=200px; />
         <h1 id="idTitle">Verifiable Credential Presentation</h1>
-        <h2 id="idSubTitle"></h2>
-        <h3 id="idSub3Title"></h3>
+        <h2 id="idSubTitle">Presentation request for type @ViewData["CredentialType"]</h2>
+        <h3 id="idSub3Title">Accepted issuers: @string.Join( ", ", (string[])ViewData["acceptedIssuers"] )</h3>
 
-
-        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
+        <div id="message-wrapper" class="margin-bottom-75">
             <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
-            <div id="message"></div>
+            <div id="message">@ViewData["Message"]</div>
             <br />
         </div>
 
         <button type="button" id="verify-credential" class="button">Verify Credential</button>
         <button type="button" id="check-result" class="button" style="display:none">Check Result</button>
-        <input type="checkbox" id="useFaceCheck" name="useFaceCheck" value="0" style="display:none">
-        <label for="useFaceCheck" id="labelFaceCheck" style="display:none"> Use FaceCheck</label>
-        <input type="checkbox" id="useConstraints" name="useConstraints" value="0">
+        @if (!string.IsNullOrWhiteSpace((string)ViewData["PhotoClaimName"])) {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" @((bool)ViewData["useFaceCheck"] ? "checked" : "")>
+            <label for="useFaceCheck" id="labelFaceCheck"> Use FaceCheck</label>
+        } else {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" value="0" style="display:none">
+            <label for="useFaceCheck" id="labelFaceCheck" style="display:none"> Use FaceCheck</label>
+        }
+        <input type="checkbox" id="useConstraints" name="useConstraints" @((bool)ViewData["useConstraints"] ? "checked" : "")>
         <label for="useConstraints" id="labelConstraints"> Use Constraints</label><br>
         <br />
-        <table id="constraints" style="display:none">
+        <table id="constraints" style="display:none")>
             <tbody>
             <td>
                 Claim 
-                <input type="text" id="claimName" name="claimName" placeholder="name of the claim"></td>
+                <input type="text" id="claimName" name="claimName" placeholder="name of the claim" value="@ViewData["constraintName"]"></td>
             <td>
                 Operator
                 <select name="constrainOp" id="constrainOp">
+                    @if ( "value" == (string)ViewData["constraintOp"]) {
+                    <option selected>value</option>
+                    }else {
                     <option>value</option>
+                    }
+                    @if ("contains" == (string)ViewData["constraintOp"]) {
+                    <option selected>contains</option>
+                    } else {
                     <option>contains</option>
+                    }
+                    @if ("startsWith" == (string)ViewData["constraintOp"]) {
+                    <option selected>startsWith</option>
+                    } else {
                     <option>startsWith</option>
+                    }
                 </select>
             </td>
             <td>
                 Value 
-                <input type="text" id="claimValue" name="claimValue" placeholder="claim value.">
+                <input type="text" id="claimValue" name="claimValue" placeholder="claim value." value="@ViewData["constraintValue"]">
             </td>
             </tbody>
         </table>
@@ -67,15 +83,22 @@
                 }
                 requestService.apiCreatePresentationRequest += qp;
                 requestService.createPresentationRequest();
+                document.getElementById('useConstraints').style.display = "none";
+                document.getElementById('labelConstraints').style.display = "none";
+                document.getElementById('constraints').style.display = "none";
             });
 
             document.getElementById('check-result').addEventListener('click', () => {
                 requestService.pollRequestStatus(requestService.request.id);
             });
-            document.getElementById('useConstraints').addEventListener('click', () => {
+            function hideShowConstraints() {
                 document.getElementById('constraints').style.display = (document.getElementById('useConstraints').checked ? "" : "none");
+            }
+            document.getElementById('useConstraints').addEventListener('click', () => {
+                hideShowConstraints();
             });
-
+            hideShowConstraints();
+            /*
             fetch('api/verifier/get-presentation-details')
                 .then(function (response) {
                     response.text()
@@ -84,13 +107,13 @@
                             var resp = JSON.parse(message);
                             document.getElementById('idTitle').innerHTML = "Presentation of " + resp.type;
                             document.getElementById('idSubTitle').innerHTML = "Accepted issuers: " + resp.acceptedIssuers;
-                            if (resp.sourcePhotoClaimName) {
+                            if (resp.PhotoClaimName) {
                                 document.getElementById('useFaceCheck').style.display = "";
                                 document.getElementById('labelFaceCheck').style.display = "";
                             }
                         }).catch(error => { console.log(error.message); })
                 }).catch(error => { console.log(error.message); })
-
+            */
         </script>
     </div>
 

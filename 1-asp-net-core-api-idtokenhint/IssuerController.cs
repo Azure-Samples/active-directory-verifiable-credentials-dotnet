@@ -30,15 +30,13 @@ namespace AspNetCoreVerifiableCredentials
     [ApiController]
     public class IssuerController : ControllerBase
     {
-        //protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
         protected readonly ILogger<IssuerController> _log;
         private IHttpClientFactory _httpClientFactory;
         private IConfiguration _configuration;
         private string _apiKey;
-        public IssuerController(IConfiguration configuration, /*IOptions<AppSettingsModel> appSettings,*/ IMemoryCache memoryCache, ILogger<IssuerController> log, IHttpClientFactory httpClientFactory)
+        public IssuerController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<IssuerController> log, IHttpClientFactory httpClientFactory)
         {
-            //this.AppSettings = appSettings.Value;
             _cache = memoryCache;
             _log = log;
             _configuration = configuration;
