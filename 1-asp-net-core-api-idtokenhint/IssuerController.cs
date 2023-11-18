@@ -49,8 +49,17 @@ namespace AspNetCoreVerifiableCredentials
             request.claims.Add( "given_name", "Megan" );
             request.claims.Add( "family_name", "Bowen" );
 
-            // If apsettings.json say we should have a photo claim
-            string photoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "");
+            string photoClaimName = "";
+            // get photo claim from manifest
+            if (GetCredentialManifest( out string manifest, out string error )) {
+                JObject jsonManifest = JObject.Parse(manifest);
+                foreach( var claim in jsonManifest["display"]["claims"] ) {
+                    string claimName = ((JProperty)claim).Name;                    
+                    if (jsonManifest["display"]["claims"][claimName]["type"].ToString() == "image/jpg;base64url" ) {
+                        photoClaimName = claimName.Replace( "vc.credentialSubject.", "");
+                    }
+                }
+            }
             if (!string.IsNullOrWhiteSpace( photoClaimName) ) {
                 // if we have a photoId in the Session
                 string photoId = this.Request.Headers["rsid"];
@@ -97,13 +106,13 @@ namespace AspNetCoreVerifiableCredentials
                 {
                     //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                     //needs to be send as bearer to the VC Request API
-                    var accessToken = await GetAccessToken();
+                    var accessToken = await MsalAccessTokenHandler.GetAccessToken( _configuration );
                     if (accessToken.Item1 == String.Empty)
                     {
                         _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description));
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
-
+                    _log.LogTrace( accessToken.token );
                     IssuanceRequest request = CreateIssuanceRequest();
 
                     // If the credential uses the idTokenHint attestation flow, then you must set the claims before
@@ -157,32 +166,37 @@ namespace AspNetCoreVerifiableCredentials
             }
         }
 
+        private bool GetCredentialManifest( out string manifest, out string error) {
+            error = null;
+            if (!_cache.TryGetValue( "manifest", out manifest )) {
+                string manifestUrl = _configuration["VerifiedID:CredentialManifest"];
+                if (string.IsNullOrWhiteSpace( manifestUrl )) {
+                    error = $"Manifest missing in config file";                    
+                    return false;
+                }
+                var client = _httpClientFactory.CreateClient();
+                HttpResponseMessage res = client.GetAsync( manifestUrl ).Result;
+                string response = res.Content.ReadAsStringAsync().Result;
+                if (res.StatusCode != HttpStatusCode.OK) {
+                    error = $"HTTP status {(int)res.StatusCode} retrieving manifest from URL {manifestUrl}";
+                    return false;
+                }
+                JObject resp = JObject.Parse( response );
+                string jwtToken = resp["token"].ToString();
+                jwtToken = jwtToken.Replace( "_", "/" ).Replace( "-", "+" ).Split( "." )[1];
+                jwtToken = jwtToken.PadRight( 4 * ((jwtToken.Length + 3) / 4), '=' );
+                manifest = System.Text.Encoding.UTF8.GetString( Convert.FromBase64String( jwtToken ) );
+                _cache.Set( "manifest", manifest );
+            }
+            return true;
+        }
         [HttpGet("/api/issuer/get-manifest")]
         public ActionResult getManifest() {
             _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
             try {
-                if (!_cache.TryGetValue("manifest", out string manifest))
-                {
-                    string manifestUrl = _configuration["VerifiedID:CredentialManifest"];
-                    if (string.IsNullOrWhiteSpace( manifestUrl )) {
-                        string errmsg = $"Manifest missing in config file";
-                        _log.LogError( errmsg );
-                        return BadRequest( new { error = "400", error_description = errmsg } );
-                    }
-                    var client = _httpClientFactory.CreateClient();
-                    HttpResponseMessage res = client.GetAsync(manifestUrl).Result;
-                    string response = res.Content.ReadAsStringAsync().Result;
-                    if (res.StatusCode != HttpStatusCode.OK)
-                    {
-                        return BadRequest(new { error = "400", 
-                            error_description = $"HTTP status {(int)res.StatusCode} retrieving manifest from URL {manifestUrl}" });
-                    }
-                    JObject resp = JObject.Parse(response);
-                    string jwtToken = resp["token"].ToString();
-                    jwtToken = jwtToken.Replace("_", "/").Replace("-", "+").Split(".")[1];
-                    jwtToken = jwtToken.PadRight(4 * ((jwtToken.Length + 3) / 4), '=');
-                    manifest = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(jwtToken));
-                    _cache.Set( "manifest", manifest );
+                if ( !GetCredentialManifest( out string manifest, out string errmsg ) ) {
+                    _log.LogError( errmsg );
+                    return BadRequest( new { error = "400", error_description = errmsg } );
                 }
                 return new ContentResult { ContentType = "application/json", Content = manifest };
             } catch (Exception ex) {
@@ -235,76 +249,6 @@ namespace AspNetCoreVerifiableCredentials
         }
 
         //some helper functions
-        private X509Certificate2 ReadCertificate( string certificateName ) {
-            if (string.IsNullOrWhiteSpace( certificateName )) {
-                throw new ArgumentException( "certificateName should not be empty. Please set the CertificateName setting in the appsettings.json", "certificateName" );
-            }
-            CertificateDescription certificateDescription = CertificateDescription.FromStoreWithDistinguishedName( certificateName );
-            DefaultCertificateLoader defaultCertificateLoader = new DefaultCertificateLoader();
-            defaultCertificateLoader.LoadIfNeeded( certificateDescription );
-            return certificateDescription.Certificate;
-        }
-
-        protected async Task<(string token, string error, string error_description)> GetAccessToken()
-        {
-            // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
-            string authority = $"{_configuration["VerifiedID:Authority"]}{_configuration["VerifiedID:TenantId"]}";
-            string clientSecret = _configuration.GetValue("VerifiedID:ClientSecret", "");
-            // Since we are using application permissions this will be a confidential client application
-            IConfidentialClientApplication app;
-            if (!string.IsNullOrWhiteSpace( clientSecret ))
-            {
-                app = ConfidentialClientApplicationBuilder.Create(_configuration["VerifiedID:ClientId"])
-                    .WithClientSecret(clientSecret)
-                    .WithAuthority(new Uri(authority))
-                    .Build();
-            }
-            else
-            {
-                X509Certificate2 certificate = ReadCertificate( _configuration["VerifiedID:CertificateName"] );
-                app = ConfidentialClientApplicationBuilder.Create( _configuration["VerifiedID:ClientId"] )
-                    .WithCertificate(certificate)
-                    .WithAuthority( new Uri( authority ) )
-                    .Build();
-            }
-
-            //configure in memory cache for the access tokens. The tokens are typically valid for 60 seconds,
-            //so no need to create new ones for every web request
-            app.AddDistributedTokenCache(services =>
-            {
-                services.AddDistributedMemoryCache();
-                services.AddLogging(configure => configure.AddConsole())
-                .Configure<LoggerFilterOptions>(options => options.MinLevel = Microsoft.Extensions.Logging.LogLevel.Debug);
-            });
-
-            // With client credentials flows the scopes is ALWAYS of the shape "resource/.default", as the 
-            // application permissions need to be set statically (in the portal or by PowerShell), and then granted by
-            // a tenant administrator. 
-            string[] scopes = new string[] { _configuration["VerifiedID:scope"] };
-
-            AuthenticationResult result = null;
-            try
-            {
-                result = await app.AcquireTokenForClient(scopes)
-                    .ExecuteAsync();
-            }
-            catch (MsalServiceException ex) when (ex.Message.Contains("AADSTS70011"))
-            {
-                // Invalid scope. The scope has to be of the form "https://resourceurl/.default"
-                // Mitigation: change the scope to be as expected
-                return (string.Empty, "500", "Scope provided is not supported");
-                //return BadRequest(new { error = "500", error_description = "Scope provided is not supported" });
-            }
-            catch (MsalServiceException ex)
-            {
-                // general error getting an access token
-                return (String.Empty, "500", "Something went wrong getting an access token for the client API:" + ex.Message);
-                //return BadRequest(new { error = "500", error_description = "Something went wrong getting an access token for the client API:" + ex.Message });
-            }
-
-            _log.LogTrace(result.AccessToken);
-            return (result.AccessToken, String.Empty, String.Empty);
-        }
         protected string GetRequestHostName()
         {
             string scheme = "https";// : this.Request.Scheme;
@@ -322,7 +266,7 @@ namespace AspNetCoreVerifiableCredentials
             return (userAgent.Contains("Android") || userAgent.Contains("iPhone"));
         }
 
-        public IssuanceRequest CreateIssuanceRequest( string? stateId = null ) {
+        public IssuanceRequest CreateIssuanceRequest( string stateId = null ) {
             IssuanceRequest request = new IssuanceRequest() {
                 includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
                 authority = _configuration["VerifiedID:DidAuthority"],

@@ -39,6 +39,9 @@ namespace AspNetCoreVerifiableCredentials.Pages
 
             HttpContext.Session.Remove( "presentationRequestTemplate" );
             string templateLink = this.Request.Query["template"];
+            string jsonTemplate = null;
+
+            // URL?
             if ( !string.IsNullOrWhiteSpace( templateLink ) && templateLink.StartsWith("https://") ) {
                 HttpClient client = new HttpClient();
                 HttpResponseMessage res = null;
@@ -49,15 +52,31 @@ namespace AspNetCoreVerifiableCredentials.Pages
                     ViewData["Message"] = $"Error getting template link: {templateLink}. {ex.Message}";
                     return;
                 }
-                string response = res.Content.ReadAsStringAsync().Result;
+                jsonTemplate = res.Content.ReadAsStringAsync().Result;
                 client.Dispose();
-                PresentationRequest request = null;
                 if ( HttpStatusCode.OK != res.StatusCode ) {
                     ViewData["Message"] = $"{res.StatusCode.ToString()} - Template link not found: {templateLink}";
                     return;
                 }
+            }
+
+            // local file?
+            if (!string.IsNullOrWhiteSpace( templateLink ) 
+                && (templateLink.StartsWith( "file://" ) || templateLink.Substring(1,2) == ":\\")) {
+                if (templateLink.StartsWith( "file://" ) ) {
+                    templateLink = templateLink.Substring(8).Replace("/", "\\" );
+                }
                 try {
-                    request = JsonConvert.DeserializeObject<PresentationRequest>( response );
+                    jsonTemplate = System.IO.File.ReadAllText( templateLink );
+                } catch( Exception ex ) {
+                    ViewData["Message"] = $"Error getting template link: {ex.Message}";
+                }
+            }
+
+            if ( !string.IsNullOrWhiteSpace( jsonTemplate ) ) {
+                PresentationRequest request = null;
+                try {
+                    request = JsonConvert.DeserializeObject<PresentationRequest>( jsonTemplate );
                 } catch( Exception ex ) {
                     ViewData["Message"] = $"Error parsing template link: {templateLink}. {ex.Message}";
                     return;
@@ -72,10 +91,14 @@ namespace AspNetCoreVerifiableCredentials.Pages
                 }
                 ViewData["CredentialType"] = request.requestedCredentials[0].type;
                 ViewData["acceptedIssuers"] = request.requestedCredentials[0].acceptedIssuers.ToArray();
+
+                // template uses FaceCheck?
                 if ( null != request.requestedCredentials[0].configuration && null != request.requestedCredentials[0].configuration.validation.faceCheck) {
                         ViewData["useFaceCheck"] = true;
                         ViewData["PhotoClaimName"] = request.requestedCredentials[0].configuration.validation.faceCheck.sourcePhotoClaimName;
                 }
+
+                // template uses constraints?
                 if (null != request.requestedCredentials[0].constraints ) {
                     ViewData["useConstraints"] = true;
                     ViewData["constraintName"] = request.requestedCredentials[0].constraints[0].claimName;
@@ -92,7 +115,7 @@ namespace AspNetCoreVerifiableCredentials.Pages
                         ViewData["constraintValue"] = request.requestedCredentials[0].constraints[0].startsWith;
                     }
                 }
-                HttpContext.Session.SetString("presentationRequestTemplate", response );
+                HttpContext.Session.SetString("presentationRequestTemplate", jsonTemplate );
             }
         }
     }

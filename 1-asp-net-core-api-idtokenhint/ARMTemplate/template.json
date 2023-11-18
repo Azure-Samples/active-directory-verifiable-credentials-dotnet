@@ -76,7 +76,7 @@
     "PhotoClaimName": {
       "type": "string",
       "metadata": {
-        "description": "claim name for photo - if you are issuing credentials with a photo. Otherwise leave this field blank"
+        "description": "claim name for photo - if you are using FaceCheck during presentation. Otherwise leave this field blank"
       },
       "defaultValue": ""
     }
