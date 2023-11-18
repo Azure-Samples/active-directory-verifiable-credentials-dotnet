@@ -21,11 +21,11 @@
       "configuration": {
         "validation": {
           "allowRevoked": true,
-          "validateLinkedDomain": true
-        },
-        "faceCheck": {
-          "sourcePhotoClaimName": "photo",
-          "matchConfidenceThreshold": 70
+          "validateLinkedDomain": true,
+          "faceCheck": {
+            "sourcePhotoClaimName": "photo",
+            "matchConfidenceThreshold": 70
+          }
         }
       }
     }

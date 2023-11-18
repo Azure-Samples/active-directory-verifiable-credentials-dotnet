@@ -48,7 +48,7 @@ namespace AspNetCoreVerifiableCredentials
             _apiKey = System.Environment.GetEnvironmentVariable("API-KEY");
         }
 
-        private async Task<ActionResult> HandleRequestCallback( RequestType requestType, string? body ) {
+        private async Task<ActionResult> HandleRequestCallback( RequestType requestType, string body ) {
             try {
                 this.Request.Headers.TryGetValue( "api-key", out var apiKey );
                 if (requestType != RequestType.Selfie && this._apiKey != apiKey) {
@@ -144,13 +144,15 @@ namespace AspNetCoreVerifiableCredentials
                         result = JObject.FromObject( new { status = requestStatus, message = "QR code is scanned. Waiting for user action..." } );
                         break;
                     case "issuance_error":
-                        result = JObject.FromObject( new { status = requestStatus, message = "Issuance failed: " + reqState["callback"]["error"]["message"] } );
+                        callback = JsonConvert.DeserializeObject<CallbackEvent>( reqState["callback"].ToString() );
+                        result = JObject.FromObject( new { status = requestStatus, message = "Issuance failed: " + callback.error.message } );
                         break;
                     case "issuance_successful":
                         result = JObject.FromObject( new { status = requestStatus, message = "Issuance successful" } );
                         break;
                     case "presentation_error":
-                        result = JObject.FromObject( new { status = requestStatus, message = "Presentation failed:" + reqState["callback"]["error"]["message"] } );
+                        callback = JsonConvert.DeserializeObject<CallbackEvent>( reqState["callback"].ToString() );                        
+                        result = JObject.FromObject( new { status = requestStatus, message = "Presentation failed:" + callback.error.message } );
                         break;
                     case "presentation_verified":
                         callback = JsonConvert.DeserializeObject<CallbackEvent>(reqState["callback"].ToString() );

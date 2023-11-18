@@ -58,12 +58,13 @@ namespace AspNetCoreVerifiableCredentials
             {
                 //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                 //needs to be send as bearer to the VC Request API
-                var accessToken = await GetAccessToken();
+                var accessToken = await MsalAccessTokenHandler.GetAccessToken( _configuration );
                 if (accessToken.Item1 == String.Empty)
                 {
                     _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
                     return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                 }
+                _log.LogTrace( accessToken.token );
 
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
                 string template = HttpContext.Session.GetString( "presentationRequestTemplate" );
@@ -78,11 +79,13 @@ namespace AspNetCoreVerifiableCredentials
                 bool useFaceCheck = (!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true"));
                 if (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false )) {
                     AddFaceCheck( request );
+                }
+                // template could have set FaceCheck itself
+                if (hasFaceCheck(request)) {
                     // FaceCheck requires beta endpoint - remove after preview
                     url = url.Replace( "/v1.0/", "/beta/" );
                 }
-
-                AddClaimsConstrains( request);
+                AddClaimsConstrains( request );
 
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
@@ -154,73 +157,6 @@ namespace AspNetCoreVerifiableCredentials
         }
 
         //some helper functions
-        private X509Certificate2 ReadCertificate( string certificateName ) {
-            if (string.IsNullOrWhiteSpace( certificateName )) {
-                throw new ArgumentException( "certificateName should not be empty. Please set the CertificateName setting in the appsettings.json", "certificateName" );
-            }
-            CertificateDescription certificateDescription = CertificateDescription.FromStoreWithDistinguishedName( certificateName );
-            DefaultCertificateLoader defaultCertificateLoader = new DefaultCertificateLoader();
-            defaultCertificateLoader.LoadIfNeeded( certificateDescription );
-            return certificateDescription.Certificate;
-        }
-
-        protected async Task<(string token, string error, string error_description)> GetAccessToken()
-        {
-            // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
-            string authority = $"{_configuration["VerifiedID:Authority"]}{_configuration["VerifiedID:TenantId"]}";
-            string clientSecret = _configuration.GetValue( "VerifiedID:ClientSecret", "" );
-            // Since we are using application permissions this will be a confidential client application
-            IConfidentialClientApplication app;
-            if (!string.IsNullOrWhiteSpace( clientSecret )) {
-                app = ConfidentialClientApplicationBuilder.Create( _configuration["VerifiedID:ClientId"] )
-                    .WithClientSecret( clientSecret )
-                    .WithAuthority( new Uri( authority ) )
-                    .Build();
-            } else {
-                X509Certificate2 certificate = ReadCertificate( _configuration["VerifiedID:CertificateName"] );
-                app = ConfidentialClientApplicationBuilder.Create( _configuration["VerifiedID:ClientId"] )
-                    .WithCertificate( certificate )
-                    .WithAuthority( new Uri( authority ) )
-                    .Build();
-            }
-
-            //configure in memory cache for the access tokens. The tokens are typically valid for 60 seconds,
-            //so no need to create new ones for every web request
-            app.AddDistributedTokenCache(services =>
-            {
-                services.AddDistributedMemoryCache();
-                services.AddLogging(configure => configure.AddConsole())
-                .Configure<LoggerFilterOptions>(options => options.MinLevel = Microsoft.Extensions.Logging.LogLevel.Debug);
-            });
-
-            // With client credentials flows the scopes is ALWAYS of the shape "resource/.default", as the 
-            // application permissions need to be set statically (in the portal or by PowerShell), and then granted by
-            // a tenant administrator. 
-            string[] scopes = new string[] { _configuration["VerifiedID:scope"] };
-
-            AuthenticationResult result = null;
-            try
-            {
-                result = await app.AcquireTokenForClient(scopes)
-                    .ExecuteAsync();
-            }
-            catch (MsalServiceException ex) when (ex.Message.Contains("AADSTS70011"))
-            {
-                // Invalid scope. The scope has to be of the form "https://resourceurl/.default"
-                // Mitigation: change the scope to be as expected
-                return (string.Empty, "500", "Scope provided is not supported");
-                //return BadRequest(new { error = "500", error_description = "Scope provided is not supported" });
-            }
-            catch (MsalServiceException ex)
-            {
-                // general error getting an access token
-                return (String.Empty, "500", "Something went wrong getting an access token for the client API:" + ex.Message);
-                //return BadRequest(new { error = "500", error_description = "Something went wrong getting an access token for the client API:" + ex.Message });
-            }
-
-            _log.LogTrace(result.AccessToken);
-            return (result.AccessToken, String.Empty, String.Empty);
-        }
         protected string GetRequestHostName()
         {
             string scheme = "https";// : this.Request.Scheme;
@@ -237,9 +173,12 @@ namespace AspNetCoreVerifiableCredentials
         /// <param name="template">JSON template of a Request Service API presentation payload</param>
         /// <param name="stateId"></param>
         /// <returns></returns>
-        public PresentationRequest CreatePresentationRequestFromTemplate( string template, string? stateId = null ) {
+        public PresentationRequest CreatePresentationRequestFromTemplate( string template, string stateId = null ) {
             PresentationRequest request = JsonConvert.DeserializeObject<PresentationRequest>( template );
             request.authority = _configuration["VerifiedID:DidAuthority"];
+            if ( null == request.callback ) {
+                request.callback = new Callback();
+            }
             request.callback.url = $"{GetRequestHostName()}/api/verifier/presentationcallback";
             request.callback.state = (string.IsNullOrWhiteSpace( stateId ) ? Guid.NewGuid().ToString() : stateId);
             request.callback.headers = new Dictionary<string, string>() { { "api-key", this._apiKey } };
@@ -252,7 +191,7 @@ namespace AspNetCoreVerifiableCredentials
         /// <param name="credentialType"></param>
         /// <param name="acceptedIssuers"></param>
         /// <returns></returns>
-        public PresentationRequest CreatePresentationRequest( string? stateId = null, string? credentialType = null, string[]? acceptedIssuers = null ) {
+        public PresentationRequest CreatePresentationRequest( string stateId = null, string credentialType = null, string[] acceptedIssuers = null ) {
             PresentationRequest request = new PresentationRequest() {
                 includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
                 authority = _configuration["VerifiedID:DidAuthority"],
@@ -313,6 +252,14 @@ namespace AspNetCoreVerifiableCredentials
                 }
             }
             return request;
+        }
+        private bool hasFaceCheck( PresentationRequest request ) {
+            foreach (var requestedCredential in request.requestedCredentials) {
+                if ( null != requestedCredential.configuration.validation.faceCheck ) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private PresentationRequest AddClaimsConstrains( PresentationRequest request ) {
