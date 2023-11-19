@@ -77,8 +77,8 @@ namespace AspNetCoreVerifiableCredentials
 
                 string faceCheck = this.Request.Query["faceCheck"];
                 bool useFaceCheck = (!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true"));
-                if (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false )) {
-                    AddFaceCheck( request );
+                if (!hasFaceCheck( request ) && (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false ))) {
+                    AddFaceCheck( request, null, this.Request.Query["photoClaimName"] ); // when qp is null, appsettings value is used
                 }
                 // template could have set FaceCheck itself
                 if (hasFaceCheck(request)) {
@@ -245,8 +245,11 @@ namespace AspNetCoreVerifiableCredentials
             return AddFaceCheck( request, request.requestedCredentials[0].type, sourcePhotoClaimName, matchConfidenceThreshold );
         }
         private PresentationRequest AddFaceCheck( PresentationRequest request, string credentialType, string sourcePhotoClaimName = "photo", int matchConfidenceThreshold = 70 ) {
+            if ( string.IsNullOrWhiteSpace(sourcePhotoClaimName) ){
+                sourcePhotoClaimName = _configuration.GetValue( "VerifiedID:PhotoClaimName", "photo" );
+            }
             foreach (var requestedCredential in request.requestedCredentials) {
-                if (requestedCredential.type == credentialType) {
+                if (null == credentialType || requestedCredential.type == credentialType) {
                     requestedCredential.configuration.validation.faceCheck = new FaceCheck() { sourcePhotoClaimName = sourcePhotoClaimName, matchConfidenceThreshold = matchConfidenceThreshold };
                     request.includeReceipt = false; // not supported while doing faceCheck
                 }

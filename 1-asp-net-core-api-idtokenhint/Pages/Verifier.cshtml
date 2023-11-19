@@ -70,9 +70,13 @@
 
         <script>
             var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var photoClaimName = '@ViewData["PhotoClaimName"]';
 
             document.getElementById('verify-credential').addEventListener('click', () => {
                 var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
+                if (document.getElementById('useFaceCheck').checked) {
+                    qp += '&photoClaimName=' + photoClaimName;
+                }        
                 if (true == document.getElementById('useConstraints').checked) {
                     var claimName = document.getElementById('claimName').value;
                     var claimValue = document.getElementById('claimValue').value;
