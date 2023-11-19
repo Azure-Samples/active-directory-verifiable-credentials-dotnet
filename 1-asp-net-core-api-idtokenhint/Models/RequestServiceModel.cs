@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -124,14 +125,7 @@ namespace AspNetCoreVerifiableCredentials
         public ClaimsIssuer[] verifiedCredentialsData { get; set; }
         public Receipt receipt { get; set; }
         public string photo { get; set; }
-    }
 
-    /// <summary>
-    /// Error - in case the VC Client API returns an error
-    /// </summary>
-    public class Error {
-        public string code { get; set; }
-        public string message { get; set; }
     }
 
     /// <summary>
@@ -139,7 +133,38 @@ namespace AspNetCoreVerifiableCredentials
     /// the state is not to be confused with the VCCallbackEvent.state and is something internal to the VC Client API
     /// </summary>
     public class Receipt {
-        public string vp_token { get; set; }
+        //public string vp_token { get; set; }
+        [JsonProperty( NullValueHandling = NullValueHandling.Ignore )]
+        [JsonConverter( typeof( VpTokenJsonConverter<string> ) )]
+        public List<string> vp_token { get; set; }
+    }
+    internal class VpTokenJsonConverter<T> : JsonConverter {
+        public override bool CanConvert( Type objectType ) {
+            return (objectType == typeof( List<T> ));
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer ) {
+            JToken token = JToken.Load( reader );
+            if (token.Type == JTokenType.Array)
+                return token.ToObject<List<T>>();
+            return new List<T> { token.ToObject<T>() };
+        }
+
+        public override bool CanWrite {
+            get {
+                return false;
+            }
+        }
+        public override void WriteJson( JsonWriter writer, object value, JsonSerializer serializer ) {
+            throw new NotImplementedException();
+        }
+    }
+     /// <summary>
+     /// Error - in case the VC Client API returns an error
+     /// </summary>
+    public class Error {
+        public string code { get; set; }
+        public string message { get; set; }
     }
 
     /// <summary>

@@ -167,7 +167,7 @@ namespace AspNetCoreVerifiableCredentials
                                                                                                                 NullValueHandling = NullValueHandling.Ignore
                                                                             } ) );
                         if (null != callback.receipt && null != callback.receipt.vp_token ) {
-                            JObject vpToken = GetJsonFromJwtToken( callback.receipt.vp_token );
+                            JObject vpToken = GetJsonFromJwtToken( callback.receipt.vp_token[0] );
                             JObject vc = GetJsonFromJwtToken( vpToken["vp"]["verifiableCredential"][0].ToString() );
                             resp.Add( new JProperty( "jti", vc["jti"].ToString() ) );
                         }

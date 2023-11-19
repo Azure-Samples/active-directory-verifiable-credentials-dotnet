@@ -32,7 +32,7 @@ namespace AspNetCoreVerifiableCredentials.Pages
             ViewData["constraintOp"] = "value";
 
             if (this.Request.Query.ContainsKey( "photoClaimName" )) {
-                ViewData["PhotoClaimName"] = this.Request.Query["photoClaimName"]; // could be empty/null for no-photo
+                ViewData["PhotoClaimName"] = this.Request.Query["photoClaimName"].ToString(); // could be empty/null for no-photo
             } else {
                 ViewData["PhotoClaimName"] = _configuration.GetValue( "VerifiedID:PhotoClaimName", "" );
             }

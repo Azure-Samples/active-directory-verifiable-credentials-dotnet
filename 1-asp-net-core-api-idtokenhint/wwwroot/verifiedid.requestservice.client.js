@@ -98,7 +98,7 @@ function RequestService(onDrawQRCode, onNavigateToDeepLink, onRequestRetrieved, 
                 if (respMsg.status == 'presentation_error' || respMsg.status == 'issuance_error') {
                     clearInterval(pollFlag);
                     _rsThis.log(`onError(...)`);
-                    _rsThis.onError(respMsg);
+                    _rsThis.onError(this.requestType, respMsg);
                 }
             }
         }, this.pollFrequency);
