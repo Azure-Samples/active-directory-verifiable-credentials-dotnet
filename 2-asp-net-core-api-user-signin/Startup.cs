@@ -69,6 +69,10 @@ namespace AspNetCoreVerifiableCredentials
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseForwardedHeaders( new ForwardedHeadersOptions {
+                ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+            } );
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -80,10 +84,10 @@ namespace AspNetCoreVerifiableCredentials
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            app.UseSession();
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseSession();
 
             //we want the user to be able to sign-in when VCs are being issued
             app.UseAuthentication();
@@ -94,18 +98,15 @@ namespace AspNetCoreVerifiableCredentials
                 Secure = CookieSecurePolicy.Always
              }) ;
 
-            //this setting is used when you use tools like ngrok or reverse proxies like nginx which connect to http://localhost
-            //if you don't set this setting the sign-in redirect will be http instead of https
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
-            {
-                ForwardedHeaders = ForwardedHeaders.XForwardedProto
-            });
-
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
                 endpoints.MapRazorPages();
             });
+
+            // generate an api-key on startup that we can use to validate callbacks
+            System.Environment.SetEnvironmentVariable( "API-KEY", Guid.NewGuid().ToString() );
+
         }
     }
 }

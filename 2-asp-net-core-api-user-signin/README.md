@@ -4,218 +4,196 @@ languages:
 - dotnet
 - powershell
 products:
-- active-directory
-- verifiable credentials
-description: "A code sample demonstrating issuance and verification of verifiable credentials for a signed in user in your organization."
+- Entra
+- Verified ID
+description: "A code sample demonstrating issuance and verification of verifiable credentials."
 urlFragment: "active-directory-verifiable-credentials-dotnet"
 ---
-# Verifiable Credentials Code Sample
+# Verified ID idTokenHint Sample for ASPNet Core with Authentication
 
-As a developer, you'd probably want users to sign-in  with their work or school accounts.
-Then provide them an option to get verifiable credentials. Further you want the applications to accept these verifiable credentials
-to allow access. 
-
-This code sample demonstrates how to use Microsoft Entra Verified ID to issue verifiable credentials for a signed in user and then consume those verifiable credentials. 
+This code sample demonstrates how to use Microsoft Entra Verified ID to issue verifiable credentials based on claims from an authenticated user. 
+The sample lets the user sign in to Entra ID and then issue a credential using claims `preferred_username`, `name`, `given_name` and `family_name`.
 
 ## About this sample
 
 Welcome to Microsoft Entra Verified ID. In this sample, we'll teach you to issue your first verifiable credential: a Verified Credential Expert Card. You'll then use this card to prove to a verifier that you are a Verified Credential Expert, mastered in the art of digital credentialing. The sample uses the preview REST API which supports ID Token hints to pass a payload for the verifiable credential.
 
+## Deploy to Azure
+
+Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F2-asp-net-core-api-user-signin%2FARMTemplate%2Ftemplate.json)
+
+You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
+
+![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
+
+The `photo` claim is for presentation to name the claim in the requested credential when asking for a `FaceCheck`. 
+For issuance, the sample will use the credential manifest to determind if the credential has a photo or not. 
+If you have a claim with a [type](https://learn.microsoft.com/en-us/entra/verified-id/rules-and-display-definitions-model#displayclaims-type) of `image/jpg;base64ur`, then the sample will add the selfie or uploaded photo to that claim during issuance. 
+
+## Additional appsettings that can be used after deployment
+
+These settings can be set in the deployed AppServices Environment Variables configuration. In AppServices, they need to have a name like `VerifiedID__PhotoClaimName`, ie prefixed by `VerifiedID` followed by a double underscore to match the hierarchy in the appsettingsfile.
+
+| Key | value | Description |
+|------|--------|--------|
+| IssuancePinCodeLength | 0-6 | Length of pin code. A value of 0 means not to use pin code during issuance. Pin code is only supported for [idTokenHint flow](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart). If the webapp is used on a mobile device, the sample eliminates the pin code as it makes no sense. |
+| useFaceCheck | true/false | If to use FaceCheck during presentation requests. This requires that the credential type asked for has a photo claim. |
+| PhotoClaimName | claim name | The name of the claim in the credential type asked for during presentation when `useFaceCheck` is `true`. The PhotoClaimName is not used during issuance. If the credential manifest has a claim with a type of `image/jpg;base64ur`, that claim will hold the photo. You can override the name of the photo claim by specifying it as a query string parameter, like `/verifier?photoClaimName=photo`. |
+| matchConfidenceThreshold | 50-100 | Optional. Confidence threshold for a successful FaceCheck. Default is 70 |
+| CredentialExpiration | any or EOD, EOW, EOM, EOQ, EOY or ""| Optional. In [idTokenHint flow](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart) you can now set the expiration date of the issued credential. This sample illustrates this by giving you the option of setting the expiry date to a calculated value. EOW means end-of-week, EOQ end-of-quearter, etc. |
+
+## Test Issuance and Verification
+
+Once you have deployed this sample to Azure AppServices with a working configuration, you can issue yourself a `VerifiedCredentialExpert` credential and then test verification. 
+This requires completing the [Verified ID onboarding and creation](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-issuer) of the `VerifiedCredentialExpert`.
+If you want to test presenting and verifying other types and credentials, follow the next section.
+
+## Test Verification via templates
+
+The sample creates a [presentation request](https://learn.microsoft.com/en-us/entra/verified-id/get-started-request-api?tabs=http%2Cconstraints#presentation-request-example) in code based on your configuration in `appsettings.json`. 
+You can also use JSON templates to create other presentation requests without changing the configuration to quickly test different scenarios. 
+This github repo provises four templates for your convenience. Right-click and copy the below links, remove `http://localhost` from the link and append it to your deployed webapp so you have a URL that looks like `.../verifier?template=https://...`. 
+You can issue yourself a `VerifiedEmployee` credential at [MyAccount](https://myaccound.microsoft.com) if your organization have onboarded to Verified ID and enabled MyAccount (doc [here](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials)).
+
+| Template | Description | Link |
+|------|--------|--------|
+| TrueIdentity | A presentation request for a [TrueIdentity](https://trueidentityinc.azurewebsites.net/) credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_TrueIdentity.json) |
+| VerifiedEmployee | A presentation request for a [VerifiedEmployee](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart-verifiedemployee) credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee.json) |
+| VerifiedEmployee with FaceCheck*| A presentation request for a VerifiedEmployee credential that will perform a liveness check in the Authenticator. This requires that you have a good photo of yourself in the VerifiedEmployee credential | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee-FaceCheck.json) |
+| VerifiedEmployee with constraints | A presentation request for a VerifiedEmployee credential that uses a claims constraints that `jobTitle` contains the word `manager` | [Link](http://localhost/verifier?template=https://raw.githubusercontent.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/main/1-asp-net-core-api-idtokenhint/Templates/presentation_request_VerifiedEmployee-Constraints.json) |
+
+*Note - FaceCheck is in preview. If you plan to test it, make sure you have the latest Microsoft Authenticator.
+
+You can also use a local file as your template. In this case the template link will be a local file path, like `.../verifier?template=C:\Users\foobar\something\my-presentation-request.json`.
+
 ## Contents
 
-The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a verifiedcredentialexpert VC and verify that as well.
-
+The project is divided in 2 parts, one for issuance and one for verifying a verifiable credential. Depending on the scenario you need you can remove 1 part. To verify if your environment is completely working you can use both parts to issue a `VerifiedCredentialExpert` credential and verify that as well.
 
 | Issuance | |
 |------|--------|
-| Pages/Issuer.cshtml|The basic webpage containing the javascript to call the APIs for issuance. |
+| Pages/Issuer.cshtml|The basic webpage containing the javascript to call the APIs for issuance. Depending if you use a photo, you will see options to take a selfie or upload a stock photo of you to be issued with the credential. |
+| wwwroot/selfie.html|HTML page used on mobile device to take the selfie. |
 | IssuerController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL. |
-| issuance_request_config.json | The sample payload send to the server to start issuing a vc. |
 
 | Verification | |
 |------|--------|
-| Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential.
+| Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential. Depending if you use a photo, you will have a checkbox that let's you create a presentation request with FaceCheck. |
 | VerifierController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL and helps verifying the presented verifiable credential.
-| presentation_request_config.json | The sample payload send to the server to start issuing a vc.
+
+| Common | |
+|------|--------|
+| Pages/Index.cshtml|Start page with option to continue with issuance or varification. |
+| wwwroot/verifiedid.requestservice.client.js|js lib that handles all the API calls to the app |
+| wwwroot/verifiedid.uihandler.js |js lib that handles common UI updates |
+| CallbackController.cs | Controller that handles common functions between issuance and verification. It handles callback event from Request Service API, the polling requests from the browser and generating the selfie request. |
 
 ## Setup
 
-Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/vcsetup).
+Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/didfordevs).
 
 ### Create application registration
-Note: If you already having [this sample](https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet/tree/main/1-asp-net-core-api-idtokenhint) up and running you may be able to skip over to Step 7. The powershell scripts currently dont automate Step 7 and onwards.
 
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
-Register an application in Azure Active Directory: 
+Register an application in Azure Active Directory:
+
 1. Sign in to the Azure portal using either a work or school account or a personal Microsoft account.
 2. Navigate to the Microsoft identity platform for developers App registrations page.
-3.	Select New registration
-    -  In the Name section, enter a meaningful application name for your issuance and/or verification application
-    - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
-    - Select Register to create the application
-4.	On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
-5.	From the Certificates & secrets page, in the Client secrets section, choose New client secret:
-    - Type a key description (for instance app secret)
-    - Select a key duration.
-    - When you press the Add button, the key value will be displayed, copy and save the value in a safe location.
-    - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
-6.	In the list of pages for the app, select API permissions
-    - Click the Add a permission button
-    - Search for APIs in my organization for 3db474b9-6a0c-4840-96ac-1fceb342124f or Verifiable Credential and click the “Verifiable Credential Request Service”
-    - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
-    - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
-![Admin concent](ReadmeFiles/AdminConcent.PNG)
-7. In the list of pages for the app, select **Authentication**..
-   - In the Redirect URIs section, select **Web** in the combo-box and enter the following redirect URIs.
-       - `http://localhost:5000/`
-       - `http://localhost:5000/signin-oidc`
-     **Note:** 5000 is the port configured in the **applicationUrl** under **iisExpress** and also under **AspNetCoreVerifiableCredentials** in Properties\launchSettings.json
-   - In the **Advanced settings** section set **Logout URL** to `http://localhost:5000/signout-oidc`
-   - In the **Advanced settings** | **Implicit grant** section, check **ID tokens** as this sample requires the [ID Token](https://docs.microsoft.com/azure/active-directory/develop/id-tokens) to be enabled to
-     sign-in the user.
-     Select **Save**.
-8. In the list of pages for the app, select **Token configuration**
-   - Click **Add optional claim**
-   - Select token type **ID**
-   - Check the box for following optional claims: **given_name** and **family_name**
-   - Select **Add**
-   - You will be prompted and will need to check the option to **Turn on the Microsoft Graph profile permission (required for claims to appear in token).** in the prompt and select **Add**. 
+3. Select New registration
+  - In the Name section, enter a meaningful application name for your issuance and/or verification application
+  - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
+  - In Redirecto URI, select `Web` platform and `https://localhost:5001/signin-oidc` for redirect URI. If testing with ngrok, also add the ngrok URL, like `https://c1d2-987-91-91-976-ngrok-free.app/signin-oidc`
+  - Select Register to create the application
+4. On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
+5. From the Certificates & secrets page, in the Client secrets section, choose New client secret:
+  - Type a key description (for instance app secret)
+  - Select a key duration.
+  - When you press the Add button, the key value will be displayed, copy and save the value in a safe location.
+  - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
+6. In the list of pages for the app, select API permissions
+  - Click the Add a permission button
+  - Search for APIs in my organization for 3db474b9-6a0c-4840-96ac-1fceb342124f or Verifiable Credential and click the “Verifiable Credential Request Service”
+  - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
+  - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
+7. In the Token configuration page, select `Add optional claim`, select Token type `ID` and then check `family_name` and `given_name` and click Add.
 
-## Setting up and running the sample
-To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use `ngrok` as a reverse proxy to reach your app.
+![Admin concent](ReadmeFiles/AdminConcent.PNG)
+
+## Setting up and running the sample locally
+
+To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use a tool like  `ngrok` as a reverse proxy to reach your app.
 
 ```Powershell
 git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
-cd active-directory-verifiable-credentials-dotnet/2-asp-net-core-api-user-sigin
+cd active-directory-verifiable-credentials-dotnet/2-asp-net-core-api-user-signin
 ```
 
 ### Create your credential
+
 To use the sample we need a configured Verifiable Credential in the azure portal.
-In the project directory CredentialFiles you will find the `VerifiedCredentialExpertDisplay.json` file and the `VerifiedCredentialExpertRules.json` file. Use these 2 files to create your own VerifiedCredentialExpert credential. 
-Before you upload the files, you need to modify the `VerifiedCredentialExpertRules.json` file.
-If you navigate to your [Verifiable Credentials](https://portal.azure.com/#blade/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/issuerSettingsBlade) blade in azure portal, you can copy the Decentralized identifier (DID) string (did:ion..) and modify the value after "iss" on line 12. Save the file and follow the instructions how to create your first verifiable credential.
+In the project directory CredentialFiles you will find the [VerifiedCredentialExpertDisplayDefinitionV2.json](CredentialFiles/VerifiedCredentialExpertDisplayDefinitionV2.json) file and the [VerifiedCredentialExpertRulesDefinitionV2.json](CredentialFiles/VerifiedCredentialExpertRulesDefinitionV2.json) file. Use these 2 files to create your own VerifiedCredentialExpertV2 credential. 
+Note that this sample is using the `V2` version of the credential in order to have more claims. 
 
 You can find the instructions on how to create a Verifiable Credential in the azure portal [here](https://aka.ms/didfordevs)
 
+The `appsettings.json` needs to be updated with the following from the Verified ID portal blade:
 
-Make sure you copy the value of the credential URL after you created the credential in the portal. 
-Copy the URL in the `CredentialManifest` part of the `appsettings.json`. 
-You need to manually copy your Microsoft AAD Verifiable Credential service created Decentralized Identifier (did:ion..) value from this page as well and paste that in the appsettings.json file for `IssuerAuthority` and `VerifierAuthority`.
+- Copy the authority DID and set the value for `DidAuthority`. 
+- Copy the credential manifest URL in the `CredentialManifest`. 
+- Optionally update the CredentialType if you plan use anothe credential than the `VerifiedCredentialExpert` type.
 
-### API Payloads
-The API is called with special payloads for issuing and verifying verifiable credentials. The sample payload files are modified by the sample code by copying the correct values from the `appsettings.json` file.
-If you want to modify the payloads `issuance_request_config.json` and `presentation_request_config.json` files yourself, make sure you comment out the code overwriting the values in the VerifierController.cs and IssuerController.cs files. The code overwrites the Authority, Manifest and trustedIssuers values. The callback URI is modified in code to match your hostname.
+The `appsettings.json` needs to be updated with the following from the Entra ID app registration portal blade:
+- `ClientId` should be updated with the App registrations app id should
+- `ClientSecret` should be updated with the generated client secret.
+- `TenantTd` should be updated with the guid of your tenant/directory id.
 
-Make sure you copy the `ClientId`, `ClientSecret` and `TenantTd` you copied when creating the app registration to the `appsettings.json` as well.
-
-Make sure you copy the `ClientId` and `TenantTd` you copied when creating the app registration to the `appsettings.json` **AzureAd** section as well.
+TenantId and ClientID appears twice in the appsettings.json file. Once in the AzureAd section and once in the VerifiedID section.
 
 ## Running the sample
 
-1. Open a command prompt, run ngrok to set up a URL on 5000. You can install ngrok globally by using the [ngrok npm package](https://www.npmjs.com/package/ngrok/).
+1. Open a command prompt and run the following command:
+
+```Powershell
+dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net6
+dotnet run
+```
+
+2. Using a different command prompt, run ngrok to set up a URL on 5000. You can install ngrok globally by using the [ngrok npm package](https://www.npmjs.com/package/ngrok/).
+
 ```Powershell
 ngrok http 5000
 ```
-**Note:** The port number should be the same as the one configured in Properties\launchSettings.json and the Redirect URI configured in **Create application registration** section above.
 
-2. Copy the HTTPS URL generated by ngrok in the `VCCallbackHostURL` part of the `appsettings.json`, example: https://aedc-68-249-160-201.ngrok.io 
+3. Open the HTTPS URL generated by ngrok.
 ![API Overview](ReadmeFiles/ngrok-url-screen.png)
-The sample uses the `VCCallbackHostURL` to build the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
+The sample dynamically copies the hostname to be part of the callback URL, this way the VC Request service can reach your sample web application to execute the callback method.
 
-3. Now open a different command prompt and run the following command:
-```Powershell
-dotnet build "AspNetCoreVerifiableCredentials.csproj" -c Debug -o .\bin\Debug\net5
-dotnet run
-```
-4. Open http://localhost:5000 Note: The ngrok generated URL is **not** being used since the URL has to match the one in the redirect URL 
-in App registration above and using ngrok generated URL would mean changing the redirect URL in the App registration everytime you run ngrok. 
+4. Sign in using your existing account in the tenant
 
-5. Click "Sign in" and enter your tenant's work or school account credentials.
+5. Select Issue Credential
 
-6. Select GET CREDENTIAL
+5. In Authenticator, scan the QR code.
 
-7. In Authenticator, scan the QR code. 
 > If this is the first time you are using Verifiable Credentials the Credentials page with the Scan QR button is hidden. You can use the `add account` button. Select `other` and scan the QR code, this will enable the preview of Verifiable Credentials in Authenticator.
 
-8. If you see the 'This app or website may be risky screen', select **Advanced**.
-
-9. On the next **This app or website may be risky** screen, select **Proceed anyways (unsafe)**.
-
-10. On the Add a credential screen, notice that:
-
-  - At the top of the screen, you can see a red **Not verified** message.
-  - The credential is based on the information you uploaded as the display file.
-
-11. Select **Add**.
+6. Select **Add**.
 
 ## Verify the verifiable credential by using the sample app
+
 1. Navigate back and click on the Verify Credential link
 2. Click Verify Credential button
 3. Scan the QR code
 4. select the VerifiedCredentialExpert credential and click allow
 5. You should see the result presented on the screen.
 
-
-
-## About the code
-Since the API is a multi-tenant API it needs to receive an access token when it's called. 
-The endpoint of the API is https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/createIssuanceRequest and https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/createPresentationRequest 
-
-
-To get an access token we are using MSAL as library. MSAL supports the creation and caching of access token which are used when calling Azure Active Directory protected resources like the verifiable credential request API.
-Typicall calling the libary looks something like this:
-```C#
-app = ConfidentialClientApplicationBuilder.Create(AppSettings.ClientId)
-    .WithClientSecret(AppSettings.ClientSecret)
-    .WithAuthority(new Uri(AppSettings.Authority))
-    .Build();
-```
-And creating an access token:
-```C#
-result = await app.AcquireTokenForClient(scopes)
-                  .ExecuteAsync();
-```
-> **Important**: At this moment the scope needs to be: **3db474b9-6a0c-4840-96ac-1fceb342124f/.default** This might change in the future
-
-Calling the API looks like this:
-```C#
-HttpClient client = new HttpClient();
-var defaultRequestHeaders = client.DefaultRequestHeaders;
-defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
-
-HttpResponseMessage res = await client.PostAsync(AppSettings.ApiEndpoint, new StringContent(jsonString, Encoding.UTF8, "application/json"));
-response = await res.Content.ReadAsStringAsync();
-```
-
-## Troubleshooting
-
-### Did you forget to provide admin consent? This is needed for confidential apps.
-If you get an error when calling the API `Insufficient privileges to complete the operation.`, this is because the tenant administrator has not granted permissions
-to the application. See step 6 of 'Register the client app' above.
-
-You will typically see, on the output window, something like the following:
-
-```Json
-Failed to call the Web Api: Forbidden
-Content: {
-  "error": {
-    "code": "Authorization_RequestDenied",
-    "message": "Insufficient privileges to complete the operation.",
-    "innerError": {
-      "request-id": "<a guid>",
-      "date": "<date>"
-    }
-  }
-}
-```
-
-
 ## Best practices
+
 When deploying applications which need client credentials and use secrets or certificates the more secure practice is to use certificates. If you are hosting your application on azure make sure you check how to deploy managed identities. This takes away the management and risks of secrets in your application.
 You can find more information here:
 - [Integrate a daemon app with Key Vault and MSI](https://github.com/Azure-Samples/active-directory-dotnetcore-daemon-v2/tree/master/3-Using-KeyVault)
-
 
 ## More information
 
