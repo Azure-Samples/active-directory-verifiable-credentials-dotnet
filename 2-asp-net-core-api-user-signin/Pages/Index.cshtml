@@ -7,18 +7,25 @@
             <div style="text-align: center;">
                 <img src="VerifiedCredentialExpert-icon.png" height=200px; />
                 <h1>Verifiable Credential Expert Issuance and Verifier Sample</h1>
-        
-                <button type="button" id="idIssue" class="button">GET CREDENTIAL</button>
-                <button type="button" id="idVerify" class="button">VERIFY CREDENTIAL</button>
-                <script>
-                        var idIssue = document.getElementById('idIssue');
-                        var idVerify = document.getElementById('idVerify');
 
-                        idIssue.addEventListener('click', () => {
-                            window.location = "issuer";
-                        })
-                        idVerify.addEventListener('click', () => {
-                            window.location = "verifier";
-                        })
-                    </script>
+                <p style="text-align:left;">
+                    This sample issues a Verified ID credential using claims from the signed in user. For this to work, 
+                    you need to add <i>family_name</i> and <i>given_name</i> under <strong>Token configuration</strong>
+                    in the app registration for appid 
+        <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/TokenConfiguration/appId/@ViewData["AzureAd:ClientId"]/isMSAApp~/false">@ViewData["AzureAd:ClientId"]</a>
+                </p>
+                @if (User.Identity.IsAuthenticated) {
+                <br/>
+                <p style="text-align:left;">
+                    username: @ViewData["username"]
+                    <br/>
+                    name: @ViewData["name"]
+                    <br/>
+                    given_name: @ViewData["given_name"]
+                    <br/>
+                    family_name: @ViewData["family_name"]
+                </p>
+
+                }
+
             </div>

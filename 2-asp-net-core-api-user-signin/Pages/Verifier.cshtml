@@ -3,108 +3,107 @@
 @{
     ViewData["Title"] = "Verifier";
 }
-           <div style="text-align: center;">
-                <img src="VerifiedCredentialExpert-icon.png" height=200px; />
-                <h1>Verifiable Credential Expert Verification</h1>
-        
-            <button type="button" id="sign-in" class="button">VERIFY CREDENTIAL</button>
-            <div id="qrText"  style="display:none;">
-                <p class="small-text">
-                    <img src="authenticator-icon.png" alt="Authenticator icon" class="icon-small"><br>
-                    Scan with Microsoft Authenticator
-                </p>
-            </div>
-            <a id="deeplink" style="display: none;margin-top: 10px;">Tap to open Authenticator on mobile</a>
-            <div id="qrcode" style="text-align: center"></div>
-            <div id="pinCodeText" style="display: none"></div>
+<div id="wrap">
+    <div style="text-align: center;">
+        <img src="VerifiedCredentialExpert-icon.png" height=200px; />
+        <h1 id="idTitle">Verifiable Credential Presentation</h1>
+        <h2 id="idSubTitle">Presentation request for type @ViewData["CredentialType"]</h2>
+        <h3 id="idSub3Title">Accepted issuers: @string.Join( ", ", (string[])ViewData["acceptedIssuers"] )</h3>
 
-            <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: none">
-               <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
-               <div id="message"></div>
-                <br />
-               <div id="subject"></div>
-                <br />
-               <div id="payload"></div>
-            </div>
-            <div id="error-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
-               <div id="errormsg"></div>
-                <br />
-            </div>
+        <div id="message-wrapper" class="margin-bottom-75">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message">@ViewData["Message"]</div>
+            <br />
+        </div>
 
-            <script src="qrcode.min.js"></script>
-            <script>
-                var signIn = document.getElementById('sign-in');
-                var signOut = document.getElementById('sign-out');
-                var display = document.getElementById('display');
-                var qrcode = new QRCode("qrcode", { width: 300, height: 300 });
-                var respPresentationReq = null;
+        <button type="button" id="verify-credential" class="button">Verify Credential</button>
+        <button type="button" id="check-result" class="button" style="display:none">Check Result</button>
+        @if (!string.IsNullOrWhiteSpace( (string)ViewData["PhotoClaimName"] )) {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" @((bool)ViewData["useFaceCheck"] ? "checked" : "")>
+            <label for="useFaceCheck" id="labelFaceCheck"> Use FaceCheck</label>
+        } else {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" value="0" style="display:none">
+            <label for="useFaceCheck" id="labelFaceCheck" style="display:none"> Use FaceCheck</label>
+        }
+        <input type="checkbox" id="useConstraints" name="useConstraints" @((bool)ViewData["useConstraints"] ? "checked" : "")>
+        <label for="useConstraints" id="labelConstraints"> Use Constraints</label><br>
+        <br />
+        <table id="constraints" style="display:none" )>
+            <tbody>
+            <td>
+                Claim
+                <input type="text" id="claimName" name="claimName" placeholder="name of the claim" value="@ViewData["constraintName"]">
+            </td>
+            <td>
+                Operator
+                <select name="constrainOp" id="constrainOp">
+                        @if ("value" == (string)ViewData["constraintOp"]) {
+                        <option selected>value</option>
+                        } else {
+                        <option>value</option>
+                        }
+                        @if ("contains" == (string)ViewData["constraintOp"]) {
+                        <option selected>contains</option>
+                        } else {
+                        <option>contains</option>
+                        }
+                        @if ("startsWith" == (string)ViewData["constraintOp"]) {
+                        <option selected>startsWith</option>
+                        } else {
+                        <option>startsWith</option>
+                        }
+                </select>
+            </td>
+            <td>
+                Value
+                <input type="text" id="claimValue" name="claimValue" placeholder="claim value." value="@ViewData["constraintValue"]">
+            </td>
+            </tbody>
+        </table>
 
-                signIn.addEventListener('click', () => {
-                    fetch('/api/verifier/presentation-request')
-                        .then(async function(response) {
-                            if (!response.ok)
-                            {
-                                console.log('Something went wrong');
-                                const errorInfo = await response.json();
-                                console.log('error:', errorInfo.error_description);
-                                document.getElementById("errormsg").innerHTML = errorInfo.error_description;
-                                return;
-                            }
-                            else
-                            {
-                                console.log (response);
-                                respPresentationReq = await response.json();
-                                if( /Android/i.test(navigator.userAgent) ) {
-                                    console.log(`Android device! Using deep link (${respPresentationReq.url}).`);
-                                    window.location.href = respPresentationReq.url; setTimeout(function () {
-                                    window.location.href = "https://play.google.com/store/apps/details?id=com.azure.authenticator"; }, 2000);
-                                } else if (/iPhone/i.test(navigator.userAgent)) {
-                                    console.log(`iOS device! Using deep link (${respPresentationReq.url}).`);
-                                    window.location.replace(respPresentationReq.url);
-                                } else {
-                                    console.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
-                                    qrcode.makeCode(respPresentationReq.url);
-                                    document.getElementById('sign-in').style.visibility = "hidden";
-                                    document.getElementById('qrText').style.display = "block";
-                                }
-                            }
-                            console.log (response);
-                        })
-                        .catch(function(error) {
-                                console.log('Something went wrong: ' + error);
-                                document.getElementById("errormsg").innerHTML = error;
-                                return;
-                                })
-                        .then(function statuscheck(){
-                            var checkStatus = setInterval(function () {
-                                fetch('api/verifier/presentation-response?id=' + respPresentationReq.id )
-                                    .then(response => response.text())
-                                    .catch(error => document.getElementById("message").innerHTML = error)
-                                    .then(response => {
-                                        if (response.length > 0) {
-                                            console.log(response)
-                                            respMsg = JSON.parse(response);
-                                            // QR Code scanned
-                                            if (respMsg.status == 'request_retrieved') {
-                                                document.getElementById('message-wrapper').style.display = "block";
-                                                document.getElementById('qrText').style.display = "none";
-                                                document.getElementById('qrcode').style.display = "none";
-                                                document.getElementById('message').innerHTML = respMsg.message;
-                                            }
-                                    
-                                            if (respMsg.status == 'presentation_verified') {
-                                                document.getElementById('message').innerHTML = respMsg.message;
-                                                document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
-                                                document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName +" is a Verifiable Credential Expert";
-                                                clearInterval(checkStatus);
-                                            }
+        <br />
 
-                                        }
-                                    })
-                            }, 1500); //change this to higher interval if you use ngrok to prevent overloading the free tier service
-                        });
+        <div id="qrcode" style="text-align:center;display:none"></div>
 
-                });
-            </script>
-            </div>
+        <script src="qrcode.min.js"></script>
+        <script src="verifiedid.requestservice.client.js"></script>
+        <script src="verifiedid.uihandler.js"></script>
 
+        <script>
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var photoClaimName = '@ViewData["PhotoClaimName"]';
+
+            document.getElementById('verify-credential').addEventListener('click', () => {
+                var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
+                if (document.getElementById('useFaceCheck').checked) {
+                    qp += '&photoClaimName=' + photoClaimName;
+                }
+                if (true == document.getElementById('useConstraints').checked) {
+                    var claimName = document.getElementById('claimName').value;
+                    var claimValue = document.getElementById('claimValue').value;
+                    var constraintOp = document.getElementById('constrainOp').value;
+                    if (claimName && constraintOp && claimValue) {
+                        qp += "&claim=" + claimName + "&op=" + constraintOp + "&value=" + claimValue;
+                    }
+                }
+                requestService.apiCreatePresentationRequest += qp;
+                requestService.createPresentationRequest();
+                document.getElementById('useConstraints').style.display = "none";
+                document.getElementById('labelConstraints').style.display = "none";
+                document.getElementById('constraints').style.display = "none";
+            });
+
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+            function hideShowConstraints() {
+                document.getElementById('constraints').style.display = (document.getElementById('useConstraints').checked ? "" : "none");
+            }
+            document.getElementById('useConstraints').addEventListener('click', () => {
+                hideShowConstraints();
+            });
+            hideShowConstraints();
+        </script>
+    </div>
+
+</div>

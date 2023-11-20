@@ -42,7 +42,7 @@ These settings can be set in the deployed AppServices Environment Variables conf
 | useFaceCheck | true/false | If to use FaceCheck during presentation requests. This requires that the credential type asked for has a photo claim. |
 | PhotoClaimName | claim name | The name of the claim in the credential type asked for during presentation when `useFaceCheck` is `true`. The PhotoClaimName is not used during issuance. If the credential manifest has a claim with a type of `image/jpg;base64ur`, that claim will hold the photo. You can override the name of the photo claim by specifying it as a query string parameter, like `/verifier?photoClaimName=photo`. |
 | matchConfidenceThreshold | 50-100 | Optional. Confidence threshold for a successful FaceCheck. Default is 70 |
-| CredentialExpiration | any or EOD, EOW, EOQ, EOY or ""| Optional. In [idTokenHint flow](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart) you can now set the expiration date of the issued credential. This sample illustrates this by giving you the option of setting the expiry date to a calculated value. EOW means end-of-week, EOQ end-of-quearter, etc. |
+| CredentialExpiration | any or EOD, EOW, EOM, EOQ, EOY or ""| Optional. In [idTokenHint flow](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart) you can now set the expiration date of the issued credential. This sample illustrates this by giving you the option of setting the expiry date to a calculated value. EOW means end-of-week, EOQ end-of-quearter, etc. |
 
 ## Test Issuance and Verification
 
