@@ -105,7 +105,7 @@ Register an application in Azure Active Directory:
 3. Select New registration
   - In the Name section, enter a meaningful application name for your issuance and/or verification application
   - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
-  - In Redirecto URI, select `Web` platform and `https://localhost:5001/signin-oidc` for redirect URI. If testing with ngrok, also add the ngrok URL, like `https://c1d2-987-91-91-976-ngrok-free.app/signin-oidc`
+  - In Redirecto URI, select `Web` platform and `https://localhost:5001/signin-oidc` for redirect URI. If testing with ngrok, also add the ngrok URL, like `https://c1d2-987-91-91-976-ngrok-free.app/signin-oidc`. If you deploy to Azure AppServices, then also add your appservice URL, like `https://your-webapp-name.azurewebsites.net/signin-oidc`
   - Select Register to create the application
 4. On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
 5. From the Certificates & secrets page, in the Client secrets section, choose New client secret:

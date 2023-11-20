@@ -29,7 +29,7 @@
       "metadata": {
         "description": "Github repo subfolder"
       },
-      "defaultValue": "1-asp-net-core-api-idtokenhint"
+      "defaultValue": "2-asp-net-core-api-user-signin"
     },
     "TenantId": {
       "type": "string",
@@ -64,7 +64,7 @@
       "metadata": {
         "description": "CredentialType"
       },
-      "defaultValue": "VerifiedCredentialExpert"
+      "defaultValue": "VerifiedCredentialExpertV2"
     },
     "CredentialManifest": {
       "type": "string",
