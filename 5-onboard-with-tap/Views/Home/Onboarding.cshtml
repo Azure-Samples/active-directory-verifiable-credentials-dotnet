@@ -1,0 +1,179 @@
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Onboarding";
+}
+
+<div style="text-align: center;">
+    <h1>Employee Onboarding</h1>
+    @if (null != ViewData["displayName"]) {
+        <h3>Welcome @ViewData["displayName"]</h3>
+    }
+    <div id="message-wrapper" class="margin-bottom-25 margin-top-25">
+        <div id="message">@ViewData["message"]</div>
+    </div>
+
+    <div id="card-1" class="verification-card">
+        <button type="button" id="get-vc" class="button">Step 1: Get your card to proof your identity</button>
+        <div>
+            <br /><br />
+            <img width="177px" src=@Configuration.GetSection("AppSettings")["IdvLogoUrl"] />
+            <br />
+            <a id="skip-issuance" class="skipButton">I already have my card</a>
+        </div>
+    </div>
+
+    <div id="card-2" class="verification-card">
+        <button type="button" id="verify-credential" class="button">Step 2: Present your TrueID card</button>
+        <p>Use the Authenticator to present your TrueIdentity card</p>
+        <div id="qrcode" style="text-align:center"></div>
+    </div>
+
+    <div id="card-3" class="verification-card">
+        <div id="authAppMessage" class="waitingForAuthApp">Step 3: Waiting for your account setup</div>
+        <div id="apps-button-wrapper" class="appsWrapper" style="display:none;">
+            <p>You're account is set up and ready. Next steps:</p>
+            <ul>
+                <li><a href="https://aka.ms/sspr" target="_blank">Reset your password</a>.</li>
+                <li>Go to <a id="urlProfile" href="https://www.microsoft365.com/" target="_blank">M365 portal</a> and upload a photo of yourself.</li>
+                <li>In <a href="https://myaccount.microsoft.com" target="_blank">MyAccount</a>, issue yourself a VerifiedEmployee Verified ID credential.</li>
+                <li>Go to <a href="https://myapplications.microsoft.com" target="_blank">MyApplications</a> to find applications to use.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="card-4" class="accountInfo verification-card" style="display:none">
+        Use the following information to onboard your work account in the Microsoft Authenticator app. Select 'Add account', 'Work or school account' and then 'Sign in'.<br/>
+        <b>Account:</b><div id="userUpn" class="monospacedText">UPN</div> 
+        <b>Temporary Access Pass:</b><div id="userTap" class="monospacedText">TAP</div>
+        <b>Valid until (UTC):</b><div id="tapExpires" class="monospacedText">UTC</div> 
+    </div>
+
+    <div id="card-5" class="accountInfo verification-card" style="display:none">
+        In the Self-Service Password Reset app, specify your new employee account to continue. Then, you will receive a one-time code via email to the same private email that you received the onboarding link.<br />
+        <b>Account:</b><div id="userUpn2" class="monospacedText">UPN</div> <br />
+    </div>
+
+    <script src="~/js/qrcode.min.js"></script>
+    <script src="~/js/verifiedid.requestservice.client.js"></script>
+    <script src="~/js/verifiedid.uihandler.js"></script>
+
+    <script>
+        var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+
+        function showCard(cardNo) {
+            document.getElementById('card-1').style.opacity = 0.25;
+            document.getElementById('card-2').style.opacity = 0.25;
+            document.getElementById('card-3').style.opacity = 0.25;
+            document.getElementById('card-4').style.opacity = 0.25;
+            if (cardNo != '') {
+                document.getElementById(`card-${cardNo}`).style.display = "";
+                document.getElementById(`card-${cardNo}`).style.opacity = 1.0;
+            }
+        }
+        function showTapCard(show) {
+            if (show) {
+                document.getElementById('card-4').style.display = "block";
+                showCard(4);
+            } else {
+                document.getElementById('card-4').style.display = "none";
+                showCard(3);
+            }
+        }
+        document.getElementById('get-vc').addEventListener('click', () => {
+            window.location = '@Html.Raw( ViewData["idvLink"] )';
+        });
+
+        document.getElementById('verify-credential').addEventListener('click', () => {
+            startVerification();
+        });
+
+        document.getElementById('skip-issuance').addEventListener('click', () => {
+            startVerification();
+        });
+
+        // callback on presentation_verified
+        function credentialPresented(requestId, response) {
+            hideQRCode();
+            displayMessage(response.message);
+            document.getElementById('verify-credential').style.display = ""
+            createTap(requestId);
+        }
+
+        function startVerification() {
+            showCard(2);
+            requestService.onPresentationVerified = credentialPresented;
+            requestService.createPresentationRequest();
+        }
+
+        var checkAuthenticatorAppStatusInterval = null;
+
+        function createTap(requestId) {
+            document.getElementById('message').innerHTML = "Creating Temporary Access Pass. Please wait...";
+            showCard(3);
+            fetch('/api/createtap/' + requestId, { method: 'POST' })
+                .then(response => response.text())
+                .catch(error => document.getElementById("message").innerHTML = error)
+                .then(response => {
+                    if (response.length > 0) {
+                        console.log(response);
+                        respMsg = JSON.parse(response);
+                        if (respMsg.status == 'tap_created') {
+                            document.getElementById('message').innerHTML = "TAP code created. Please activate your account.";
+                            document.getElementById('userUpn').innerHTML = respMsg.userUPN;
+                            document.getElementById('userTap').innerHTML = respMsg.tap;
+                            document.getElementById('userUpn2').innerHTML = respMsg.userUPN;
+                            document.getElementById('tapExpires').innerHTML = respMsg.expiresUtc;
+                            var urlProfile = document.getElementById('urlProfile');
+                            urlProfile.href = urlProfile.href.replace("%UPN%", respMsg.userUPN);
+                            showTapCard(true);
+                            //Turn on the timer to check user is done signing in
+                            checkAuthenticatorAppStatusInterval = setInterval(checkUserCredentialStatusWorker, 15000, requestId);
+                        } else if (respMsg.error_description) {
+                            clearInterval(checkAuthenticatorAppStatusInterval);
+                            document.getElementById('message').innerHTML = respMsg.error_description;
+                        }
+                    }
+                })
+        }
+
+        function checkUserCredentialStatusWorker(requestId) {
+            fetch('/api/verifier/account-set-up?id=' + requestId)
+                .then(response => response.text())
+                .catch(error => document.getElementById("authAppMessage").innerHTML = error)
+                .then(response => {
+                    if (response.length > 0) {
+                        console.log(response);
+                        respMsg = JSON.parse(response);
+                        if (respMsg.status == "account_setup_done") {
+                            clearInterval(checkAuthenticatorAppStatusInterval);
+                            showTapCard(false);
+                            document.getElementById('card-5').style.display = "";
+                            document.getElementById('authAppMessage').innerHTML = respMsg.message;
+                            document.getElementById('authAppMessage').style.backgroundColor = 'green';
+                            document.getElementById('apps-button-wrapper').style.display = "block";
+                        } else if (respMsg.error_description) {
+                            clearInterval(checkAuthenticatorAppStatusInterval);
+                            showTapCard(false);
+                            document.getElementById('message').innerHTML = respMsg.error_description;
+                        }
+                    }
+                });
+        }
+
+        // TrueIdentity redirects back to this page - but just appends ?trueIdVerified w/o checking if there already is a QP
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('trueIdVerified') || window.location.search.includes('trueIdVerified=true')) {
+            var trueIdVerified = params.get('trueIdVerified');
+            if (trueIdVerified || window.location.search.includes('trueIdVerified=true')) {
+                startVerification();
+            }
+        }
+        var email = '@ViewData["email"]'; 
+        if ("" != email) {
+            showCard(1);
+        } else {
+            showCard('');
+        }
+    </script>
+</div>
