@@ -79,8 +79,7 @@
         "description": "TapGroupName"
       },
       "defaultValue": "<Tap Group Name>"
-    },
-
+    }
   },
   "variables": {
     "appServicePlanPortalName": "[concat(parameters('webAppName'), '-plan')]"

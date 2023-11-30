@@ -8,14 +8,14 @@ products:
 description: "A code sample demonstrating verification of verifiable credentials and based on that onboarding new employees to Entra ID."
 urlFragment: "4-asp-net-core-api-verify-and-onboard"
 ---
-# Verified ID Code Sample for Onboarding a New Hire ith Temporary Access Pass
+# Verified ID Code Sample for Onboarding a New Hire with Temporary Access Pass
 
 This sample is show casing onboarding a new hire with the use of [Temporary Access Pass](https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass) 
 to remotely gain access to their corporate account.
 
 ## About this sample
 
-This sample uses several technoligies put together to provide an end-to-end solution for onboarding a new user remotly and give them access o their corporate account.
+This sample uses several technologies put together to provide an end-to-end solution for onboarding a new user remotly and give them access to their corporate account.
 It. A manager or HR representative creates the Entra ID user account, notifies the new hire via sending an onboarding email to their private email with a link. 
 The new hire can then onboard and setup their account using TrueIdentity (fictious Identity Verification Provider) and use [Temporary Access Pass](https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass) 
 to gain access to their new account. The sample uses [Microsoft Graph client](https://learn.microsoft.com/en-us/graph/sdks/create-client?tabs=csharp) to interact with Entra Id and create the user profile and create the TAP code.
@@ -25,7 +25,7 @@ to gain access to their new account. The sample uses [Microsoft Graph client](ht
 Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
 
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F1-asp-net-core-api-idtokenhint%2FARMTemplate%2Ftemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F5-onboard-with-tap%2FARMTemplate%2Ftemplate.json)
 
 You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
 
@@ -49,30 +49,33 @@ In that page, the manager registers the details about the new user and saves the
 The `private email` will be stored in the [otherMails](https://learn.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties) attribute in the user profile.
 When saving the user profile, the user object is added to the TAP group to enable signing in via a TAP code.
 The manager then clicks on `Get Onboarding Link` to generate a link that can be emailed to the new hire. The `Onboarding link to mail to new hire` contains a `mailto:` hyperlink 
-that will open the managers email app with the link. For demo purposes, you can copy that link and paste it in another browser tab, if you like.
+that will open the managers email app with the link. For demo purposes, you can copy that link and paste it in another browser tab to bypass emailing.
 
-![Register New Hire screen](ReadMeFiles/RegisterNewHire.png)
+![Register New Hire screen](ReadmeFiles/RegisterNewHire.png)
 
 ### New Hire persona
 
-The new hire starts the journey via receiving the email with the onboarding link. The new hire should already have Microsoft Authenticator installed on their mobile device.
+The new hire starts the journey via receiving the email with the onboarding link. The new hire should already have Microsoft Authenticator installed on their mobile device. 
+That should be part of the richer instructions in the onboarding email being sent, but is excluded here.
 
-![Onboarding New Hire screen](ReadMeFiles/NewHireOnboarding.png)
+![Onboarding New Hire screen](ReadmeFiles/NewHireOnboarding.png)
 
 The onboarding steps are the following:
 
-1. Go to TrueIdentity and do identity verification for remote onboarding. This step results in a TrueIdentity Verified ID credential being issued.
+1. Use the link in the email which takes the new hire person to the onboarding app (screenshot above).
+1. Go to TrueIdentity and do identity verification for remote onboarding. This step results in a TrueIdentity Verified ID credential being issued and that the TrueIdentity websites redirect the user back to the onboarding app.
 1. Present the TrueIdentity Verified ID credential to the webapp to proove the new hire's identity.
+1. The onboarding app finds the user profile in Entra ID based on the TrueIdentity Verified ID credential claims that are presented. 
 1. Follow instructions on how to use the new account name and the temporary access pass (TAP code) to gain initial access to the account. 
 1. After new hire have gained access to their account, the onboarding app suggests next steps, which are:
-    - Reset the password using Self-Service PAssword Reset (SSPR).
+    - Reset the password using Self-Service Password Reset (SSPR).
     - Upload a photo to the user profile
     - Issue a VerifiedEmployee Verified ID credential from [https://myaccount.microsoft.com](https://myaccount.microsoft.com).
     - Go to [https://myapplications.microsoft.com](https://myapplications.microsoft.com).
 
 A few notes:
 - The sample instructs the user to do this on the Authenticator, but you could in fact navigate to any page that requries authentication, like [https://myaccount.microsoft.com](https://myaccount.microsoft.com).
-- Resetting the password requires SSPR is enabled for the Entra ID tenant. If the company has a [passwordless](https://support.microsoft.com/en-au/account-billing/how-to-go-passwordless-with-your-microsoft-account-674ce301-3574-4387-a93d-916751764c43) policy, this step can be skipped.
+- Resetting the password requires [SSPR is enabled](https://learn.microsoft.com/en-us/entra/identity/authentication/tutorial-enable-sspr) for the Entra ID tenant. If the company has a [passwordless](https://support.microsoft.com/en-au/account-billing/how-to-go-passwordless-with-your-microsoft-account-674ce301-3574-4387-a93d-916751764c43) policy, this step can be skipped.
 - Upload of a photo requires that the new user have access to do that. In a large company, the photo of the user is probably added by the manager/HR-person when creating the user profile.
 
 ## Contents
@@ -82,8 +85,7 @@ The common parts are those that they would be in any dotnet code that interacts 
 
 | Specific | Description |
 |------|--------|
-| [Views/Home/RegisterNewHire.cshtml](Views/Home/RegisterNewHire.cshtml) | A page that the authenticated manager/HR-representative uses to register the new hire's user account. This page is provided to make use of the sample easier. 
-If you prefer to create the Entra Id user profile via some other process, that works too. In that case, you use this page just to generate the invitation link you email to the new hire. |
+| [Views/Home/RegisterNewHire.cshtml](Views/Home/RegisterNewHire.cshtml) | A page that the authenticated manager/HR-representative uses to register the new hire's user account. This page is provided to make use of the sample easier. If you prefer to create the Entra Id user profile via some other process, that works too. In that case, you use this page just to generate the invitation link you email to the new hire. |
 | [Views/Home/Onboarding.cshtml](Views/Home/Onboarding.cshtml) | A page that contains the onboarding journey and that requires the user to verify their identity using TrueIdentity before setting up their account. |
 | [Controllers/HomeController.cs](Controllers/HomeController.cs) | Implementation that supports the above pages. |
 
@@ -101,6 +103,10 @@ If you prefer to create the Entra Id user profile via some other process, that w
 
 The sample uses a couple of different Azure and Entra resources, so please follow the setup instructions closely.
 
+## Entra ID tenant
+
+You need an Entra ID tenant to get this sample to work. You can set up a [free tenant](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-create-new-tenant) unless you don't have one already. 
+
 ### Onboard to Entra Verified ID
 
 You need a working setup on Entra Verified ID. This is required even though you are just asking a user to present a Verified ID because the presentation request needs to come from a signed authority.
@@ -110,26 +116,26 @@ You decide which model you want to follow, but please be aware that you will hav
 
 ### Register an application in Entra Id
 
-You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) one, possibly two applications to get this sample to work. The first application is so tha the manager/HR-personell can sign in and create the new hire's user profile. 
-This application also grants access to Microsoft graph API so that the application can perform Graph API requests as required.
+You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) one, possibly two applications to get this sample to work. The first application handles user sign-ins, like the manager/HR-person. 
+This application also grants access to Microsoft Graph API so that the application can perform Graph API requests as required.
 
-The second application is to gain access to Verified ID's request Service API to be able to [create presentation requests](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant#register-an-application-in-microsoft-entra-id). 
-The second application can be the same application as the first if you want to keep it simple. 
+The second application is to gain access to Verified ID's Request Service API to be able to [create presentation requests](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant#register-an-application-in-microsoft-entra-id). 
+The second application can be the same application as the first if you want to keep it simple.
 
 Application permissions required
 
 | Permission | Type | Scenario | Description |
 |------|--------|--------|--------|
-| User.Read | Delegated |  both | So that the manager/HR-personell can read their own profile |
-| User.Read.All | Application | 1) | For manager/HR-personell to read new hire's profile |
-| User.ReadWrite.All | Application | 2) | For manager/HR-personell to read/write new hire's profile |
+| User.Read | Delegated |  both | So that the manager/HR-person can read their own profile |
+| User.Read.All | Application | 1) | For manager/HR-person to read new hire's profile |
+| User.ReadWrite.All | Application | 2) | For manager/HR-person to read/write new hire's profile |
 | UserAuthenticationMethod.ReadWrite.All | Application | both | For manager/HR-personell to create the TAP code for the new hire |
-| Group.ReadWrite.All | Application | 2) | For manager/HR-personell to add the new hire to the TAP group |
+| Group.ReadWrite.All | Application | 2) | For manager/HR-person to add the new hire to the TAP group |
 | VerifiableCredential.Create.PresentationRequest | Application | both | For application to be able to create a Verified ID presentation request  |
 
 Scenarios:
-1) You create the new hire user account yourself, using the management portals or other means outside of the sample. In this case the app does not need ReadWrite permissions.
-2) You create the new hire user account in the sample application. In this case the app needs ReadWrite permissions.
+1) You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
+2) You create the new hire user account in the sample application. In this case the app needs User/Group.ReadWrite.All permissions.
 
 General steps for registering both of the applications:
 
@@ -170,7 +176,7 @@ This step is only required if you want to change the new hire's password as part
 ### Deploying Azure Key Vault 
 
 The sample creates a link that is sent to the new hire's private email. The link containes a JWT token signed with an Azure Key Vault key. 
-The token is used as proof upon starting the onboarding process (only the new hire has the token) and is also passed and returned from TrueIdentity for the same reason.
+The token is used as proof upon starting the onboarding process (only the new hire has the token) and is also passed to and returned from TrueIdentity for the same reason.
 If you have set up Verified ID the manual way, you already have an Azure Key Vault and can reuse it. 
 
 **To create a new Key Vault instance:**
@@ -215,9 +221,8 @@ The appsettings.json file have the following settings that needs to be updated. 
 | | TenantId | guid | Your tenant id (guid) |
 | | ClientId| guid | AppID (client_id) |
 | | ClientSecret | string | The client secret generated in the portal |
-| | Domain | domain.com | Used to create the UPN of the user |
 | | TapGroupName | group-name | Name of the group used when enabling TAP and SSPR |
-| VerifiedID | TenantId | Your tenant id (guid) can be same or different as the AzureAd.TenantId. If it is the same, you can leave this setting blank ("") and the sample will use AzureAd.TenantId. |
+| VerifiedID | TenantId | guid | Your tenant id (guid) can be same or different as the AzureAd.TenantId. If it is the same, you can leave this setting blank ("") and the sample will use AzureAd.TenantId. |
 | | ClientId| guid | Your AppID (client_id) can be same or different as the AzureAd.ClientId. If it is the same, you can leave this setting blank ("") and the sample will use AzureAd.ClientId. |
 | | ClientSecret | string | Your client secret can be same or different as the AzureAd.ClientSecret. If it is the same, you can leave this setting blank ("") and the sample will use AzureAd.ClientSecret. |
 | | DidAuthority | did | The authority DID that is making the presentation request. You can copy it from your [Organizational settings](https://portal.azure.com/#view/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/~/issuerSettingsBlade) in the Entra portal |
