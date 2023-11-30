@@ -197,6 +197,13 @@ namespace OnboardWithTAP.Controllers {
             return View( "RegisterNewHire" );
         }
 
+        private List<NewHireProfileClaim> CreateNewHireClaimsFromUser( Microsoft.Graph.User user ) {
+            return  CreateUserClaimsList( user.Id, string.Join( ", ", user.OtherMails.ToArray() )
+                            , user.DisplayName, user.GivenName, user.Surname
+                            , user.MailNickname, user.EmployeeId, user.EmployeeHireDate?.ToString( "yyyy-MM-dd" )
+                            , user.EmployeeType, user.EmployeeOrgData.CostCenter, user.EmployeeOrgData.Division );
+
+        }
         /// <summary>
         /// Looks up a user profile in the tenant based on email == otherMails
         /// </summary>
@@ -218,10 +225,7 @@ namespace OnboardWithTAP.Controllers {
                     } else {
                         ViewData["message"] = "User retrieved";
                     }                
-                    profile = CreateUserClaimsList( users[0].Id, string.Join(", ", users[0].OtherMails.ToArray())
-                                                , users[0].DisplayName, users[0].GivenName, users[0].Surname
-                                                , users[0].MailNickname, users[0].EmployeeId, users[0].EmployeeHireDate?.ToString( "yyyy-MM-dd")
-                                                , users[0].EmployeeType, users[0].EmployeeOrgData.CostCenter, users[0].EmployeeOrgData.Division );
+                    profile = CreateNewHireClaimsFromUser( users[0] );
                 }
                 ViewData["userExists"] = true;
             } catch( Exception ex) { 
@@ -252,9 +256,7 @@ namespace OnboardWithTAP.Controllers {
                         ViewData["message"] = "User not found. Please fill in details and save the user profile first.";
                     }
                     if (null != users && users.Count >= 1) {
-                        profile = CreateUserClaimsList( users[0].Id, string.Join( ", ", users[0].OtherMails.ToArray() )
-                                                    , users[0].DisplayName, users[0].GivenName, users[0].Surname
-                                                    , users[0].MailNickname, users[0].EmployeeId, users[0].EmployeeHireDate?.ToString( "yyyy-MM-dd" ) );
+                        profile = CreateNewHireClaimsFromUser( users[0] );
                         long now = ((DateTimeOffset)(DateTime.UtcNow)).ToUnixTimeSeconds();
                         Dictionary<string, object> claims = new Dictionary<string, object> {
                             { "exp", ((DateTimeOffset)(DateTime.UtcNow.AddHours(6))).ToUnixTimeSeconds() },
