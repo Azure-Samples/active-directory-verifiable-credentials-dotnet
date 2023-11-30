@@ -28,12 +28,9 @@ Complete the [setup](#Setup) before deploying to Azure so that you have all the 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F5-onboard-with-tap%2FARMTemplate%2Ftemplate.json)
 
 You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
+What the parameter values are is explained further down in [this](#update-appsettingsjson) section.
 
 ![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
-
-The `photo` claim is for presentation to name the claim in the requested credential when asking for a `FaceCheck`. 
-For issuance, the sample will use the credential manifest to determind if the credential has a photo or not. 
-If you have a claim with a [type](https://learn.microsoft.com/en-us/entra/verified-id/rules-and-display-definitions-model#displayclaims-type) of `image/jpg;base64ur`, then the sample will add the selfie or uploaded photo to that claim during issuance. 
 
 ## Using the sample
 
