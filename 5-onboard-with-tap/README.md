@@ -51,14 +51,14 @@ When saving the user profile, the user object is added to the TAP group to enabl
 The manager then clicks on `Get Onboarding Link` to generate a link that can be emailed to the new hire. The `Onboarding link to mail to new hire` contains a `mailto:` hyperlink 
 that will open the managers email app with the link. For demo purposes, you can copy that link and paste it in another browser tab to bypass emailing.
 
-![Register New Hire screen](ReadmeFiles/RegisterNewHire.png)
+![Register New Hire screen](ReadmeFiles/registerNewHire.PNG)
 
 ### New Hire persona
 
 The new hire starts the journey via receiving the email with the onboarding link. The new hire should already have Microsoft Authenticator installed on their mobile device. 
 That should be part of the richer instructions in the onboarding email being sent, but is excluded here.
 
-![Onboarding New Hire screen](ReadmeFiles/NewHireOnboarding.png)
+![Onboarding New Hire screen](ReadmeFiles/NewHireOnboarding.PNG)
 
 The onboarding steps are the following:
 
@@ -103,7 +103,7 @@ The common parts are those that they would be in any dotnet code that interacts 
 
 The sample uses a couple of different Azure and Entra resources, so please follow the setup instructions closely.
 
-## Entra ID tenant
+### Entra ID tenant
 
 You need an Entra ID tenant to get this sample to work. You can set up a [free tenant](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-create-new-tenant) unless you don't have one already. 
 
@@ -114,7 +114,7 @@ To set up Entra Verified ID, please follow the [documented tutorials](https://le
 In the manual setup, you have a couple of more steps to perform, like deploying an Azure Key Vault and verifying your domain, and in the quick setup you don't have to do that (given your Entra ID tenant has a verified domain already). 
 You decide which model you want to follow, but please be aware that you will have to deploy or reuse an Azure Key Vault instance anyway to get this sample to work.
 
-### Register an application in Entra Id
+### Register an application in Entra ID
 
 You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) one, possibly two applications to get this sample to work. The first application handles user sign-ins, like the manager/HR-person. 
 This application also grants access to Microsoft Graph API so that the application can perform Graph API requests as required.
@@ -161,7 +161,7 @@ General steps for registering both of the applications:
 ### Enabling the Temporary Access Pass (TAP)
 
 1.  Open [Authentication Methods](https://entra.microsoft.com/#view/Microsoft_AAD_IAM/AuthenticationMethodsMenuBlade/~/AdminAuthMethods/fromNav/) in Entra portal.
-1.  Click on `Temporary Access Pass`, enable it and select a target group created in the above step.
+1.  Click on `Temporary Access Pass`, enable it and select the `target group` created in the above step.
 1.  Click on Configure, then `Edit` and change the `Minumum lifetime` to 15 minutes  
 1.  Click `Save`  
 
@@ -170,7 +170,7 @@ General steps for registering both of the applications:
 This step is only required if you want to change the new hire's password as part of the onboarding.
 
 1.  Open [Password reset](https://entra.microsoft.com/#view/Microsoft_AAD_IAM/PasswordResetMenuBlade/~/Properties/fromNav/Identity) in Entra portal.
-1.  Click on `Selected`, and select the same target group you selected for TAP codes.
+1.  Click on `Selected`, and select the same `target group` you selected for TAP codes.
 1.  Click `Save`  
 
 ### Deploying Azure Key Vault 
