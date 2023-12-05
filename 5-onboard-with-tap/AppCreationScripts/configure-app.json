@@ -1,0 +1,17 @@
+{
+    "appName": "5-onboard-with-tap",
+    "redirectUrl": "https://localhost:5001/signin-oidc",
+    "apiPermissions":
+    [
+        {
+            "appName": "Microsoft Graph",
+            "delegatedPermissions":"User.Read",
+            "appPermissions": "User.ReadWrite.All|Group.ReadWrite.All|UserAuthenticationMethod.ReadWrite.All"
+        },
+        {
+            "appName":"Verifiable Credentials Service Request",
+            "appPermissions": "VerifiableCredential.Create.PresentRequest"
+        }    
+    ],
+    "groupName": "TAP-Group"
+}

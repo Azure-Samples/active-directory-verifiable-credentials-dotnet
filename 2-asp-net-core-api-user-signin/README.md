@@ -115,8 +115,8 @@ Register an application in Azure Active Directory:
   - You’ll need this key later to configure the sample application. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
 6. In the list of pages for the app, select API permissions
   - Click the Add a permission button
-  - Search for APIs in my organization for 3db474b9-6a0c-4840-96ac-1fceb342124f or Verifiable Credential and click the “Verifiable Credential Request Service”
-  - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
+  - Select `APIs my organization use`, then search for `Verifiable Credential Service Request` and select `Application permissions` and `VerifiableCredential.Create.All`
+  - Click the Add a permission button again, select `Microsoft Graph`, `Delegated permissions` and select `email`, `profile` and `User.Read`.
   - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
 7. In the Token configuration page, select `Add optional claim`, select Token type `ID` and then check `family_name` and `given_name` and click Add.
 
