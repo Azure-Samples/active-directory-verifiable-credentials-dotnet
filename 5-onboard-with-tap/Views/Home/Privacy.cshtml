@@ -1,0 +1,17 @@
+﻿@{
+    ViewData["Title"] = "Privacy Policy";
+}
+<h1>@ViewData["Title"]</h1>
+
+<p>This sample creates a new user in your tenant. The new user can then onboard and receive a temporary access pass to get access to the account. 
+    If you test in a production-like tenant, please remember to delete the user after testing.</p>
+
+<p>The temporary access pass (TAP code) is displayed on the screen to the onboarding user for simplicity during testing. 
+    In a real world application, the tap code would be sent via another channel, like email.</p>
+
+<p>To register the new hire in the app, the app will need User.ReadWrite.All application permission to create/update the user and Group.ReadWrite.All to add the user as a member of the TAP group.. 
+    If you prefer not to grant your app these permission, grant the app User.Read.All and manually register the user in the Entra portal yourself.</p
+
+<p>The app needs UserAuthenticationMethod.ReadWrite.All permission to generate the TAP code.</p>
+
+<p>The app also needs VerifiableCredentials.Create.PresentationRequest permission to verify the TrueIdentity Verified ID credential.</p>

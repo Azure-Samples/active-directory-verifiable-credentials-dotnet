@@ -1,0 +1,15 @@
+{
+    "appName": "2-ASPNet-Core-user-signin",
+    "redirectUrl": "https://localhost:5001/signin-oidc",
+    "apiPermissions":
+    [
+        {
+            "appName": "Microsoft Graph",
+            "delegatedPermissions":"email|profile|User.Read"
+        },
+        {
+            "appName":"Verifiable Credentials Service Request",
+            "appPermissions":"VerifiableCredential.Create.All"
+        }
+    ]    
+}

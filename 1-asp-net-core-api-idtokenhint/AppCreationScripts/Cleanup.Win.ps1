@@ -2,8 +2,19 @@
 param(    
     [PSCredential] $Credential,
     [Parameter(Mandatory=$False, HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
-    [string] $tenantId
+    [string] $tenantId,
+    [string] $appName
 )
+
+if ($PSVersionTable.PSEdition -eq "Core") {
+    Write-error "Wrong Powershell Edition. You need Windows Powershell for this script"
+    exit 1
+} 
+
+$appConfig = (Get-Content "$PSScriptRoot\configure-app.json" | ConvertFrom-json)
+if ( "" -eq $appName ) {
+    $appName = $appConfig.appName
+}
 
 if ((Get-Module -ListAvailable -Name "AzureAD") -eq $null) { 
     Install-Module "AzureAD" -Scope CurrentUser 
@@ -48,14 +59,12 @@ This function removes the Azure AD applications for the sample. These applicatio
     
     # Removes the applications
     Write-Host "Cleaning-up applications from tenant '$tenantName'"
-
-    Write-Host "Removing 'client' (Verifiable Credentials ASP.Net core sample) if needed"
-    $app=Get-AzureADApplication -Filter "DisplayName eq 'Verifiable Credentials ASP.Net core sample'"  
+    $app=Get-AzureADApplication -Filter "DisplayName eq '$appName'"  
 
     if ($app)
     {
+        Write-Host "Removing app $appName, AppId $($app.AppId)"
         Remove-AzureADApplication -ObjectId $app.ObjectId
-        Write-Host "Removed."
     }
 
 }

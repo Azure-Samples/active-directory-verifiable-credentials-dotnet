@@ -1,0 +1,78 @@
+﻿@{
+    ViewData["Title"] = "Register New Hire";
+}
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+
+
+    <div>
+        <!-- style="text-align: center;"> -->
+        <!--<h1 id="idTitle">Verifiable Credential Presentation</h1>-->
+        <!--<h2 id="idSubTitle">Challange a member's identity</h2>-->
+        <p id="idSub3Title">Register the new hire's user profile</p>
+
+        <div id="message-wrapper" style="display: block">
+            <div id="message">@ViewData["message"]</div>
+        </div>
+
+        <br />
+
+        <form id="profileForm" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="SaveProfile">
+        <table id="claims">
+            <thead>
+                <th style="width:25%;text-align:left">Claims</th>
+                <th style="text-align:left">Value</th>
+            </thead>
+            <tbody>
+                    @foreach (var claim in ViewData["userProfile"] as List<OnboardWithTAP.Models.NewHireProfileClaim>) {
+                <tr>
+                    <td style="text-align: left">@claim.Label</td>
+                    <td style="text-align: left">
+                        <input id="@claim.InternalName" name="@claim.InternalName" style="width:300px" type="@claim.Type" value="@claim.Value" placeholder="@claim.Placeholder" @(claim.ReadOnly ? "readonly" : "") />
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+        </form>
+        <form id="profileFind" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="FindProfile">
+            <input id="findEmail" name="mail" type="hidden" />
+        </form>
+        <form id="getOnboadringLink" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="GetOnboardingLink">
+            <input id="onboardingEmail" name="mail" type="hidden" />
+        </form>
+
+        <br />
+        <button style="margin-bottom: 20px;" type="button" id="findProfile" class="button bg-nw-blue text-nw-white">Find User by email</button>
+        <button style="margin-bottom: 20px;" type="button" id="saveProfile" class="button bg-nw-blue text-nw-white">Save User</button>
+        @if ( null == ViewData["userExists"] ) {
+            <button style="margin-bottom: 20px;" type="button" id="getLink" class="button bg-nw-blue text-nw-white" disabled>Get Onboarding Link</button>
+        } else {
+            <button style="margin-bottom: 20px;" type="button" id="getLink" class="button bg-nw-blue text-nw-white">Get Onboarding Link</button>
+        }
+
+        @if ( null != ViewData["link"] ) {
+            <br/><br/>
+            <a href='mailto:@ViewData["mail"]?subject=Onboarding to @ViewData["company"]&body=Use this link to start your onboarding @System.Web.HttpUtility.UrlEncode((string)ViewData["link"])'>Onboarding link to mail to new hire</a>
+        }
+
+        <script>
+            document.getElementById('saveProfile').addEventListener('click', () => {
+                document.getElementById('profileForm').submit();
+                document.getElementById('getLink').ariaDisabled = false;
+            });
+            document.getElementById('findProfile').addEventListener('click', () => {
+                document.getElementById('findEmail').value = document.getElementById('mail').value;
+                document.getElementById('profileFind').submit();
+                document.getElementById('getLink').ariaDisabled = false;
+            });
+            document.getElementById('getLink').addEventListener('click', () => {
+                document.getElementById('onboardingEmail').value = document.getElementById('mail').value;
+                document.getElementById('getOnboadringLink').submit();
+            });
+
+        </script>
+    </div>
+
+
+</div>

@@ -1,0 +1,29 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>This is the Microsoft Entra Verified ID Onboarding with TAP sample.</p>
+    <div>
+        <p>
+            In order to succesfully use this sample, you have to do the following:
+            <ul style="text-align:left; margin-left:50px">
+                <li>
+                    Enabled <a href="https://entra.microsoft.com/#view/Microsoft_AAD_IAM/AuthenticationMethodsMenuBlade/~/AdminAuthMethods/fromNav/" target="_blank">
+                        Temporary Access Pass
+                    </a> as an Authentication method and assigned a target group.
+                </li>
+                <li>
+                    Enabled <a href="https://entra.microsoft.com/#view/Microsoft_AAD_IAM/PasswordResetMenuBlade/~/Properties/fromNav/" target="_blank">
+                        Self Service Password Reset
+                    </a> as an Authentication method and assigned it to the same target group.
+                </li>
+                <li><a href="https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick" target="_blank">Set up Verified ID</a></li>
+                <li>Deployed an Azure Key Vault with an RSA 2048 signing key</li>
+                <li>Note - do not run on localhost. Presentation of TrueIdentity will not work</li>
+
+            </ul>
+        </p>
+    </div>
+</div>

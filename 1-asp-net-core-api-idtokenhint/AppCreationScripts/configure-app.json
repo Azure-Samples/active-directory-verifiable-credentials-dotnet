@@ -1,0 +1,11 @@
+{
+    "appName": "1-asp-net-core-api-idtokenhint",
+    "redirectUrl": "https://localhost:5001/",
+    "apiPermissions":
+    [
+        {
+            "appName":"Verifiable Credentials Service Request",
+            "appPermissions":"VerifiableCredential.Create.All"
+        }
+    ]    
+}
