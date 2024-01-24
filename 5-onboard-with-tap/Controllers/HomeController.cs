@@ -10,7 +10,9 @@ using Newtonsoft.Json.Linq;
 using OnboardWithTAP.Helpers;
 using OnboardWithTAP.Models;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -89,8 +91,14 @@ namespace OnboardWithTAP.Controllers {
         ////////////////////////////////////////////////////////////////////////////////////////////////
         // public actions
         ////////////////////////////////////////////////////////////////////////////////////////////////
+        [AllowAnonymous]
         public IActionResult Index() {
             return View();
+        }
+        [AllowAnonymous]
+        [ResponseCache( Duration = 0, Location = ResponseCacheLocation.None, NoStore = true )]
+        public IActionResult Error() {
+            return View( new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier } );
         }
 
         public IActionResult Privacy() {
@@ -100,15 +108,16 @@ namespace OnboardWithTAP.Controllers {
         [Authorize]
         public IActionResult RegisterNewHire() {
             ViewData["userProfile"] = CreateUserClaimsList();
+            var allowedUserAdminRole = _configuration["AzureAd:AllowedUserAdminRole"];
+            if (!string.IsNullOrWhiteSpace( allowedUserAdminRole ) && !User.IsInRole( allowedUserAdminRole )) {
+                ViewData["message"] = "You only have read-only access to this data.";
+                ViewData["accessLevel"] = "RO";
+            } else {
+                ViewData["message"] = "";
+                ViewData["accessLevel"] = "RW";
+            }
             return View();
         }
-
-        [AllowAnonymous]
-        [ResponseCache( Duration = 0, Location = ResponseCacheLocation.None, NoStore = true )]
-        public IActionResult Error() {
-            return View( new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier } );
-        }
-
         /// <summary>
         /// Creates or updates a user profile
         /// </summary>
@@ -121,7 +130,8 @@ namespace OnboardWithTAP.Controllers {
         /// <param name="employeeId"></param>
         /// <param name="employeeHireDate"></param>
         /// <returns></returns>
-        [Authorize]
+        [Authorize( Policy = "alloweduseradmins" )]
+        //[Authorize]
         public async Task<IActionResult> SaveProfile( string id, string mail, string displayName, string givenName, string surname, string mailNickname
                                                     , string employeeId, string employeeHireDate, string employeeType, string costCenter, string division ) {
             _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
@@ -200,8 +210,11 @@ namespace OnboardWithTAP.Controllers {
         private List<NewHireProfileClaim> CreateNewHireClaimsFromUser( Microsoft.Graph.User user ) {
             return  CreateUserClaimsList( user.Id, string.Join( ", ", user.OtherMails.ToArray() )
                             , user.DisplayName, user.GivenName, user.Surname
-                            , user.MailNickname, user.EmployeeId, user.EmployeeHireDate?.ToString( "yyyy-MM-dd" )
-                            , user.EmployeeType, user.EmployeeOrgData.CostCenter, user.EmployeeOrgData.Division );
+                            , user.MailNickname, user.EmployeeId
+                            , (null != user.EmployeeHireDate ? user.EmployeeHireDate?.ToString( "yyyy-MM-dd" ) : "")
+                            , user.EmployeeType
+                            , (null != user.EmployeeOrgData ? user.EmployeeOrgData.CostCenter : "")
+                            , (null != user.EmployeeOrgData ? user.EmployeeOrgData.Division : "") );
 
         }
         /// <summary>
@@ -245,6 +258,7 @@ namespace OnboardWithTAP.Controllers {
         public async Task<IActionResult> GetOnboardingLink( string mail ) {
             _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
             ViewData["link"] = "";
+            ViewData["message"] = "";
             List<NewHireProfileClaim> profile = CreateUserClaimsList();
             try {
                 if (string.IsNullOrEmpty( mail )) {

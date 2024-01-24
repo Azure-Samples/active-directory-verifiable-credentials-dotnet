@@ -11,6 +11,18 @@ namespace OnboardWithTAP {
         public static void Main( string[] args ) {
             var builder = WebApplication.CreateBuilder( args );
 
+            //+
+            var allowedUserAdminRole = builder.Configuration["AzureAd:AllowedUserAdminRole"];
+            if (!string.IsNullOrEmpty( allowedUserAdminRole )) {
+                builder.Services.AddAuthorization( options => {
+                    options.AddPolicy( "alloweduseradmins", policy => {
+                        //policy.RequireAuthenticatedUser();
+                        policy.RequireRole( allowedUserAdminRole.Split( ";" ) );
+                    } );
+                } );
+            }
+            //-
+
             // Add services to the container.
             builder.Services.AddAuthentication( OpenIdConnectDefaults.AuthenticationScheme )
                 .AddMicrosoftIdentityWebApp( builder.Configuration.GetSection( "AzureAd" ) );
@@ -21,6 +33,7 @@ namespace OnboardWithTAP {
                     .Build();
                 options.Filters.Add( new AuthorizeFilter( policy ) );
             } );
+
             builder.Services.AddRazorPages()
                 .AddMicrosoftIdentityUI();
 

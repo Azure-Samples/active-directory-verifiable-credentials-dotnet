@@ -18,4 +18,10 @@
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="trustedpartnerlist.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

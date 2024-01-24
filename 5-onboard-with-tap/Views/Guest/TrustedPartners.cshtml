@@ -1,0 +1,42 @@
+﻿@{
+    ViewData["Title"] = "TrustedPartners";
+}
+<div class="text-center">
+    <h1 class="display-4">Trusted Partners</h1>
+
+
+    <div>
+        <!-- style="text-align: center;"> -->
+        <!--<h1 id="idTitle">Verifiable Credential Presentation</h1>-->
+        <!--<h2 id="idSubTitle">Challange a member's identity</h2>-->
+        <p id="idSub3Title">Configure your trusted B2B partners</p>
+
+        <div id="message-wrapper" style="display: block">
+            <div id="message">@(null == ViewData["message"] ? "" : ViewData["message"])</div>
+        </div>
+
+        <br />
+
+        <p>
+            The trusted list of partners are those that are allowed to create a B2B guest account by presenting a VerifiedEmployee Verified ID.<br/>
+            Each line in the list is a trusted partner.<br/>
+            Each entry can either be a DID or a domain. <br/>
+            Domains can be explicit, like <i>microsoft.com</i> or contain wildcards, like <i>*.microsoft.com.</i><br/>
+            To allow everything, add an entry of <i>*</i>. This should only be done while testing.
+        </p>
+        <form id="trustedPartnersForm" method="POST" enctype="multipart/form-data" asp-controller="Guest" asp-action="SaveTrustedPartners">
+            <textarea id="name="trustedPartners" name="trustedPartners" cols="60" rows="10">@ViewData["trustedPartners"]</textarea>
+        </form>
+
+        <br />
+        <button style="margin-bottom: 20px;" type="button" id="saveList" class="button bg-nw-blue text-nw-white" @("RO" == ViewData["accessLevel"] ? "disabled" : "")>Save</button>
+
+        <script>
+            document.getElementById('saveList').addEventListener('click', () => {
+                document.getElementById('trustedPartnersForm').submit();
+            });
+        </script>
+    </div>
+
+
+</div>

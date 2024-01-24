@@ -15,15 +15,21 @@ to remotely gain access to their corporate account.
 
 ## About this sample
 
-This sample uses several technologies put together to provide an end-to-end solution for onboarding a new user remotly and give them access to their corporate account.
-It. A manager or HR representative creates the Entra ID user account, notifies the new hire via sending an onboarding email to their private email with a link. 
+This sample supports **employee onboarding** and **guest onboarding**. 
+
+**Employee onboarding** is the process of pre-registering a new hire and then having the new hire person getting access to the account via remote onboarding. 
 The new hire can then onboard and setup their account using TrueIdentity (fictious Identity Verification Provider) and use [Temporary Access Pass](https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass) 
-to gain access to their new account. The sample uses [Microsoft Graph client](https://learn.microsoft.com/en-us/graph/sdks/create-client?tabs=csharp) to interact with Entra Id and create the user profile and create the TAP code.
+to gain access to their new account. 
+
+**Guest onboarding** is the process of setting up a B2B Guest Account by presenting a VerifiedEmployee Verified ID credential from a trusted B2B partner. 
+The user doing the guest onboarding needs to have acquired their VerifiedEmployee credential from [MyAccount](https://myaccount.microsoft.com) using their corporate credentials. 
+How to enable Verified ID to be available in MyAccount is documented [here](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials).
+
+The sample uses [Microsoft Graph client](https://learn.microsoft.com/en-us/graph/sdks/create-client?tabs=csharp) to interact with Entra Id and create the user profile and create the TAP code, or, create the guest account invite.
 
 ## Deploy to Azure
 
 Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
-
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F5-onboard-with-tap%2FARMTemplate%2Ftemplate.json)
 
@@ -34,14 +40,21 @@ What the parameter values are is explained further down in [this](#update-appset
 
 ## Using the sample
 
-The **Onboarding with TAP** sample uses two personas:
+The **Employee Onboarding** scenario uses two personas:
 
-- A manager/HR-person that registers the new hire person's user profile and sends an onboarding link to the new hire person.
+- An admin that registers the new hire person's user profile and sends an onboarding link to the new hire person.
 - A new hire person who onboards to the company and sets up their account.
 
-### Manager/HR-person
+The **Guest Onboarding** scenario uses two personas:
 
-The manager/HR-person signs in to the app and navigates to `Register New Hire`. 
+- An admin that updates the list of trusted B2B partners
+- A business guest who should have a B2B guest account created
+
+### Employee Onboarding
+
+#### Admin
+
+In the Employee Onboarding scenario, the admin could be a manager or HR-person. The admin signs in to the app and navigates to `Register New Hire`. 
 In that page, the manager registers the details about the new user and saves the user profile for the new hire.
 The `private email` will be stored in the [otherMails](https://learn.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties) attribute in the user profile.
 When saving the user profile, the user object is added to the TAP group to enable signing in via a TAP code.
@@ -50,7 +63,7 @@ that will open the managers email app with the link. For demo purposes, you can 
 
 ![Register New Hire screen](ReadmeFiles/registerNewHire.PNG)
 
-### New Hire persona
+#### New Hire persona
 
 The new hire starts the journey via receiving the email with the onboarding link. The new hire should already have Microsoft Authenticator installed on their mobile device. 
 That should be part of the richer instructions in the onboarding email being sent, but is excluded here.
@@ -74,6 +87,22 @@ A few notes:
 - The sample instructs the user to do this on the Authenticator, but you could in fact navigate to any page that requries authentication, like [https://myaccount.microsoft.com](https://myaccount.microsoft.com).
 - Resetting the password requires [SSPR is enabled](https://learn.microsoft.com/en-us/entra/identity/authentication/tutorial-enable-sspr) for the Entra ID tenant. If the company has a [passwordless](https://support.microsoft.com/en-au/account-billing/how-to-go-passwordless-with-your-microsoft-account-674ce301-3574-4387-a93d-916751764c43) policy, this step can be skipped.
 - Upload of a photo requires that the new user have access to do that. In a large company, the photo of the user is probably added by the manager/HR-person when creating the user profile.
+
+### Guest Onboarding
+
+#### Admin
+
+The admin needs to sign in and updated the trusted partner list as only users from these partners are allowed to onboard as guest accounts. 
+The list can containa DID or a domain name. The DID is the issuers DID of the VerifiedEmployee credential and the domain name is matched against the linked domain in the VerifiedEmployee presented.
+
+![Truster Partner List screen](ReadmeFiles/TrustedPartnerList.png)
+
+#### Guest 
+
+The user who should get a guest account created presents their VerifiedEmployee credential at the below page. The sample then creates a B2B guest user invitation for this user 
+and asks the user to go to [MyApps](https://yapps.microsoft.com/?tenantId=...yourtenant...) to sign in to redeem the invitation.
+
+![Guest onboarding screen](ReadmeFiles/GuestOnboarding.png)
 
 ## Contents
 
@@ -137,7 +166,7 @@ Scenarios:
 General steps for registering both of the applications:
 
 1. Open [applications blade in Entra portal](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM) 
-2.	Select New registration
+2.  Select New registration
     - In the Name section, enter a meaningful application name for your issuance and/or verification application
     - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
     - In the Redirect URI section, select `Web` and add `https://localhost:5001/signin-oidc`. You will later come back and add more redirect URIs.
@@ -148,6 +177,23 @@ General steps for registering both of the applications:
     - Click the Add a permission button
     - Select the permissions as stated above and add them.
 6.  Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
+
+### Creating the UserAdmin AppRole
+
+The admin needs to have an AppRole in order to register new hires or update the trusted partner list as these are sensitive operations that not any signed in user should be able to perform.
+To create an AppRole:
+
+1. Select `App registrations` and select the app created above.
+1.  Select `App roles`
+    - click `+ Create app role`
+    - Enter `UserAdmin` as Display name and Value and select `Users/Groups`
+    - Click Apply
+1. Go to `Enterprise applications` and select the app created
+1.  Select `Users and groups`
+    - click `+ Add user/group` 
+    - select the admin user or a group that the admin user is a member of
+    - select the `UserAdmin` role (it is preselected when you only have one role)
+    - click Assign
 
 ### Create a group for TAP and SSPR
 

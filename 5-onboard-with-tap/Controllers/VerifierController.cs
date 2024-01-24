@@ -71,6 +71,11 @@ namespace OnboardWithTAP.Controllers
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
                 string[] acceptedIssuers = _configuration["verifiedID:acceptedIssuers"].Split( ";" );
                 PresentationRequest request = CreatePresentationRequest(null, null, acceptedIssuers);
+                string guestOnboarding = this.Request.Query["guest"].ToString();
+                if ( !string.IsNullOrWhiteSpace( guestOnboarding ) && guestOnboarding == "1" ) {
+                    request.requestedCredentials[0].type = "VerifiedEmployee";
+                    request.requestedCredentials[0].acceptedIssuers = new List<string>(); // filter out trusted after presentation
+                }
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
                 } );
