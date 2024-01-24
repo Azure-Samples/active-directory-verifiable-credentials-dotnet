@@ -114,7 +114,6 @@ namespace OnboardWithTAP.Controllers
 
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
                 OnboardWithTAP.Models.PresentationRequest request = CreatePresentationRequest( null, null );
-                request.requestedCredentials[0].acceptedIssuers = new List<string>(); // filter out trusted after presentation
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
                 } );
@@ -271,6 +270,10 @@ namespace OnboardWithTAP.Controllers
                         // work in the guest tenant.
                     }
                 }
+                if (string.IsNullOrWhiteSpace( email ) || string.IsNullOrWhiteSpace( displayName )) {
+                    return BadRequest( new { error = "400", error_description = $"{guestEmailClaimName}/{guestDisplayNameClaimName} missing in presented credential." } );
+                }
+
                 // check trusted partner list
                 string path = Path.Combine( Path.GetDirectoryName( System.Reflection.Assembly.GetEntryAssembly().Location ), "trustedpartnerlist.txt" );
                 string[] list = System.IO.File.ReadAllText( path ).Split( "\r\n" );
@@ -294,10 +297,6 @@ namespace OnboardWithTAP.Controllers
 
                 if (!isTrustedPartner) {
                     return BadRequest( new { error = "400", error_description = $"Guest onboarding is not allowed for your company" } );
-                }
-
-                if (string.IsNullOrWhiteSpace( email ) || string.IsNullOrWhiteSpace( displayName )) {
-                    return BadRequest( new { error = "400", error_description = $"{guestEmailClaimName}/{guestDisplayNameClaimName} missing in presented credential." } );
                 }
 
                 //
