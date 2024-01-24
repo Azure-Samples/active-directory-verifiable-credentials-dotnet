@@ -104,6 +104,19 @@ and asks the user to go to [MyApps](https://yapps.microsoft.com/?tenantId=...you
 
 ![Guest onboarding screen](ReadmeFiles/GuestOnboarding.png)
 
+
+#### Can Guest Onboarding work with another credential other than VerifiedEMployee?
+
+Yes, it can. Which Verified ID credential type you are using is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
+
+If you use a different credential type, you need to update the appsettings.json file for these three entries.
+
+```JSON
+    "CredentialTypeGuest": "VerifiedEmployee",
+    "GuestEmailClaimName": "mail",
+    "GuestDisplayClaimName": "displayName"
+```
+
 ## Contents
 
 The project is has some parts that are common for a Verified ID ASPNet Core application and some parts that are specific for providing onboarding. 
