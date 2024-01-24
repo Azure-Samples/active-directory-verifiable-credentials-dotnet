@@ -5,13 +5,13 @@ languages:
 products:
 - microsoft entra
 - verified id
-description: "A code sample demonstrating verification of verifiable credentials and based on that onboarding new employees to Entra ID."
-urlFragment: "4-asp-net-core-api-verify-and-onboard"
+description: "A code sample demonstrating employee and guest account onboarding using Entra Verified ID"
+urlFragment: "5-onboard-with-tap"
 ---
-# Verified ID Code Sample for Onboarding a New Hire with Temporary Access Pass
+# Verified ID Code Sample for Employee or Guest Onboarding
 
 This sample is show casing onboarding a new hire with the use of [Temporary Access Pass](https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass) 
-to remotely gain access to their corporate account.
+to remotely gain access to their corporate account. It also show casing onboarding a B2B guest user by the use of creating an [invitation](https://learn.microsoft.com/en-us/graph/api/invitation-post) using Microsoft Graph that is redeemed in the application and not via sending an email.
 
 ## About this sample
 
@@ -93,7 +93,7 @@ A few notes:
 #### Admin
 
 The admin needs to sign in and updated the trusted partner list as only users from these partners are allowed to onboard as guest accounts. 
-The list can containa DID or a domain name. The DID is the issuers DID of the VerifiedEmployee credential and the domain name is matched against the linked domain in the VerifiedEmployee presented.
+The list can contain a DID or a domain name. The DID is the issuers DID of the VerifiedEmployee credential and the domain name is matched against the linked domain in the VerifiedEmployee presented.
 
 ![Truster Partner List screen](ReadmeFiles/TrustedPartnerList.png)
 
@@ -107,7 +107,7 @@ and asks the user to go to [MyApps](https://yapps.microsoft.com/?tenantId=...you
 
 #### Can Guest Onboarding work with another credential other than VerifiedEmployee?
 
-VerifiedEmployee is probably the best choice, but others can be used. Which Verified ID credential type you are using is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
+VerifiedEmployee is probably the best choice, but others can be used. Which Verified ID credential type you use is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
 
 If you use a different credential type, you need to update the appsettings.json file for these three entries.
 
@@ -165,17 +165,18 @@ Application permissions required
 
 | Permission | Type | Scenario | Description |
 |------|--------|--------|--------|
-| User.Read | Delegated |  both | So that the manager/HR-person can read their own profile |
+| User.Read | Delegated |  all | So that the manager/HR-person can read their own profile |
 | User.Read.All | Application | 1) | For manager/HR-person to read new hire's profile |
 | User.ReadWrite.All | Application | 2) | For manager/HR-person to read/write new hire's profile |
-| UserAuthenticationMethod.ReadWrite.All | Application | both | For manager/HR-personell to create the TAP code for the new hire |
+| UserAuthenticationMethod.ReadWrite.All | Application | 1+2) | For manager/HR-personell to create the TAP code for the new hire |
 | Group.ReadWrite.All | Application | 2) | For manager/HR-person to add the new hire to the TAP group |
-| VerifiableCredential.Create.PresentationRequest | Application | both | For application to be able to create a Verified ID presentation request  |
-| User.Invite.All | Application | Guest | For the app to have rights to create invites. Not needed if app has User.readWrite.All |
+| VerifiableCredential.Create.PresentationRequest | Application | all | For application to be able to create a Verified ID presentation request  |
+| User.Invite.All | Application | 3) | For the app to have rights to create invites. Not needed if app has User.readWrite.All |
 
 Scenarios:
-1) You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
-2) You create the new hire user account in the sample application. In this case the app needs User/Group.ReadWrite.All permissions.
+1) Employee onboarding - You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
+2) Employee onboarding - You create the new hire user account in the sample application. In this case the app needs User/Group.ReadWrite.All permissions.
+3) Guest onboarding - If you only plan to test Guest Onboarding, then the app only needs User.Invite.All and not the User/Group.ReadWrite.All + UserAuthenticationMethod.ReadWrite.All permissions.
 
 General steps for registering both of the applications:
 
@@ -209,20 +210,20 @@ To create an AppRole:
     - select the `UserAdmin` role (it is preselected when you only have one role)
     - click Assign
 
-### Create a group for TAP and SSPR
+### Create a group for TAP and SSPR (Employee Onboarding)
 
 1. Open [Groups](https://entra.microsoft.com/#view/Microsoft_AAD_IAM/GroupsManagementMenuBlade/~/AllGroups/menuId/AllGroups) in the Entra portal
 1. Click `New group` and select Group type `Security`, Membership type `Assigned` and give the group a name.
 1. Click `Create` to save the group.
 
-### Enabling the Temporary Access Pass (TAP)
+### Enabling the Temporary Access Pass (TAP) (Employee Onboarding)
 
 1.  Open [Authentication Methods](https://entra.microsoft.com/#view/Microsoft_AAD_IAM/AuthenticationMethodsMenuBlade/~/AdminAuthMethods/fromNav/) in Entra portal.
 1.  Click on `Temporary Access Pass`, enable it and select the `target group` created in the above step.
 1.  Click on Configure, then `Edit` and change the `Minumum lifetime` to 15 minutes  
 1.  Click `Save`  
 
-### Enabling Self-Service Password Reset
+### Enabling Self-Service Password Reset (Employee Onboarding)
 
 This step is only required if you want to change the new hire's password as part of the onboarding.
 
@@ -230,7 +231,7 @@ This step is only required if you want to change the new hire's password as part
 1.  Click on `Selected`, and select the same `target group` you selected for TAP codes.
 1.  Click `Save`  
 
-### Deploying Azure Key Vault 
+### Deploying Azure Key Vault (Employee Onboarding) 
 
 The sample creates a link that is sent to the new hire's private email. The link containes a JWT token signed with an Azure Key Vault key. 
 The token is used as proof upon starting the onboarding process (only the new hire has the token) and is also passed to and returned from TrueIdentity for the same reason.
