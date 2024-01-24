@@ -122,11 +122,18 @@ If you use a different credential type, you need to update the appsettings.json 
 The project is has some parts that are common for a Verified ID ASPNet Core application and some parts that are specific for providing onboarding. 
 The common parts are those that they would be in any dotnet code that interacts with Verified ID. The specific parts are thos that are specific to onboarding a user via TAP.
 
-| Specific | Description |
+ 
+| Employee Onboarding | Description |
 |------|--------|
-| [Views/Home/RegisterNewHire.cshtml](Views/Home/RegisterNewHire.cshtml) | A page that the authenticated manager/HR-representative uses to register the new hire's user account. This page is provided to make use of the sample easier. If you prefer to create the Entra Id user profile via some other process, that works too. In that case, you use this page just to generate the invitation link you email to the new hire. |
-| [Views/Home/Onboarding.cshtml](Views/Home/Onboarding.cshtml) | A page that contains the onboarding journey and that requires the user to verify their identity using TrueIdentity before setting up their account. |
-| [Controllers/HomeController.cs](Controllers/HomeController.cs) | Implementation that supports the above pages. |
+| [Views/Employee/RegisterNewHire.cshtml](Views/Employee/RegisterNewHire.cshtml) | A page that the authenticated manager/HR-representative uses to register the new hire's user account. This page is provided to make use of the sample easier. If you prefer to create the Entra Id user profile via some other process, that works too. In that case, you use this page just to generate the invitation link you email to the new hire. |
+| [Views/Employee/Onboarding.cshtml](Views/Employee/Onboarding.cshtml) | A page that contains the onboarding journey and that requires the user to verify their identity using TrueIdentity before setting up their account. |
+| [Controllers/EmployeeController.cs](Controllers/EmployeeController.cs) | Implementation that supports the above pages. |
+
+| Guest Onboarding | Description |
+|------|--------|
+| [Views/Guest/TrustedPartners.cshtml](Views/Guest/TrustedPartners.cshtml) | A page where admins can managed the trusted partners list |
+| [Views/Guest/GuestOnboarding.cshtml](Views/Guest/GuestOnboarding.cshtml) | A page for guest account onboarding journey |
+| [Controllers/GuestController.cs](Controllers/GuestController.cs) | Implementation that supports the above pages. |
 
 | Common | Description |
 |------|--------|
@@ -185,6 +192,7 @@ General steps for registering both of the applications:
     - In the Name section, enter a meaningful application name for your issuance and/or verification application
     - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
     - In the Redirect URI section, select `Web` and add `https://localhost:5001/signin-oidc`. You will later come back and add more redirect URIs.
+    - If you have deployed the app to AppServices, add `https://your-name.azurewebsites.net/signin-oidc` as a Redirect URI (replace with your name).
     - Select Register to create the application
 3.	On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
 4.	From the Certificates & secrets page, in the Client secrets section, create a new client secret and copy it for later use in configuration as it will not be displayed again.
