@@ -166,7 +166,7 @@ Application permissions required
 | Permission | Type | Scenario | Description |
 |------|--------|--------|--------|
 | User.Read | Delegated |  all | So that the manager/HR-person can read their own profile |
-| User.Read.All | Application | 1) | For manager/HR-person to read new hire's profile |
+| User.Read.All | Application | 1+3) | For manager/HR-person to read new hire's profile |
 | User.ReadWrite.All | Application | 2) | For manager/HR-person to read/write new hire's profile |
 | UserAuthenticationMethod.ReadWrite.All | Application | 1+2) | For manager/HR-personell to create the TAP code for the new hire |
 | Group.ReadWrite.All | Application | 2) | For manager/HR-person to add the new hire to the TAP group |
@@ -176,7 +176,7 @@ Application permissions required
 Scenarios:
 1) Employee onboarding - You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
 2) Employee onboarding - You create the new hire user account in the sample application. In this case the app needs User/Group.ReadWrite.All permissions.
-3) Guest onboarding - If you only plan to test Guest Onboarding, then the app only needs User.Invite.All and not the User/Group.ReadWrite.All + UserAuthenticationMethod.ReadWrite.All permissions.
+3) Guest onboarding - If you only plan to test Guest Onboarding, then the app needs User.Invite.All and not the User/Group.ReadWrite.All + UserAuthenticationMethod.ReadWrite.All permissions.
 
 General steps for registering both of the applications:
 

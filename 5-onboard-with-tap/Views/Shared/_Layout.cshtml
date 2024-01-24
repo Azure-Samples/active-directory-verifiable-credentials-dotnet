@@ -29,14 +29,14 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Onboarding">Employee Onboarding</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Employee" asp-action="Onboarding">Employee Onboarding</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Guest" asp-action="GuestOnboarding">| Guest Onboarding</a>
                         </li>
                         @if (User.Identity.IsAuthenticated) {
                             <li class="nav-item">
-                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="RegisterNewHire">| Register New Hire</a>
+                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Employee" asp-action="RegisterNewHire">| Register New Hire</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-nw-white" asp-area="" asp-controller="Guest" asp-action="TrustedPartners">| Trusted B2B Partners</a>

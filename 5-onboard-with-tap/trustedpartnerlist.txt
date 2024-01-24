@@ -1,1 +1,2 @@
 ﻿*.fawltytowers2.com
+*.microsoft.com

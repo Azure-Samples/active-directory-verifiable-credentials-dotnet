@@ -17,7 +17,7 @@
 
         <br />
 
-        <form id="profileForm" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="SaveProfile">
+        <form id="profileForm" method="POST" enctype="multipart/form-data" asp-controller="Employee" asp-action="SaveProfile">
         <table id="claims">
             <thead>
                 <th style="width:25%;text-align:left">Claims</th>
@@ -35,10 +35,10 @@
             </tbody>
         </table>
         </form>
-        <form id="profileFind" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="FindProfile">
+        <form id="profileFind" method="POST" enctype="multipart/form-data" asp-controller="Employee" asp-action="FindProfile">
             <input id="findEmail" name="mail" type="hidden" />
         </form>
-        <form id="getOnboadringLink" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="GetOnboardingLink">
+        <form id="getOnboadringLink" method="POST" enctype="multipart/form-data" asp-controller="Employee" asp-action="GetOnboardingLink">
             <input id="onboardingEmail" name="mail" type="hidden" />
         </form>
 

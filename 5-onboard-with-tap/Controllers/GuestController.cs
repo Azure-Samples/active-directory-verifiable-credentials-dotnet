@@ -37,11 +37,11 @@ namespace OnboardWithTAP.Controllers
     {
         //protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
-        protected readonly ILogger<VerifierController> _log;
+        protected readonly ILogger<EmployeeController> _log;
         private IHttpClientFactory _httpClientFactory;
         private string _apiKey;
         private IConfiguration _configuration;
-        public GuestController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<VerifierController> log, IHttpClientFactory httpClientFactory)
+        public GuestController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<EmployeeController> log, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
             _cache = memoryCache;
@@ -113,13 +113,8 @@ namespace OnboardWithTAP.Controllers
                 _log.LogTrace( accessToken.token );
 
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
-                string[] acceptedIssuers = _configuration["verifiedID:acceptedIssuers"].Split( ";" );
                 OnboardWithTAP.Models.PresentationRequest request = CreatePresentationRequest( null, null );
-                string guestOnboarding = this.Request.Query["guest"].ToString();
-                if ( !string.IsNullOrWhiteSpace( guestOnboarding ) && guestOnboarding == "1" ) {
-                    request.requestedCredentials[0].type = "VerifiedEmployee";
-                    request.requestedCredentials[0].acceptedIssuers = new List<string>(); // filter out trusted after presentation
-                }
+                request.requestedCredentials[0].acceptedIssuers = new List<string>(); // filter out trusted after presentation
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
                 } );
@@ -203,7 +198,7 @@ namespace OnboardWithTAP.Controllers
                 request.registration.purpose = null;
             }
             if (string.IsNullOrEmpty( credentialType )) {
-                credentialType = _configuration["VerifiedID:CredentialTypeGuest"];
+                credentialType = _configuration.GetValue("VerifiedID:CredentialTypeGuest", "VerifiedEmployee");
             }
             bool allowRevoked = _configuration.GetValue( "VerifiedID:allowRevoked", false );
             bool validateLinkedDomain = _configuration.GetValue( "VerifiedID:validateLinkedDomain", true );
@@ -258,10 +253,11 @@ namespace OnboardWithTAP.Controllers
                 string linkedDomain = null;
                 string email = null;
                 string displayName = null;
+                string credentialTypeGuest = _configuration.GetValue("VerifiedID:CredentialTypeGuest", "VerifiedEmployee" );
                 string guestEmailClaimName = _configuration.GetValue("VerifiedID:GuestEmailClaimName", "mail");
                 string guestDisplayNameClaimName = _configuration.GetValue("VerifiedID:GuestDisplayNameClaimName", "displayName");
                 foreach (var vc in callback.verifiedCredentialsData) {
-                    if (vc.type.Contains( _configuration["VerifiedID:CredentialTypeGuest"] )) {
+                    if (vc.type.Contains( credentialTypeGuest )) {
                         linkedDomain = vc.domainValidation.url;
                         didIssuer = vc.issuer;
                         if (vc.claims.ContainsKey( guestEmailClaimName )) {
