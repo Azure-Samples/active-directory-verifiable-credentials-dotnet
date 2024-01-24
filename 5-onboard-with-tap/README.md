@@ -158,6 +158,7 @@ Application permissions required
 | UserAuthenticationMethod.ReadWrite.All | Application | both | For manager/HR-personell to create the TAP code for the new hire |
 | Group.ReadWrite.All | Application | 2) | For manager/HR-person to add the new hire to the TAP group |
 | VerifiableCredential.Create.PresentationRequest | Application | both | For application to be able to create a Verified ID presentation request  |
+| User.Invite.All | Application | Guest | For the app to have rights to create invites. Not needed if app has User.readWrite.All |
 
 Scenarios:
 1) You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
