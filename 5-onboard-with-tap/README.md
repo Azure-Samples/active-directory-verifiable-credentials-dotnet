@@ -105,9 +105,9 @@ and asks the user to go to [MyApps](https://yapps.microsoft.com/?tenantId=...you
 ![Guest onboarding screen](ReadmeFiles/GuestOnboarding.png)
 
 
-#### Can Guest Onboarding work with another credential other than VerifiedEmployee?
+#### Can Guest Onboarding work with another credential types other than VerifiedEmployee?
 
-VerifiedEmployee is probably the best choice, but others can be used. Which Verified ID credential type you use is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
+VerifiedEmployee is natural choice as it represents an Entra ID user profile from a company, but others can be used. Which Verified ID credential type you use is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
 
 If you use a different credential type, you need to update the appsettings.json file for these three entries.
 
