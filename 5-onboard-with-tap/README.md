@@ -38,7 +38,7 @@ What the parameter values are is explained further down in [this](#update-appset
 
 ![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
 
-## Setup instructions
+## Setup
 
 [Setup instructions](Setup.md)
 
@@ -47,28 +47,20 @@ What the parameter values are is explained further down in [this](#update-appset
 The project is has some parts that are common for a Verified ID ASPNet Core application and some parts that are specific for providing onboarding. 
 The common parts are those that they would be in any dotnet code that interacts with Verified ID. The specific parts are thos that are specific to onboarding a user via TAP.
 
- 
-| Employee Onboarding | Description |
-|------|--------|
-| [Views/Employee/RegisterNewHire.cshtml](Views/Employee/RegisterNewHire.cshtml) | A page that the authenticated manager/HR-representative uses to register the new hire's user account. This page is provided to make use of the sample easier. If you prefer to create the Entra Id user profile via some other process, that works too. In that case, you use this page just to generate the invitation link you email to the new hire. |
-| [Views/Employee/Onboarding.cshtml](Views/Employee/Onboarding.cshtml) | A page that contains the onboarding journey and that requires the user to verify their identity using TrueIdentity before setting up their account. |
-| [Controllers/EmployeeController.cs](Controllers/EmployeeController.cs) | Implementation that supports the above pages. |
-
-| Guest Onboarding | Description |
-|------|--------|
-| [Views/Guest/TrustedPartners.cshtml](Views/Guest/TrustedPartners.cshtml) | A page where admins can managed the trusted partners list |
-| [Views/Guest/GuestOnboarding.cshtml](Views/Guest/GuestOnboarding.cshtml) | A page for guest account onboarding journey |
-| [Controllers/GuestController.cs](Controllers/GuestController.cs) | Implementation that supports the above pages. |
-
-| Common | Description |
-|------|--------|
-| [Controllers/VerifierController.cs](Controllers/VerifierController.cs) | Controller that creates the Verified ID presentation request for the TrueIdentity credential. |
-| [Controllers/CallbackController.cs](Controllers/CallbackController.cs) | Controller that handles the [callbacks](https://learn.microsoft.com/en-us/entra/verified-id/presentation-request-api#callback-events) from Verified ID's Request Service API and that also serves status polling from the UI. |
-| [Models/RequestServiceModel.cs](Models/RequestServiceModel.cs) | C# model of the [presentaiton request payload](https://learn.microsoft.com/en-us/entra/verified-id/presentation-request-api#presentation-request-payload). |
-| [Helpers/KeyVaultHelper.cs](Helpers/KeyVaultHelper.cs) | Helper code to sign and validate a JWT token using a Key Vault signing key |
-| [Helpers/MsalAccessTokenHelper.cs](Helpers/MsalAccessTokenHelper.cs) | Helper code to acquire an access token for Verified ID request Service API |
-| [wwwroot/js/verifiedid.uihandler.js](wwwroot/js/verifiedid.uihandler.js) | Updates the browser UI and calls the below |
-| [wwwroot/js/verifiedid.requestserviceclient.js](wwwroot/js/verifiedid.requestserviceclient.js) | Javascript browser component that calls the controller APIs and handles the pollign of restest status. |
+| Scenario | File | Description |
+|------|--------|--------|
+| Employee Onboarding | [Views/Employee/RegisterNewHire.cshtml](Views/Employee/RegisterNewHire.cshtml) | A page that the authenticated manager/HR-representative uses to register the new hire's user account. This page is provided to make use of the sample easier. If you prefer to create the Entra Id user profile via some other process, that works too. In that case, you use this page just to generate the invitation link you email to the new hire. |
+| | [Views/Employee/Onboarding.cshtml](Views/Employee/Onboarding.cshtml) | A page that contains the onboarding journey and that requires the user to verify their identity using TrueIdentity before setting up their account. |
+| | [Controllers/EmployeeController.cs](Controllers/EmployeeController.cs) | Implementation that supports the above pages. |
+| Guest Onboarding | [Views/Guest/TrustedPartners.cshtml](Views/Guest/TrustedPartners.cshtml) | A page where admins can managed the trusted partners list |
+| | [Views/Guest/GuestOnboarding.cshtml](Views/Guest/GuestOnboarding.cshtml) | A page for guest account onboarding journey |
+| | [Controllers/GuestController.cs](Controllers/GuestController.cs) | Implementation that supports the above pages. |
+| Common | [Controllers/CallbackController.cs](Controllers/CallbackController.cs) | Controller that handles the [callbacks](https://learn.microsoft.com/en-us/entra/verified-id/presentation-request-api#callback-events) from Verified ID's Request Service API and that also serves status polling from the UI. |
+| | [Models/RequestServiceModel.cs](Models/RequestServiceModel.cs) | C# model of the [presentaiton request payload](https://learn.microsoft.com/en-us/entra/verified-id/presentation-request-api#presentation-request-payload). |
+| | [Helpers/KeyVaultHelper.cs](Helpers/KeyVaultHelper.cs) | Helper code to sign and validate a JWT token using a Key Vault signing key |
+| | [Helpers/MsalAccessTokenHelper.cs](Helpers/MsalAccessTokenHelper.cs) | Helper code to acquire an access token for Verified ID request Service API |
+| | [wwwroot/js/verifiedid.uihandler.js](wwwroot/js/verifiedid.uihandler.js) | Updates the browser UI and calls the below |
+| | [wwwroot/js/verifiedid.requestserviceclient.js](wwwroot/js/verifiedid.requestserviceclient.js) | Javascript browser component that calls the controller APIs and handles the pollign of restest status. |
 
 ## More information
 
