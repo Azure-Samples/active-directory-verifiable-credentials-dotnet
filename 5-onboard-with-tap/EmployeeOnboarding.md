@@ -1,5 +1,6 @@
-
 # Employee Onboarding scenario
+
+In the Employee Onboarding scenario a member user account is created which a new hire remotely onboards to.
 
 ## Admin persona
 

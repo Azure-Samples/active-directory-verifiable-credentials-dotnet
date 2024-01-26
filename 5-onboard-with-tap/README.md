@@ -40,23 +40,19 @@ What the parameter values are is explained further down in [this](#update-appset
 
 ## Using the sample
 
-The **Employee Onboarding** scenario uses two personas:
+The [Employee Onboarding scenario](EmployeeOnboarding.md) scenario uses two personas:
 
 - An admin that registers the new hire person's user profile and sends an onboarding link to the new hire person.
 - A new hire person who onboards to the company and sets up their account.
 
-The **Guest Onboarding** scenario uses two personas:
+The [Guest Onboarding scenario](GuestOnboarding.md) scenario uses two personas:
 
 - An admin that updates the list of trusted B2B partners
 - A business guest who should have a B2B guest account created
 
-### Employee Onboarding scenario
+## Setup instructions
 
-[Employee Onboarding scenario](EmployeeOnboarding.md)
-
-### Guest Onboarding scenario
-
-[Guest Onboarding scenario](GuestOnboarding.md)
+[Setup instructions](Setup.md)
 
 ## Contents
 
@@ -85,11 +81,6 @@ The common parts are those that they would be in any dotnet code that interacts 
 | [Helpers/MsalAccessTokenHelper.cs](Helpers/MsalAccessTokenHelper.cs) | Helper code to acquire an access token for Verified ID request Service API |
 | [wwwroot/js/verifiedid.uihandler.js](wwwroot/js/verifiedid.uihandler.js) | Updates the browser UI and calls the below |
 | [wwwroot/js/verifiedid.requestserviceclient.js](wwwroot/js/verifiedid.requestserviceclient.js) | Javascript browser component that calls the controller APIs and handles the pollign of restest status. |
-
-## Setup
-
-[Setup instructions](Setup.md)
-
 
 ## More information
 

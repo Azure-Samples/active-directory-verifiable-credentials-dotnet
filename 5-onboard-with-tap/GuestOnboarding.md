@@ -1,5 +1,7 @@
-
 # Guest Onboarding
+
+In the Guest Onboarding scenario, the guest user presents their `VerifiedEmployee` Veified ID credential which triggers the creation of a B2B Guest Account. 
+No email is sent to the guest user and invite redemption is made by clicking a link to `MyApps` and signing in.
 
 ## Admin persona
 

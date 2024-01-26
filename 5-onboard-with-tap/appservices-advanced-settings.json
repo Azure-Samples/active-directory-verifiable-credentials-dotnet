@@ -1,0 +1,192 @@
+[
+  {
+    "name": "AllowedUserAdminRole",
+    "value": "UserAdmin",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__BrandImage",
+    "value": "https://docs.microsoft.com/en-us/microsoft-365/media/contoso-overview/contoso-icon.png",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__CacheExpiresInSeconds",
+    "value": "300",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__CompanyName",
+    "value": "Contoso",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__CookieExpiresInSeconds",
+    "value": "7200",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__CookieKey",
+    "value": "state",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__IdvLogoUrl",
+    "value": "https://woodgroveemployee.azurewebsites.net/assets/images/verification/true-id-card.png",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__IdvUrl",
+    "value": "https://trueidentityinc.azurewebsites.net/",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__KeyVaultURI",
+    "value": "https://<..your-kv-name..>.vault.azure.net/",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__SigningKeyName",
+    "value": "<...your-key-name...>",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__SigningKeyVersion",
+    "value": "<...your-key-version... a bunch of digits...>",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__TapGroupName",
+    "value": "TAP-Group",
+    "slotSetting": false
+  },
+  {
+    "name": "AppSettings__tapLifetimeInMinutes",
+    "value": "60",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__CallbackPath",
+    "value": "/signin-oidc",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__ClientId",
+    "value": "<...your-apps-clientid...>",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__ClientSecret",
+    "value": "<...your-apps-client-secret...>",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__Domain",
+    "value": "<...your-comain-name like contoso.com...>",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__Instance",
+    "value": "https://login.microsoftonline.com/",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__TenantId",
+    "value": "<...your-tenantid should be a guid ...>",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__acceptedIssuers",
+    "value": "did:web:did.woodgrovedemo.com",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__allowRevoked",
+    "value": "False",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ApiEndpoint",
+    "value": "https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Authority",
+    "value": "https://login.microsoftonline.com/",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CertificateName",
+    "value": "[MAKE EMPTY WHEN NOT USED Or instead of client secret: Enter here the name of a certificate (from the user cert store) as registered with your application]",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__client_name",
+    "value": "Onboard with TAP sample",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__client_name_guest",
+    "value": "Guest Account Onboarding",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ClientId",
+    "value": "<...your-apps-clientid...>",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ClientSecret",
+    "value": "<...your-apps-clientsecret...>",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CredentialType",
+    "value": "TrueIdentity",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CredentialTypeGuest",
+    "value": "VerifiedEmployee",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__DidAuthority",
+    "value": "<...your DID ...>",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__includeQRCode",
+    "value": "False",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__includeReceipt",
+    "value": "True",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Purpose",
+    "value": "To prove your identity",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Purpose_guest",
+    "value": "To prove your employment",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__scope",
+    "value": "3db474b9-6a0c-4840-96ac-1fceb342124f/.default",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__TenantId",
+    "value": "<...your-tenantid should be a guid ...>",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__validateLinkedDomain",
+    "value": "True",
+    "slotSetting": false
+  }
+]

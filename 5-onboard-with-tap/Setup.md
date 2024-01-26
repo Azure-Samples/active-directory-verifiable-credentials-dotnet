@@ -7,7 +7,7 @@ If you only plan to test `Guest Onboarding`, then skip the setup steps marked `E
 
 You need an Entra ID tenant to get this sample to work. You can set up a [free tenant](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-create-new-tenant) unless you don't have one already. 
 
-## Onboard to Entra Verified ID
+## Entra Verified ID setup
 
 You need a working setup on Entra Verified ID. This is required even though you are just asking a user to present a Verified ID because the presentation request needs to come from a signed authority.
 To set up Entra Verified ID, please follow the [documented tutorials](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick). There are two ways of setting up Verified ID, where one is called `Quick` and one is called `Manual`. 
@@ -16,22 +16,18 @@ You decide which model you want to follow, but please be aware that you will hav
 
 ## Register an application in Entra ID
 
-You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) one, possibly two applications to get this sample to work. The first application handles user sign-ins, like the manager/HR-person. 
-This application also grants access to Microsoft Graph API so that the application can perform Graph API requests as required.
-
-The second application is to gain access to Verified ID's Request Service API to be able to [create presentation requests](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant#register-an-application-in-microsoft-entra-id). 
-The second application can be the same application as the first if you want to keep it simple.
+You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) an applications to get this sample to work. 
 
 ### Application permissions required (Employee Onboarding)
 
 | Permission | Type | Scenario | Description |
 |------|--------|--------|--------|
-| User.Read | Delegated |  all | So that the admin can read their own profile |
-| User.Read.All | Application | 1) | For admin to read new hire's profile |
-| User.ReadWrite.All | Application | 2) | For admin to read/write new hire's profile |
-| UserAuthenticationMethod.ReadWrite.All | Application | 1+2) | For admin to create the TAP code for the new hire |
-| Group.ReadWrite.All | Application | 2) | For admin to add the new hire to the TAP group |
-| VerifiableCredential.Create.PresentationRequest | Application | all | For application to be able to create a Verified ID presentation request  |
+| User.Read | Delegated |  1+2 | So that the admin can read their own profile |
+| User.Read.All | Application | 1 | For admin to read new hire's profile |
+| User.ReadWrite.All | Application | 2 | For admin to read/write new hire's profile |
+| UserAuthenticationMethod.ReadWrite.All | Application | 1+2 | For admin to create the TAP code for the new hire |
+| Group.ReadWrite.All | Application | 2 | For admin to add the new hire to the TAP group |
+| VerifiableCredential.Create.PresentationRequest | Application | 1+2 | For application to be able to create a Verified ID presentation request  |
 
 Scenarios:
 1) Employee onboarding - You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
@@ -156,7 +152,7 @@ The appsettings.json file have the following settings that needs to be updated. 
 | | DidAuthority | did | The authority DID that is making the presentation request. You can copy it from your [Organizational settings](https://portal.azure.com/#view/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/~/issuerSettingsBlade) in the Entra portal |
 
 If you are deploying the solution to Azure AppServices, the configuration settings needs to have names like `AppSettings__KeyIdentifier`, `AzureAd__ClientId` and `VerifiedId__DidAuthority`, 
-ie Section, then double underscore, followed by name.
+ie Section, then double underscore, followed by name. There is a template you can use [here](appservices-advanced-settings.json)
 
 ## Compile and running the sample locally
 
