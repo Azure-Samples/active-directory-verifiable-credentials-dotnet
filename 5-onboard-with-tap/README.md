@@ -58,9 +58,9 @@ The common parts are those that they would be in any dotnet code that interacts 
 | Common | [Controllers/CallbackController.cs](Controllers/CallbackController.cs) | Controller that handles the [callbacks](https://learn.microsoft.com/en-us/entra/verified-id/presentation-request-api#callback-events) from Verified ID's Request Service API and that also serves status polling from the UI. |
 | | [Models/RequestServiceModel.cs](Models/RequestServiceModel.cs) | C# model of the [presentaiton request payload](https://learn.microsoft.com/en-us/entra/verified-id/presentation-request-api#presentation-request-payload). |
 | | [Helpers/KeyVaultHelper.cs](Helpers/KeyVaultHelper.cs) | Helper code to sign and validate a JWT token using a Key Vault signing key |
-| | [Helpers/MsalAccessTokenHelper.cs](Helpers/MsalAccessTokenHelper.cs) | Helper code to acquire an access token for Verified ID request Service API |
+| | [Helpers/MsalAccessTokenHandler.cs](Helpers/MsalAccessTokenHandler.cs) | Helper code to acquire an access token for Verified ID request Service API |
 | | [wwwroot/js/verifiedid.uihandler.js](wwwroot/js/verifiedid.uihandler.js) | Updates the browser UI and calls the below |
-| | [wwwroot/js/verifiedid.requestserviceclient.js](wwwroot/js/verifiedid.requestserviceclient.js) | Javascript browser component that calls the controller APIs and handles the pollign of restest status. |
+| | [wwwroot/js/verifiedid.requestserviceclient.js](wwwroot/js/verifiedid.requestservice.client.js) | Javascript browser component that calls the controller APIs and handles the pollign of restest status. |
 
 ## More information
 

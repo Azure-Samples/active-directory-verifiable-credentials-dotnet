@@ -27,6 +27,7 @@
         <button type="button" id="verify-credential" class="button">Step 2: Present your VerifiedEmployee card</button>
         <p>Use the Authenticator to present your VerifiedEmployee card</p>
         <div id="qrcode" style="text-align:center"></div>
+        <a id="check-result" class="skipButton" style="display:none">Continue</a>
     </div>
 
     <div id="card-3" class="verification-card">
@@ -69,6 +70,11 @@
 
         document.getElementById('skip-issuance').addEventListener('click', () => {
             startVerification();
+        });
+
+        document.getElementById('check-result').addEventListener('click', () => {
+            var requestId = document.getElementById('check-result').getAttribute('requestId');
+            credentialPresented(requestId, { message: "Continuing" });
         });
 
         // callback on presentation_verified
