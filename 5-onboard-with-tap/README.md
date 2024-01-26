@@ -17,11 +17,11 @@ to remotely gain access to their corporate account. It also show casing onboardi
 
 This sample supports **employee onboarding** and **guest onboarding**. 
 
-**Employee onboarding** is the process of pre-registering a new hire and then having the new hire person getting access to the account via remote onboarding. 
+[Employee Onboarding scenario](EmployeeOnboarding.md) is the process of pre-registering a new hire and then having the new hire person getting access to the account via remote onboarding. 
 The new hire can then onboard and setup their account using TrueIdentity (fictious Identity Verification Provider) and use [Temporary Access Pass](https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass) 
 to gain access to their new account. 
 
-**Guest onboarding** is the process of setting up a B2B Guest Account by presenting a VerifiedEmployee Verified ID credential from a trusted B2B partner. 
+[Guest Onboarding scenario](GuestOnboarding.md) is the process of setting up a B2B Guest Account by presenting a VerifiedEmployee Verified ID credential from a trusted B2B partner. 
 The user doing the guest onboarding needs to have acquired their VerifiedEmployee credential from [MyAccount](https://myaccount.microsoft.com) using their corporate credentials. 
 How to enable Verified ID to be available in MyAccount is documented [here](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials).
 
@@ -37,18 +37,6 @@ You will be asked to enter some parameters during deployment about your app regi
 What the parameter values are is explained further down in [this](#update-appsettingsjson) section.
 
 ![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
-
-## Using the sample
-
-The [Employee Onboarding scenario](EmployeeOnboarding.md) scenario uses two personas:
-
-- An admin that registers the new hire person's user profile and sends an onboarding link to the new hire person.
-- A new hire person who onboards to the company and sets up their account.
-
-The [Guest Onboarding scenario](GuestOnboarding.md) scenario uses two personas:
-
-- An admin that updates the list of trusted B2B partners
-- A business guest who should have a B2B guest account created
 
 ## Setup instructions
 
