@@ -188,5 +188,36 @@
     "name": "VerifiedID__validateLinkedDomain",
     "value": "True",
     "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__GuestEmailClaimName",
+    "value": "mail",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__GuestDisplayClaimName",
+    "value": "displayName",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__FaceCheckRequiredForGuest",
+    "value": "False",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__sourcePhotoClaimName",
+    "value": "photo",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__matchConfidenceThreshold",
+    "value": "70",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__updateGuestUserProfilefromClaims",
+    "value": "False",
+    "slotSetting": false
   }
+
 ]

@@ -3,6 +3,8 @@
 In the Guest Onboarding scenario, the guest user presents their `VerifiedEmployee` Veified ID credential which triggers the creation of a B2B Guest Account. 
 No email is sent to the guest user and invite redemption is made by clicking a link to `MyApps` and signing in.
 
+The sample also implements a Guest Reverification scenario, where the guest user can present the Verified ID again to prove that the user is still an employee of their company.
+
 ## Admin persona
 
 The admin needs to sign in and updated the trusted partner list as only users from these partners are allowed to onboard as guest accounts. 
@@ -17,6 +19,27 @@ and asks the user to go to [MyApps](https://myapps.microsoft.com/?tenantId=...yo
 
 ![Guest onboarding screen](ReadmeFiles/GuestOnboarding.png)
 
+## Guest Reverification
+
+Guest reverification is the scenario where the guest user proves that their employment is still valid with the company and that the guest account should remain.
+In order to use this feature, set the `updateGuestUserProfilefromClaims` to `true` and grant permission `User-LifeCycleInfo.ReadWrite.All` to the application.
+When presenting the Verified ID VerifiedEMployee credential again, the user profile will be updated and the `EmployeeLeaveDateTime` attribute will be set to the
+value of the `expiryDate` in the VC, indicating for how long it should be valid.
+
+```JSON
+    "updateGuestUserProfilefromClaims": true
+```
+
+## Using FaceCheck
+
+Adding FaceCheck during presentation of `VerifiedEmployee` credential can be added via adding the following to the app config. Setting the `FaceCheckRequiredForGuest` value
+to `false` will disable the use of FaceCheck.
+
+```JSON
+    "FaceCheckRequiredForGuest": true,
+    "sourcePhotoClaimName": "photo",
+    "matchConfidenceThreshold": 70,
+```
 
 ## Can Guest Onboarding work with another credential types other than VerifiedEmployee?
 

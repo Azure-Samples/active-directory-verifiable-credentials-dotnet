@@ -293,7 +293,7 @@ namespace OnboardWithTAP.Controllers
                         _log.LogTrace( jwtToken );
                         string urlToken = HttpUtility.UrlEncode( jwtToken );
                         _log.LogTrace( urlToken );
-                        string link = $"{GetRequestHostName()}/Home/Onboarding?token={urlToken}";
+                        string link = $"{GetRequestHostName()}/Employee/Onboarding?token={urlToken}";
                         ViewData["link"] = link;
                         ViewData["mail"] = mail;
                         ViewData["company"] = _configuration["AppSettings:CompanyName"];

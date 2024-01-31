@@ -1,14 +1,11 @@
 ﻿@using Microsoft.Extensions.Configuration
 @inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Guest Onboarding";
+    ViewData["Title"] = "Reverify";
 }
 
 <div style="text-align: center;">
-    <h1>Guest Onboarding</h1>
-    @if (null != ViewData["displayName"]) {
-        <h3>Welcome @ViewData["displayName"]</h3>
-    }
+    <h1>Guest User Reverification</h1>
     <div id="message-wrapper" class="margin-bottom-25 margin-top-25">
         <div id="message">@ViewData["message"]</div>
     </div>
@@ -31,13 +28,12 @@
     </div>
 
     <div id="card-3" class="verification-card">
-        <div id="authAppMessage" class="waitingForAuthApp">Step 3: Guest account setup</div>
+        <div id="authAppMessage" class="waitingForAuthApp">Step 3: Guest account verified</div>
         <div id="apps-button-wrapper" class="appsWrapper" style="display:none;">
-            <p>You need to redeem your guest account invitation. Next steps:</p>            
+            <p>Your guest account has been reverified</p>
             <ul>
                 <li>Use account <div id="userUpn" class="monospacedText"></div></li>
-                <li>Go to <a id="idRedeemLink" href="#" target="_blank">MyApplications</a> and sign</li>
-                <li>Once you have signed in and see myapps, you have redeemed your invite and your guest account setup is done.</li>
+                <li>Expires <div id="expiryDate" class="monospacedText"></div></li>
             </ul>
         </div>
     </div>
@@ -53,7 +49,6 @@
             document.getElementById('card-1').style.opacity = 0.25;
             document.getElementById('card-2').style.opacity = 0.25;
             document.getElementById('card-3').style.opacity = 0.25;
-            //document.getElementById('card-4').style.opacity = 0.25;
             if (cardNo != '') {
                 document.getElementById(`card-${cardNo}`).style.display = "";
                 document.getElementById(`card-${cardNo}`).style.opacity = 1.0;
@@ -95,17 +90,17 @@
         function onboardGuest(requestId) {
             document.getElementById('message').innerHTML = "Onboarding Guest. Please wait...";
             showCard(3);
-            fetch('/api/onboardGuest/' + requestId, { method: 'POST' })
+            fetch('/api/reverifyGuest/' + requestId, { method: 'POST' })
                 .then(response => response.text())
                 .catch(error => document.getElementById("message").innerHTML = error)
                 .then(response => {
                     if (response.length > 0) {
                         console.log(response);
                         respMsg = JSON.parse(response);
-                        if (respMsg.status == 'invitation_created') {
-                            document.getElementById('message').innerHTML = "Guest account created. Please redeem your invite.";
+                        if (respMsg.status == 'guest_reverified') {
+                            document.getElementById('message').innerHTML = "Guest account reverified";
                             document.getElementById('userUpn').innerHTML = respMsg.email;
-                            document.getElementById('idRedeemLink').href = respMsg.inviteRedirectUrl;
+                            document.getElementById('expiryDate').innerHTML = respMsg.expirationDate;
                             document.getElementById('apps-button-wrapper').style.display = "block";
                         } else {
                             document.getElementById('message').innerHTML = respMsg.error_description;

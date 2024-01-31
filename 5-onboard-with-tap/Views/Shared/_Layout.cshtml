@@ -28,19 +28,25 @@
                                 <img style="width:75px" src=@Configuration.GetSection( "AppSettings" )["CompanyLogo"] />
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Employee" asp-action="Onboarding">Employee Onboarding</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Guest" asp-action="GuestOnboarding">| Guest Onboarding</a>
-                        </li>
-                        @if (User.Identity.IsAuthenticated) {
+                        @if (!User.Identity.IsAuthenticated) {
                             <li class="nav-item">
-                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Employee" asp-action="RegisterNewHire">| Register New Hire</a>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Employee" asp-action="Onboarding">Employee Onboarding</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Guest" asp-action="TrustedPartners">| Trusted B2B Partners</a>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Guest" asp-action="Onboarding">| Guest Onboarding</a>
                             </li>
+                        } else {
+                            <li class="nav-item">
+                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Guest" asp-action="Reverify">| Guest Reverification</a>
+                            </li>
+                            @if (User.IsInRole( Configuration.GetSection( "AzureAD" )["AllowedUserAdminRole"] )) {
+                                <li class="nav-item">
+                                    <a class="nav-link text-nw-white" asp-area="" asp-controller="Employee" asp-action="RegisterNewHire">| Register New Hire</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-nw-white" asp-area="" asp-controller="Guest" asp-action="TrustedPartners">| Trusted B2B Partners</a>
+                                </li>
+                            }
                         }
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">| Privacy</a>

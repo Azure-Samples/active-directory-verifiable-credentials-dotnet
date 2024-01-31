@@ -40,6 +40,7 @@ Scenarios:
 | User.Read | Delegated | So that the admin can read their own profile |
 | User.Read.All | Application | For admin to read new hire's profile |
 | User.Invite.All | Application | For the app to have rights to create invites. Not needed if app has User.ReadWrite.All permission |
+| User-LifeCycleInfo.ReadWrite.All | Application | If you want to set the `EmployeeLeaveDateTime` attribute to the expiry date of the presented VC |
 | VerifiableCredential.Create.PresentationRequest | Application | For application to be able to create a Verified ID presentation request  |
 
 

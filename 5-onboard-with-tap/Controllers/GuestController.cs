@@ -1,47 +1,30 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Diagnostics;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using System.Security.Cryptography.X509Certificates;
 using System.Net.Http.Headers;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Web;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using System.Security.Policy;
-using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Azure.Core;
 using OnboardWithTAP.Helpers;
 using OnboardWithTAP.Models;
 using Microsoft.Graph;
 using System.Globalization;
 using Azure.Identity;
+using static Microsoft.Graph.CoreConstants;
+using System.Security.Claims;
 
 namespace OnboardWithTAP.Controllers
 {
     //[Route("api/[controller]/[action]")]
     public class GuestController : Controller
     {
-        //protected readonly AppSettingsModel AppSettings;
         protected IMemoryCache _cache;
-        protected readonly ILogger<EmployeeController> _log;
+        protected readonly ILogger<GuestController> _log;
         private IHttpClientFactory _httpClientFactory;
         private string _apiKey;
         private IConfiguration _configuration;
-        public GuestController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<EmployeeController> log, IHttpClientFactory httpClientFactory)
+        public GuestController(IConfiguration configuration, IMemoryCache memoryCache, ILogger<GuestController> log, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
             _cache = memoryCache;
@@ -57,6 +40,31 @@ namespace OnboardWithTAP.Controllers
                                                                     );
             var scopes = new[] { "https://graph.microsoft.com/.default" };
             return new Microsoft.Graph.GraphServiceClient( clientSecretCredential, scopes );
+        }
+        private string? GetOidOfCurrentUser() {
+            Claim? oidClaim = User?.Claims.Where( x => x.Type == "oid" ).FirstOrDefault();
+            if (null == oidClaim) {
+                oidClaim = User?.Claims.Where( x => x.Type == "uid" ).FirstOrDefault();
+            }
+            if (null == oidClaim) {
+                oidClaim = User?.Claims.Where( x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier" ).FirstOrDefault();
+            }
+            if (null == oidClaim) {
+                return null;
+            } else {
+                return oidClaim.Value;
+            }
+        }
+
+
+        [AllowAnonymous]
+        public IActionResult Onboarding() {
+            return View();
+        }
+
+        [Authorize]
+        public IActionResult Reverify() {
+            return View();
         }
 
         [Authorize]
@@ -85,12 +93,6 @@ namespace OnboardWithTAP.Controllers
             ViewData["message"] = $"List updated: {DateTime.UtcNow.ToString( "o", CultureInfo.InvariantCulture )}";
             return View( "TrustedPartners" );
         }
-        [AllowAnonymous]
-        public IActionResult GuestOnboarding() {
-            return View();
-        }
-
-
         /// <summary>
         /// This method is called from the UI to initiate the presentation of the verifiable credential
         /// </summary>
@@ -114,6 +116,14 @@ namespace OnboardWithTAP.Controllers
 
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
                 OnboardWithTAP.Models.PresentationRequest request = CreatePresentationRequest( null, null );
+                bool faceCheckRequiredForGuest = _configuration.GetValue( "VerifiedID:FaceCheckRequiredForGuest", false);
+                if ( faceCheckRequiredForGuest ) {
+                    request.requestedCredentials[0].configuration.validation.faceCheck = new FaceCheck() {
+                        sourcePhotoClaimName = _configuration.GetValue( "VerifiedID:sourcePhotoClaimName", "photo" ),
+                        matchConfidenceThreshold = _configuration.GetValue( "VerifiedID:matchConfidenceThreshold", 70 )
+                    };
+                    url = url.Replace( "/v1.0/", "/beta/" );
+                }
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
                 } );
@@ -121,7 +131,7 @@ namespace OnboardWithTAP.Controllers
                 _log.LogTrace( $"Request API payload: {jsonString}" );
                 var client = _httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
-                HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json"));
                 string response = await res.Content.ReadAsStringAsync();
                 HttpStatusCode statusCode = res.StatusCode;
 
@@ -225,6 +235,60 @@ namespace OnboardWithTAP.Controllers
             Array.Reverse( arr );
             return new string( arr );
         }
+        private VerifiedCredentialDetails GetVCDetails( ClaimsIssuer[] vcs ) {
+            VerifiedCredentialDetails details = new VerifiedCredentialDetails();
+            string credentialTypeGuest = _configuration.GetValue( "VerifiedID:CredentialTypeGuest", "VerifiedEmployee" );
+            string guestEmailClaimName = _configuration.GetValue( "VerifiedID:GuestEmailClaimName", "mail" );
+            string guestDisplayNameClaimName = _configuration.GetValue( "VerifiedID:GuestDisplayNameClaimName", "displayName" );
+            foreach (var vc in vcs ) {
+                if (vc.type.Contains( credentialTypeGuest )) {
+                    details.linkedDomain = vc.domainValidation.url;
+                    details.didIssuer = vc.issuer;
+                    details.expirationDate = vc.expirationDate;
+                    if (vc.claims.ContainsKey( guestEmailClaimName )) {
+                        details.email = vc.claims[guestEmailClaimName].ToString();
+                    }
+                    if (vc.claims.ContainsKey( guestDisplayNameClaimName )) {
+                        details.displayName = vc.claims[guestDisplayNameClaimName].ToString();
+                    }
+                    if (vc.claims.ContainsKey( "surname" )) {
+                        details.lastName = vc.claims["surname"].ToString();
+                    }
+                    if (vc.claims.ContainsKey( "givenName" )) {
+                        details.firstName = vc.claims["givenName"].ToString();
+                    }
+                    if (vc.claims.ContainsKey( "jobTitle" )) {
+                        details.jobTitle = vc.claims["jobTitle"].ToString();
+                    }
+                    if (vc.claims.ContainsKey( "photo" )) {
+                        details.photo = vc.claims["photo"].ToString();
+                    }
+                }
+            }
+            return details;
+        }
+        private bool IsVCFromTrusterPartner( VerifiedCredentialDetails vc ) {
+            string path = Path.Combine( Path.GetDirectoryName( System.Reflection.Assembly.GetEntryAssembly().Location ), "trustedpartnerlist.txt" );
+            string[] list = System.IO.File.ReadAllText( path ).Split( "\r\n" );
+            // is it an allowed did?
+            string domain = vc.linkedDomain.Replace( "https://", "" ).Replace( "/", "" );
+            string reverseDomain = ReverseString( domain );
+            bool isTrustedPartner = list.Contains<string>( vc.didIssuer ); // if issuer did is in allowed list
+            if (!isTrustedPartner) {
+                // is it an allowed linked domain?
+                foreach (string trustedDomain in list) {
+                    if (!trustedDomain.StartsWith( "did:" )) {
+                        if (trustedDomain == domain
+                            || trustedDomain == "*" // if you allow anything
+                            || (trustedDomain.StartsWith( "*." ) && reverseDomain.StartsWith( ReverseString( trustedDomain.Substring( 2 ) ) ))) {
+                            isTrustedPartner = true;
+                            break;
+                        }
+                    }
+                }
+            }
+           return isTrustedPartner;
+        }
         [AllowAnonymous]
         [HttpPost( "/api/onboardGuest/{id}" )]
         public async Task<ActionResult> onboardGuest( string id ) {
@@ -248,68 +312,27 @@ namespace OnboardWithTAP.Controllers
                 }
 
                 // Find the Verified ID credential we asked for and get the first- and last name
-                string didIssuer = null;
-                string linkedDomain = null;
-                string email = null;
-                string displayName = null;
-                string credentialTypeGuest = _configuration.GetValue("VerifiedID:CredentialTypeGuest", "VerifiedEmployee" );
-                string guestEmailClaimName = _configuration.GetValue("VerifiedID:GuestEmailClaimName", "mail");
-                string guestDisplayNameClaimName = _configuration.GetValue("VerifiedID:GuestDisplayNameClaimName", "displayName");
-                foreach (var vc in callback.verifiedCredentialsData) {
-                    if (vc.type.Contains( credentialTypeGuest )) {
-                        linkedDomain = vc.domainValidation.url;
-                        didIssuer = vc.issuer;
-                        if (vc.claims.ContainsKey( guestEmailClaimName )) {
-                            email = vc.claims[guestEmailClaimName].ToString();
-                        }
-                        if (vc.claims.ContainsKey( guestDisplayNameClaimName )) {
-                            displayName = vc.claims[guestDisplayNameClaimName].ToString();
-                        }
-                        // We could mke use of other VerifiedEmployee claims, like firstName, lastName, jobTitle and photo
-                        // and update the guest account user profile with it. Setting the photo would make the user thumbnail
-                        // work in the guest tenant.
-                    }
-                }
-                if (string.IsNullOrWhiteSpace( email ) || string.IsNullOrWhiteSpace( displayName )) {
-                    return BadRequest( new { error = "400", error_description = $"{guestEmailClaimName}/{guestDisplayNameClaimName} missing in presented credential." } );
+                VerifiedCredentialDetails vc = GetVCDetails( callback.verifiedCredentialsData );
+                if (string.IsNullOrWhiteSpace( vc.email ) || string.IsNullOrWhiteSpace( vc.displayName )) {
+                    return BadRequest( new { error = "400", error_description = $"DisplayName and email missing in presented credential." } );
                 }
 
                 // check trusted partner list
-                string path = Path.Combine( Path.GetDirectoryName( System.Reflection.Assembly.GetEntryAssembly().Location ), "trustedpartnerlist.txt" );
-                string[] list = System.IO.File.ReadAllText( path ).Split( "\r\n" );
-                // is it an allowed did?
-                string domain = linkedDomain.Replace( "https://", "" ).Replace( "/", "" );
-                string reverseDomain = ReverseString( domain );
-                bool isTrustedPartner = list.Contains<string>( didIssuer ); // if issuer did is in allowed list
-                if (!isTrustedPartner) {
-                    // is it an allowed linked domain?
-                    foreach (string trustedDomain in list) {
-                        if (!trustedDomain.StartsWith( "did:" )) {
-                            if (trustedDomain == domain
-                                || trustedDomain == "*" // if you allow anything
-                                || (trustedDomain.StartsWith( "*." ) && reverseDomain.StartsWith( ReverseString( trustedDomain.Substring( 2 ) ) ))) {
-                                isTrustedPartner = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-
+                bool isTrustedPartner = IsVCFromTrusterPartner( vc );
                 if (!isTrustedPartner) {
                     return BadRequest( new { error = "400", error_description = $"Guest onboarding is not allowed for your company" } );
                 }
 
                 //
                 var mgClient = GetGraphClient();
-
-                var users = await mgClient.Users.Request().Filter( $"mail eq '{email}'" ).GetAsync();
+                var users = await mgClient.Users.Request().Filter( $"mail eq '{vc.email}'" ).GetAsync();
                 if (null != users && users.Count >= 1) {
-                    return BadRequest( new { error = "400", error_description = $"Guest account already exists for user '{email}'" } );
+                    return BadRequest( new { error = "400", error_description = $"Guest account already exists for user '{vc.email}'" } );
                 }
 
                 Invitation invitation = new Invitation() {
-                    InvitedUserEmailAddress = email,
-                    InvitedUserDisplayName = displayName,
+                    InvitedUserEmailAddress = vc.email,
+                    InvitedUserDisplayName = vc.displayName,
                     InviteRedirectUrl = $"https://myapps.microsoft.com/?tenantId={_configuration["AzureAD:TenantID"]}"
                 };
                 var inviteResult = await mgClient.Invitations.Request().AddAsync( invitation );
@@ -317,14 +340,120 @@ namespace OnboardWithTAP.Controllers
                 var cacheData = new {
                     status = "invitation_created",
                     message = $"Guest account invitation created!",
-                    userDisplayName = displayName,
-                    email = email,
+                    userDisplayName = vc.displayName,
+                    email = vc.email,
+                    expirationDate = vc.expirationDate,
                     userObjectId = userObjectId,
                     inviteRedirectUrl = invitation.InviteRedirectUrl
                 };
-                _log.LogTrace( $"{cacheData.message}.objectId={userObjectId}, email={email}" );
+                _log.LogTrace( $"{cacheData.message}.objectId={userObjectId}, email={vc.email}" );
+
+                bool updateGuestUserProfilefromClaims = _configuration.GetValue( "VerifiedID:updateGuestUserProfilefromClaims", false );
+                if ( updateGuestUserProfilefromClaims ) {
+                    Microsoft.Graph.User user = new Microsoft.Graph.User {
+                        Id = userObjectId,
+                        GivenName = vc.firstName,
+                        Surname = vc.lastName,
+                        JobTitle = vc.jobTitle,
+                        EmployeeHireDate = DateTime.SpecifyKind( DateTime.UtcNow, DateTimeKind.Utc ),
+                        EmployeeType = "Guest",
+                        EmployeeLeaveDateTime = DateTime.SpecifyKind( DateTime.Parse( vc.expirationDate ), DateTimeKind.Utc )
+                    };
+                    user = mgClient.Users[userObjectId].Request().UpdateAsync( user ).Result;
+
+                    /*
+                     * You get a 400 Exception of type 'Microsoft.Fast.Profile.Core.Exception.ImageNotFoundException'
+                     * If you try to upload the photo directly after the user account was created. 
+                     * We update the photo during reverification 
+                     * 
+                    */
+                }
+
                 _cache.Set( id, JsonConvert.SerializeObject( cacheData ) );
-                //return new OkResult();
+                return new ContentResult { StatusCode = (int)HttpStatusCode.Created, ContentType = "application/json", Content = JsonConvert.SerializeObject( cacheData ) };
+            } catch (Exception ex) {
+                return BadRequest( new { error = "400", error_description = ex.Message } );
+            }
+        }
+
+        [Authorize]
+        [HttpPost( "/api/reverifyGuest/{id}" )]
+        public async Task<ActionResult> reverifyGuest( string id ) {
+            try {
+                _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
+                //the id is the state value initially created when the issuanc request was requested from the request API
+                //the in-memory database uses this as key to get and store the state of the process so the UI can be updated
+                /**/
+                if (string.IsNullOrEmpty( id )) {
+                    _log.LogTrace( $"Missing argument 'id'" );
+                    return BadRequest( new { error = "400", error_description = "Missing argument 'id'" } );
+                }
+                if (!_cache.TryGetValue( id, out string buf )) {
+                    _log.LogTrace( $"Cached data not found for id: {id}" );
+                    return new NotFoundResult();
+                }
+                JObject cachedData = JObject.Parse( buf );
+                CallbackEvent callback = JsonConvert.DeserializeObject<CallbackEvent>( cachedData["callback"].ToString() );
+                if (callback.requestStatus != "presentation_verified") {
+                    return BadRequest( new { error = "400", error_description = $"Wrong status in cached data" } );
+                }
+
+                // Find the Verified ID credential we asked for and get the first- and last name
+                bool updateGuestUserProfilefromClaims = _configuration.GetValue( "VerifiedID:updateGuestUserProfilefromClaims", false );
+                if (!updateGuestUserProfilefromClaims) {
+                    return BadRequest( new { error = "400", error_description = $"Sample isn't configured to allow guest user profile update" } );
+                }
+
+                VerifiedCredentialDetails vc = GetVCDetails( callback.verifiedCredentialsData );
+                if (string.IsNullOrWhiteSpace( vc.email ) || string.IsNullOrWhiteSpace( vc.displayName )) {
+                    return BadRequest( new { error = "400", error_description = $"DisplayName and email missing in presented credential." } );
+                }
+
+                // check trusted partner list
+                bool isTrustedPartner = IsVCFromTrusterPartner( vc );
+                if (!isTrustedPartner) {
+                    return BadRequest( new { error = "400", error_description = $"Guest onboarding is not allowed for your company" } );
+                }
+
+                string oid = GetOidOfCurrentUser();
+                string currentUser = User.FindFirst( "preferred_username" )!.Value;
+                if (currentUser != vc.email) {
+                    return BadRequest( new { error = "400", error_description = $"Presented VerifiedEmployee email {vc.email} doesn't match currently signed in user {currentUser}" } );
+                }
+                // update the user profile
+                var mgClient = GetGraphClient();
+                Microsoft.Graph.User user = new Microsoft.Graph.User {
+                    DisplayName = vc.displayName,
+                    GivenName = vc.firstName,
+                    Surname = vc.lastName,
+                    JobTitle = vc.jobTitle,
+                    EmployeeLeaveDateTime = DateTime.SpecifyKind( DateTime.Parse( vc.expirationDate ), DateTimeKind.Utc )
+                };
+                var usr = await mgClient.Users[oid].Request().UpdateAsync( user );
+                try {
+                // set the profile photo. The photo in the VC is URLEncode(Base64Encode(jpeg-bytes)), so it needs to be decoded
+                if (!string.IsNullOrWhiteSpace( vc.photo )) {
+                    string photo = vc.photo.Replace( '_', '/' ).Replace( '-', '+' );
+                    switch (photo.Length % 4) {
+                        case 2: photo += "=="; break;
+                        case 3: photo += "="; break;
+                    }
+                    using var stream = new System.IO.MemoryStream( Convert.FromBase64String( photo ) );
+                    await mgClient.Users[oid].Photo.Content.Request().PutAsync( stream );
+                }
+                } catch(Exception ex2) {
+                    _log.LogTrace( $"Exception trying to upload photo for {vc.email}: {ex2.Message}");
+                }
+
+                // data to return to the browser
+                var cacheData = new {
+                    status = "guest_reverified",
+                    message = $"Guest account reverified!",
+                    userDisplayName = vc.displayName,
+                    email = vc.email,
+                    expirationDate = vc.expirationDate
+                };
+                _log.LogTrace( $"{cacheData.message}, email={vc.email}" );
                 return new ContentResult { StatusCode = (int)HttpStatusCode.Created, ContentType = "application/json", Content = JsonConvert.SerializeObject( cacheData ) };
             } catch (Exception ex) {
                 return BadRequest( new { error = "400", error_description = ex.Message } );
