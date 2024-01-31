@@ -2,7 +2,7 @@
     ViewData["Title"] = "Register New Hire";
 }
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+    <h1 class="display-4">Register a New Hire</h1>
 
 
     <div>
@@ -12,12 +12,12 @@
         <p id="idSub3Title">Register the new hire's user profile</p>
 
         <div id="message-wrapper" style="display: block">
-            <div id="message">@ViewData["message"]</div>
+            <div id="message">@(null == ViewData["message"] ? "" : ViewData["message"])</div>
         </div>
 
         <br />
 
-        <form id="profileForm" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="SaveProfile">
+        <form id="profileForm" method="POST" enctype="multipart/form-data" asp-controller="Employee" asp-action="SaveProfile">
         <table id="claims">
             <thead>
                 <th style="width:25%;text-align:left">Claims</th>
@@ -35,16 +35,16 @@
             </tbody>
         </table>
         </form>
-        <form id="profileFind" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="FindProfile">
+        <form id="profileFind" method="POST" enctype="multipart/form-data" asp-controller="Employee" asp-action="FindProfile">
             <input id="findEmail" name="mail" type="hidden" />
         </form>
-        <form id="getOnboadringLink" method="POST" enctype="multipart/form-data" asp-controller="Home" asp-action="GetOnboardingLink">
+        <form id="getOnboadringLink" method="POST" enctype="multipart/form-data" asp-controller="Employee" asp-action="GetOnboardingLink">
             <input id="onboardingEmail" name="mail" type="hidden" />
         </form>
 
         <br />
         <button style="margin-bottom: 20px;" type="button" id="findProfile" class="button bg-nw-blue text-nw-white">Find User by email</button>
-        <button style="margin-bottom: 20px;" type="button" id="saveProfile" class="button bg-nw-blue text-nw-white">Save User</button>
+        <button style="margin-bottom: 20px;" type="button" id="saveProfile" class="button bg-nw-blue text-nw-white" @("RO" == ViewData["accessLevel"] ? "disabled" : "")>Save User</button>
         @if ( null == ViewData["userExists"] ) {
             <button style="margin-bottom: 20px;" type="button" id="getLink" class="button bg-nw-blue text-nw-white" disabled>Get Onboarding Link</button>
         } else {

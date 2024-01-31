@@ -1,0 +1,120 @@
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Guest Onboarding";
+}
+
+<div style="text-align: center;">
+    <h1>Guest Onboarding</h1>
+    @if (null != ViewData["displayName"]) {
+        <h3>Welcome @ViewData["displayName"]</h3>
+    }
+    <div id="message-wrapper" class="margin-bottom-25 margin-top-25">
+        <div id="message">@ViewData["message"]</div>
+    </div>
+
+    <div id="card-1" class="verification-card">
+        <button type="button" id="get-vc" class="button">Step 1: Get your card at MyAccount to prove your employment</button>
+        <div>
+            <br /><br />
+            <img width="177px" src="~/verifiedemployee-card.png" />
+            <br />
+            <a id="skip-issuance" class="skipButton">I already have my card</a>
+        </div>
+    </div>
+
+    <div id="card-2" class="verification-card">
+        <button type="button" id="verify-credential" class="button">Step 2: Present your VerifiedEmployee card</button>
+        <p>Use the Authenticator to present your VerifiedEmployee card</p>
+        <div id="qrcode" style="text-align:center"></div>
+        <a id="check-result" class="skipButton" style="display:none">Continue</a>
+    </div>
+
+    <div id="card-3" class="verification-card">
+        <div id="authAppMessage" class="waitingForAuthApp">Step 3: Guest account setup</div>
+        <div id="apps-button-wrapper" class="appsWrapper" style="display:none;">
+            <p>You need to redeem your guest account invitation. Next steps:</p>            
+            <ul>
+                <li>Account <div id="userUpn" class="monospacedText"></div></li>
+                <li>Expires <div id="expiryDate" class="monospacedText"></div></li>
+                <li>Go to <a id="idRedeemLink" href="#" target="_blank">MyApplications</a> and sign</li>
+                <li>Once you have signed in and see myapps, you have redeemed your invite and your guest account setup is done.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="~/js/qrcode.min.js"></script>
+    <script src="~/js/verifiedid.requestservice.client.js"></script>
+    <script src="~/js/verifiedid.uihandler.js"></script>
+
+    <script>
+        var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+
+        function showCard(cardNo) {
+            document.getElementById('card-1').style.opacity = 0.25;
+            document.getElementById('card-2').style.opacity = 0.25;
+            document.getElementById('card-3').style.opacity = 0.25;
+            if (cardNo != '') {
+                document.getElementById(`card-${cardNo}`).style.display = "";
+                document.getElementById(`card-${cardNo}`).style.opacity = 1.0;
+            }
+        }
+
+        document.getElementById('get-vc').addEventListener('click', () => {
+            window.open('https://myaccount.microsoft.com', '_blank');
+        });
+
+        document.getElementById('verify-credential').addEventListener('click', () => {
+            startVerification();
+        });
+
+        document.getElementById('skip-issuance').addEventListener('click', () => {
+            startVerification();
+        });
+
+        document.getElementById('check-result').addEventListener('click', () => {
+            var requestId = document.getElementById('check-result').getAttribute('requestId');
+            credentialPresented(requestId, { message: "Continuing" });
+        });
+
+        // callback on presentation_verified
+        function credentialPresented(requestId, response) {
+            hideQRCode();
+            displayMessage(response.message);
+            document.getElementById('verify-credential').style.display = ""
+            onboardGuest(requestId);
+        }
+
+        function startVerification() {
+            showCard(2);
+            requestService.apiCreatePresentationRequest = '/api/verifier/guestonboarding';
+            requestService.onPresentationVerified = credentialPresented;
+            requestService.createPresentationRequest();
+        }
+
+        function onboardGuest(requestId) {
+            document.getElementById('message').innerHTML = "Onboarding Guest. Please wait...";
+            showCard(3);
+            fetch('/api/onboardGuest/' + requestId, { method: 'POST' })
+                .then(response => response.text())
+                .catch(error => document.getElementById("message").innerHTML = error)
+                .then(response => {
+                    if (response.length > 0) {
+                        console.log(response);
+                        respMsg = JSON.parse(response);
+                        if (respMsg.status == 'invitation_created') {
+                            document.getElementById('message').innerHTML = "Guest account created. Please redeem your invite.";
+                            document.getElementById('userUpn').innerHTML = respMsg.email;
+                            document.getElementById('expiryDate').innerHTML = respMsg.expirationDate;
+                            document.getElementById('idRedeemLink').href = respMsg.inviteRedirectUrl;
+                            document.getElementById('apps-button-wrapper').style.display = "block";
+                        } else {
+                            document.getElementById('message').innerHTML = respMsg.error_description;
+                        }
+                    }
+                })
+        }
+
+        showCard(1);
+    </script>
+</div>

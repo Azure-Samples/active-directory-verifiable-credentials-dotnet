@@ -39,6 +39,7 @@ function drawQRCode(requestType, id, url, pinCode) {
 function navigateToDeepLink(requestType, id, url) {
     document.getElementById('verify-credential').style.display = "none";
     document.getElementById('check-result').style.display = "block";
+    document.getElementById('check-result').setAttribute('requestId', id);
     window.location.href = url;
 }
 function requestRetrieved(requestType) {

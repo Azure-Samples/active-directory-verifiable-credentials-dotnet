@@ -10,12 +10,18 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.25" NoWarn="NU1605" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.25" NoWarn="NU1605" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="1.16.0" />
-    <PackageReference Include="Microsoft.Identity.Web.UI" Version="1.16.0" />
-    <PackageReference Include="Microsoft.Graph.Beta" Version="4.19.0-preview" />
-    <PackageReference Include="Microsoft.Graph.Core" Version="2.0.5" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="2.5.0" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="2.5.0" />
+    <PackageReference Include="Microsoft.Graph.Beta" Version="4.74.0-preview" />
+    <PackageReference Include="Microsoft.Graph.Core" Version="2.0.15" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="trustedpartnerlist.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
