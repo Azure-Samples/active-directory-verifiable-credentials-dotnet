@@ -23,7 +23,7 @@ and asks the user to go to [MyApps](https://myapps.microsoft.com/?tenantId=...yo
 
 Guest reverification is the scenario where the guest user proves that their employment is still valid with the company and that the guest account should remain.
 In order to use this feature, set the `updateGuestUserProfilefromClaims` to `true` and grant permission `User-LifeCycleInfo.ReadWrite.All` to the application.
-When presenting the Verified ID VerifiedEMployee credential again, the user profile will be updated and the `EmployeeLeaveDateTime` attribute will be set to the
+When presenting the Verified ID VerifiedEmployee credential again, the user profile will be updated and the `EmployeeLeaveDateTime` attribute will be set to the
 value of the `expiryDate` in the VC, indicating for how long it should be valid.
 
 ```JSON

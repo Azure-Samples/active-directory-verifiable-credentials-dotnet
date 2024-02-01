@@ -37,7 +37,7 @@
                             </li>
                         } else {
                             <li class="nav-item">
-                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Guest" asp-action="Reverify">| Guest Reverification</a>
+                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Guest" asp-action="Reverify">Guest Reverification</a>
                             </li>
                             @if (User.IsInRole( Configuration.GetSection( "AzureAD" )["AllowedUserAdminRole"] )) {
                                 <li class="nav-item">

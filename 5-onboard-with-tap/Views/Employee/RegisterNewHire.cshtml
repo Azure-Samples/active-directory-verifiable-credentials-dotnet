@@ -54,6 +54,8 @@
         @if ( null != ViewData["link"] ) {
             <br/><br/>
             <a href='mailto:@ViewData["mail"]?subject=Onboarding to @ViewData["company"]&body=Use this link to start your onboarding @System.Web.HttpUtility.UrlEncode((string)ViewData["link"])'>Onboarding link to mail to new hire</a>
+            <br/>
+            <a href='@ViewData["link"]'>Onboarding link to copy</a>
         }
 
         <script>
