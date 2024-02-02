@@ -1,0 +1,127 @@
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = $"{Configuration.GetSection( "AppSettings" )["CompanyName"]} HelpDesk";
+}
+
+<div style="text-align: center;" >
+    <h1>Welcome to @Configuration.GetSection( "AppSettings" )["CompanyName"] Helpdesk portal</h1>
+    @if (null != ViewData["displayName"]) {
+        <h3>Welcome @ViewData["displayName"]</h3>
+    }
+    <div id="message-wrapper" class="margin-bottom-25 margin-top-25">
+        <div id="message">@ViewData["message"]</div>
+    </div>
+
+    <div id="card-1" class="verification-card">
+        <button type="button" id="get-vc" class="button">Step 1: Get your card at MyAccount to prove your employment</button>
+        <p>To get support, you need to have your <a href="https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials" target="_blank">
+            VerifiedEmployee card</a> with a photo.</p>
+        <div>
+            <img width="177px" src="~/verifiedemployee-card.png" />
+            <br />
+            <a id="skip-issuance" class="skipButton">I already have my card</a>
+        </div>
+    </div>
+
+    <div id="card-2" class="verification-card">
+        <button type="button" id="verify-credential" class="button">Step 2: Present your VerifiedEmployee card</button>
+        <p>Use the Authenticator to present your VerifiedEmployee card</p>
+        <div id="qrcode" style="text-align:center"></div>
+        <a id="check-result" class="skipButton" style="display:none">Continue</a>
+    </div>
+
+    <div id="card-3" class="verification-card">
+        <div id="authAppMessage" class="waitingForAuthApp">Step 3: Get support</div>
+        <div id="apps-button-wrapper" class="appsWrapper" style="display:none;">
+            <p>You have successfully been verified. Please wait and a support personnel will be with you shortly.</p>            
+            <ul>
+                <li>Email:<div id="userUpn" class="monospacedText"></div></li>
+                <li>Name:<div id="userName" class="monospacedText"></div></li>
+                <li>Face check score:<div id="faceScore" class="monospacedText"></div></li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="~/js/qrcode.min.js"></script>
+    <script src="~/js/verifiedid.requestservice.client.js"></script>
+    <script src="~/js/verifiedid.uihandler.js"></script>
+
+    <script>
+        var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+
+        function dimCard(id) {
+            document.getElementById(id).style.opacity = 0.5;
+            document.getElementById(id).style.background = "darkgray";
+        }
+        function focusCard(id) {
+            document.getElementById(id).style.opacity = 1.0;
+            document.getElementById(id).style.background = "white";
+        }
+        function showCard(cardNo) {
+            dimCard('card-1');
+            dimCard('card-2');
+            dimCard('card-3');
+            if (cardNo != '') {
+                focusCard(`card-${cardNo}`);
+            }
+        }
+
+        document.getElementById('get-vc').addEventListener('click', () => {
+            window.open('https://myaccount.microsoft.com', '_blank');
+        });
+
+        document.getElementById('verify-credential').addEventListener('click', () => {
+            startVerification();
+        });
+
+        document.getElementById('skip-issuance').addEventListener('click', () => {
+            startVerification();
+        });
+
+        document.getElementById('check-result').addEventListener('click', () => {
+            var requestId = document.getElementById('check-result').getAttribute('requestId');
+            credentialPresented(requestId, { message: "Continuing" });
+        });
+
+        function startVerification() {
+            showCard(2);
+            requestService.onPresentationVerified = credentialPresented;
+            requestService.createPresentationRequest();
+        }
+
+        // callback on presentation_verified
+        function credentialPresented(requestId, response) {
+            hideQRCode();
+            displayMessage(response.message);
+            document.getElementById('verify-credential').style.display = ""
+            document.getElementById('check-result').style.display = "none";
+            processPresentedCredentials(requestId);
+        }
+
+        function processPresentedCredentials(requestId) {
+            document.getElementById('message').innerHTML = "Processing request. Please wait...";
+            showCard(3);
+            fetch('/api/processpresentedcredentials/' + requestId, { method: 'POST' })
+                .then(response => response.text())
+                .catch(error => document.getElementById("message").innerHTML = error)
+                .then(response => {
+                    if (response.length > 0) {
+                        console.log(response);
+                        respMsg = JSON.parse(response);
+                        if (respMsg.status == 'user_authenticated') {
+                            document.getElementById('message').innerHTML = "Verification successful. Support is on its way...";
+                            document.getElementById('userUpn').innerHTML = respMsg.email;
+                            document.getElementById('userName').innerHTML = respMsg.displayName;
+                            document.getElementById('faceScore').innerHTML = respMsg.matchConfidenceScore + "%";
+                            document.getElementById('apps-button-wrapper').style.display = "block";
+                        } else {
+                            document.getElementById('message').innerHTML = respMsg.error_description;
+                        }
+                    }
+                })
+        }
+
+        showCard(1);
+    </script>
+</div>
