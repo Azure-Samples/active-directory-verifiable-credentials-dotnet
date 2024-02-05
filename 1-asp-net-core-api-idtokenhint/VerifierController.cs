@@ -80,11 +80,6 @@ namespace AspNetCoreVerifiableCredentials
                 if (!hasFaceCheck( request ) && (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false ))) {
                     AddFaceCheck( request, null, this.Request.Query["photoClaimName"] ); // when qp is null, appsettings value is used
                 }
-                // template could have set FaceCheck itself
-                if (hasFaceCheck(request)) {
-                    // FaceCheck requires beta endpoint - remove after preview
-                    url = url.Replace( "/v1.0/", "/beta/" );
-                }
                 AddClaimsConstrains( request );
 
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
