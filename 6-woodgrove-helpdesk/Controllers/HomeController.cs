@@ -70,9 +70,6 @@ namespace WoodgroveHelpdesk.Controllers
                 } );
                 _log.LogTrace( $"Request API payload: {jsonString}" );
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
-                if ( IsFaceCheckRequested(request) ) {
-                    url = url.Replace( "/v1.0/", "/beta/" );
-                }
                 var client = _httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
                 HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));

@@ -132,7 +132,7 @@ namespace OnboardWithTAP.Controllers
                         sourcePhotoClaimName = _configuration.GetValue( "VerifiedID:sourcePhotoClaimName", "photo" ),
                         matchConfidenceThreshold = _configuration.GetValue( "VerifiedID:matchConfidenceThreshold", 70 )
                     };
-                    url = url.Replace( "/v1.0/", "/beta/" );
+                    //url = url.Replace( "/v1.0/", "/beta/" );
                 }
                 string jsonString = JsonConvert.SerializeObject( request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings {
                     NullValueHandling = NullValueHandling.Ignore
@@ -343,7 +343,8 @@ namespace OnboardWithTAP.Controllers
                 Invitation invitation = new Invitation() {
                     InvitedUserEmailAddress = vc.email,
                     InvitedUserDisplayName = vc.displayName,
-                    InviteRedirectUrl = $"https://myapps.microsoft.com/?tenantId={_configuration["AzureAD:TenantID"]}"
+                    //InviteRedirectUrl = $"https://myapps.microsoft.com/?tenantId={_configuration["AzureAD:TenantID"]}"
+                    InviteRedirectUrl = $"{GetRequestHostName()}/MicrosoftIdentity/Account/SignIn"
                 };
                 var inviteResult = await mgClient.Invitations.Request().AddAsync( invitation );
                 var userObjectId = inviteResult.InvitedUser.Id;
