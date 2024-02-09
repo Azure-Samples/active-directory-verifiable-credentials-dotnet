@@ -40,8 +40,14 @@
                 <li>Name:<div id="userName" class="monospacedText"></div></li>
                 <li>Face check score:<div id="faceScore" class="monospacedText"></div></li>
             </ul>
+            <br>
+            <!-- to make it obvious that this is a demo site -->
+            <p class="marquee">
+                This is a demo site. You will not be contacted by a support personnel.
+            </p>
         </div>
     </div>
+
 
     <script src="~/js/qrcode.min.js"></script>
     <script src="~/js/verifiedid.requestservice.client.js"></script>
@@ -110,7 +116,7 @@
                         console.log(response);
                         respMsg = JSON.parse(response);
                         if (respMsg.status == 'user_authenticated') {
-                            document.getElementById('message').innerHTML = "Verification successful. Support is on its way...";
+                            document.getElementById('message').innerHTML = "Verification successful. Support would be on its way if this was a real helpdesk site.";
                             document.getElementById('userUpn').innerHTML = respMsg.email;
                             document.getElementById('userName').innerHTML = respMsg.displayName;
                             document.getElementById('faceScore').innerHTML = respMsg.matchConfidenceScore + "%";
