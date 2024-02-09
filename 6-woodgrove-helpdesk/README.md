@@ -13,6 +13,8 @@ urlFragment: "6-woodgrove-helpdesk"
 This sample is show casing identifying yourself at a helpdesk by presenting your [VerifiedEmployee](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart-verifiedemployee) card.
 The helpdesk websites requires a Face Check together with the presentation for high assurance that the person is who they claim to be before getting suport.
 
+**Note** - it is a demo app and not a real helpdesk portal.
+
 ## Deploy to Azure
 
 Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
@@ -41,6 +43,15 @@ To use the sample, do the following:
 - Step 3
     - In final step, your email and displayName will show together with your face check score.
     - The webapp says "a support personnel will be you shortly", but don't wait for too long as this is just a sample....
+
+## Using the sample on a mobile phone
+
+Follow the steps above, with the additions.
+
+- Launch the website in your mobile browser.
+- When clicking on the `I already have my card`, you will be asked to open the Microsoft Authenticator and you have to accept that.
+- After sharing the credential and the Face Check result in the Microsoft Authenticator, manually return to your mobile browser app
+- Click `Continue` in the middle section
 
 ## Setup
 
