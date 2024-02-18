@@ -52,11 +52,19 @@ namespace B2CVerifiedID
 
         [AllowAnonymous]
         public IActionResult selfAsserted() {
-            ViewData["urlPath"] = this.HttpContext.Request.GetDisplayUrl().Replace("selfAsserted", "");
             ViewData["apiUrl"] = GetRequestHostName();
             return View();
         }
-
+        [AllowAnonymous]
+        public IActionResult unified() {
+            ViewData["apiUrl"] = GetRequestHostName();
+            return View();
+        }
+        [AllowAnonymous]
+        public IActionResult unifiedquick() {
+            ViewData["apiUrl"] = GetRequestHostName();
+            return View();
+        }
 
     } // cls
 } // ns
