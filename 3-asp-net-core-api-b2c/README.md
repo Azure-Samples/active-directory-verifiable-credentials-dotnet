@@ -48,7 +48,8 @@ This sample now has all its configuration in the [appsettings.json](appsettings.
 If you are running the app locally, you need to edit the appsettings.json file. If you are running the app in Azure AppServices, you need to update the
 settings in an Azure AppServices deployment. You can use this template [appservice-config-template.json](appservice-config-template.json) and apply it in the Advanced Edit editor.
 
-|-----|------|-------|
+| Section | Setting | Description |
+|------|--------|--------|
 | AzureAdB2C | Instance | Update your tenant name https://your-tenant-name.b2clogin.com |
 | | TenantId | Your B2C tenant id (guid) |
 | | Tenant | Update your tenant name your-tenant-name.onmicrosoft.com |
