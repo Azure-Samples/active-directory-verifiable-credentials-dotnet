@@ -12,7 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="media\" />
+    <Folder Include="ReadmeFiles\" />
+    <Folder Include="B2CPolicies\" />
+    <Folder Include="ARMTemplates\" />
   </ItemGroup>
 
 </Project>
