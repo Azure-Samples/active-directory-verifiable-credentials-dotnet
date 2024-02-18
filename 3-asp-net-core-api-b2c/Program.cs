@@ -59,6 +59,12 @@ namespace B2CVerifiedID {
 
         builder.Services.AddMvc();
 
+        builder.Services.AddCors( options => {
+            options.AddPolicy( name: "B2CCustomHtml", policy => {
+                policy.WithOrigins( $"https://{builder.Configuration["AzureAdB2C:B2CName"]}.b2clogin.com" );
+            });
+        });
+
         var app = builder.Build();
 
         //+ Added for Entra Verified ID so that callback uses proxy's hostname
@@ -78,6 +84,7 @@ namespace B2CVerifiedID {
         app.UseStaticFiles();
 
         app.UseRouting();
+        app.UseCors( "B2CCustomHtml" );
 
         app.UseAuthentication();
         app.UseAuthorization();
