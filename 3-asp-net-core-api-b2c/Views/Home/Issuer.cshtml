@@ -1,0 +1,91 @@
+﻿@{
+    ViewData["Title"] = "Issuer";
+}
+<div id="wrap">
+    <div style="text-align: center;">
+        <img id="logo" src="/VerifiedCredentialExpert-icon.png" class="ninja-img" />
+        <h1>Azure AD B2C + Verified ID issuance and verifier Sample</h1>
+        <h2 id="idSubTitle"></h2>
+
+        <p id="photo-help" style="display:none" class="normal-text">
+            This verifiable credential includes a photo claim that you can be used for biometric face check during presentation. You can either take a selfie or upload an existing picture of you before you issue the credential.
+            <br /><br />
+            For selfie, click the Take Selfie button, then scan the QR code with the <strong>QR Code Reader app</strong> on your mobile, click 'Open Camera' in the page, take selfie and then click 'Use photo' in the mobile.
+            The photo is not persisted anywhere and is just added to the credential you will have in your wallet.
+            <br /><br />
+            Then click Issue Credential to start the issuance process. When the QR code appears, scan it with your <strong>Microsoft Authenticator</strong> or your <strong>custom wallet</strong> app.
+            <br /><br />
+            The photo should be a portrait photo of atleast 200x200 pixels. Glasses, masks, hats, headphones, head coverings and face coverings will result in failure in liveness checks during presentations.
+        </p>
+
+        <div id="message-wrapper" class="margin-bottom-75" style="display: none">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message">
+                @ViewData["message"]
+            </div>
+        </div>
+
+        <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white">Issue Credential</button>
+        <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
+        <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" style="display:none">Take Selfie</button>
+
+        <input type='file' id="imageUpload" accept="image/*" class="button bg-nw-blue text-nw-white" style="display:none" />
+        <br /><br />
+        <div id="qrcode" style="text-align:center; display:none"></div>
+        <br />
+        <div id="pinCode" style="display: none"></div>
+        <br />
+        <img id="selfie" width="240" height="320" style="display:none" />
+
+        <script src="~/js/qrcode.min.js"></script>
+        <script src="~/js/verifiedid.requestservice.client.js"></script>
+        <script src="~/js/verifiedid.uihandler.js"></script>
+
+        <script>
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var havePhotoClaim = false;
+
+            fetch('/api/issuer/get-manifest')
+                .then(function (response) {
+                    response.text()
+                        .catch(error => displayMessage(error))
+                        .then(function (message) {
+                            var manifest = JSON.parse(message);
+                            document.getElementById('idSubTitle').innerHTML = manifest.display.card.description;
+                            //document.getElementById('logo').src = manifest.display.card.logo.uri;
+                            // if the manifest has a claim with type image/jp[e]g, then we should support adding a photo
+                            if (message.includes("image/jp")) {
+                                havePhotoClaim = true;
+                                hideShowPhotoElements("");
+                            }
+                        }).catch(error => { console.log(error.message); })
+                }).catch(error => { console.log(error.message); })
+
+            document.getElementById('issue-credential').addEventListener('click', () => {
+                if ( havePhotoClaim ) {
+                    setUserPhoto();
+                    hideShowPhotoElements("none");
+                    // make sure the photo is sent to API in backend before we continue
+                    setTimeout(requestService.createIssuanceRequest(), 250);
+                } else {
+                    requestService.createIssuanceRequest();
+                }
+            });
+
+            document.getElementById('take-selfie').addEventListener('click', () => {
+                document.getElementById("selfie").src = "";
+                document.getElementById("selfie").style.display = "none";
+                document.getElementById("imageUpload").style.display = "none";
+                requestService.createSelfieRequest();
+            });
+
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+
+            document.getElementById('imageUpload').addEventListener('change', function (e) {
+                uploadImage(e)
+            });
+        </script>
+    </div>
+</div>

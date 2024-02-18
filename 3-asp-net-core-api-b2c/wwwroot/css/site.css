@@ -1,0 +1,142 @@
+body {
+    font-family: sans-serif;
+    background-color: #E0E0E0;
+}
+#wrap {
+    margin: 0 auto;
+    width: 800px;
+}
+
+h1 {
+    font-size: 1.75rem;
+}
+h2 {
+    font-size: 1.5rem;
+}
+h3 {
+    font-size: 1.25rem;
+}
+
+.button {
+    background-color: #3B2E58;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+.dark-purple-fill {
+  background-color: #3B2E58;
+}
+.light-purple-fill {
+  background-color: #8661c5;
+}
+
+.icon-small {
+  width: 50px;
+  padding-bottom: 5px;
+}
+
+.icon-text-large {
+  font-size: 100px;
+}
+
+.small-text {
+  font-size: 16px;
+}
+
+.tiny-text {
+  font-size: 12px;
+}
+
+.text-gray {
+  color: gray;
+}
+
+.text-center {
+  text-align: center;
+}
+
+#qrcode > img {
+  margin: 0 auto;
+  padding-top: 25px;
+}
+
+.margin-top-50 {
+  margin-top: 50px;
+}
+
+.margin-top-75 {
+  margin-top: 75px;
+}
+
+.margin-bottom-25 {
+  margin-bottom: 25px;
+}
+
+.margin-bottom-50 {
+  margin-bottom: 50px;
+}
+
+.margin-bottom-75 {
+  margin-bottom: 50px;
+}
+
+.margin-bottom-100 {
+  margin-bottom: 100px;
+}
+
+.green {
+  color: #228B22;
+}
+/*
+#message {
+  font-size: 1.5em;
+}
+*/
+#subject {
+    font-size: 1.5em;
+}
+
+/*------*/
+
+table {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table td, table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+table tr:hover {
+    background-color: #ddd;
+}
+
+table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #0f0f0f;
+    color: white;
+}
+
+.ninja-img {
+    width: 100px;
+}
+
+.normal-text {
+    font-size: small;
+    text-align: left;
+}

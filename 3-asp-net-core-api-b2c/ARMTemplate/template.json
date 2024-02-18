@@ -1,0 +1,383 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "defaultValue": "<App Name>",
+      "minLength": 2,
+      "metadata": {
+        "description": "app name."
+      }
+    },
+    "repoURL": {
+      "type": "string",
+      "metadata": {
+        "description": "Github repo URL"
+      },
+      "defaultValue": "https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git"
+    },
+    "branch": {
+      "type": "string",
+      "metadata": {
+        "description": "Github repo branch"
+      },
+      "defaultValue": "main"
+    },
+    "Project": {
+      "type": "string",
+      "metadata": {
+        "description": "Github repo subfolder"
+      },
+      "defaultValue": "3-asp-net-core-api-b2c"
+    },
+
+    "B2CTenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD B2C Tenant id"
+      },
+      "defaultValue": "<Tenant id>"
+    },
+    "B2CTenantName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD B2C Tenant name, excluding .onmicrosoft.com"
+      },
+      "defaultValue": "<B2C Tenant name, excl .onmicrosoft.com>"
+    },
+    "B2CClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "B2C app's ClientId"
+      },
+      "defaultValue": "<B2C ClientId>"
+    },
+    "B2CClientSecret": {
+      "type": "string",
+      "metadata": {
+        "description": "B2C app's ClientSecret"
+      },
+      "defaultValue": "<B2C ClientSecret>"
+    },
+    "B2CSignUpSignInPolicyId": {
+      "type": "string",
+      "metadata": {
+        "description": "B2C Custom Policy id"
+      },
+      "defaultValue": "B2C_1A_signup_signin_VC"
+    },
+    "B2C1ARestApiKey": {
+      "type": "string",
+      "metadata": {
+        "description": "B2C Policy Key value for REST API"
+      },
+      "defaultValue": "<B2C Policy Key value for REST API>"
+    },
+
+    "TenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Entra ID Tenant id"
+      },
+      "defaultValue": "<Tenant id>"
+    },
+    "DidAuthority": {
+      "type": "string",
+      "metadata": {
+        "description": "DidAuthority"
+      },
+      "defaultValue": "<DidAuthority>"
+    },
+    "CredentialType": {
+      "type": "string",
+      "metadata": {
+        "description": "CredentialType"
+      },
+      "defaultValue": "B2CVerifiedAccount"
+    },
+    "CredentialManifest": {
+      "type": "string",
+      "metadata": {
+        "description": "CredentialManifest URL"
+      },
+      "defaultValue": "<ManifestURL>"
+    },
+    "PhotoClaimName": {
+      "type": "string",
+      "metadata": {
+        "description": "claim name for photo - if you are using FaceCheck during presentation. Otherwise leave this field blank"
+      },
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "appServicePlanPortalName": "[concat(parameters('webAppName'), '-plan')]",
+    "b2cTenantDomainFull": "[concat(parameters('B2CTenantName'), '.onmicrosoft.com')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2020-06-01",
+      "name": "[variables('appServicePlanPortalName')]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "B1",
+        "tier": "Basic",
+        "size": "B1",
+        "family": "B",
+        "capacity": 1
+      },
+      "kind": "app",
+      "properties": {
+        "perSiteScaling": false,
+        "elasticScaleEnabled": false,
+        "maximumElasticWorkerCount": 1,
+        "isSpot": false,
+        "reserved": false,
+        "isXenon": false,
+        "hyperV": false,
+        "targetWorkerCount": 0,
+        "targetWorkerSizeId": 0,
+        "zoneRedundant": false
+      }
+    },
+
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('webAppName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "app",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanPortalName'))]"
+      ],
+      "properties": {
+        "enabled": true,
+        "hostNameSslStates": [
+          {
+            "name": "[concat(parameters('webAppName'), '.azurewebsites.net')]",
+            "sslState": "Disabled",
+            "hostType": "Standard"
+          },
+          {
+            "name": "[concat(parameters('webAppName'), '.scm.azurewebsites.net')]",
+            "sslState": "Disabled",
+            "hostType": "Repository"
+          }
+        ],
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanPortalName'))]",
+        "reserved": false,
+        "isXenon": false,
+        "hyperV": false,
+        "vnetRouteAllEnabled": false,
+        "vnetImagePullEnabled": false,
+        "vnetContentShareEnabled": false,
+
+        "scmSiteAlsoStopped": false,
+        "clientAffinityEnabled": true,
+        "clientCertEnabled": false,
+        "clientCertMode": "Required",
+        "hostNamesDisabled": false,
+        "containerSize": 0,
+        "dailyMemoryTimeQuota": 0,
+        "httpsOnly": false,
+        "redundancyMode": "None",
+        "storageAccountRequired": false,
+        "keyVaultReferenceIdentity": "SystemAssigned",
+
+        "siteConfig": {
+          "numberOfWorkers": 1,
+          "acrUseManagedIdentityCreds": false,
+          "alwaysOn": false,
+          "http20Enabled": false,
+          "functionAppScaleLimit": 0,
+          "minimumElasticInstanceCount": 0,
+          "appSettings": [
+            {
+              "name": "SCM_COMMAND_IDLE_TIMEOUT",
+              "value": "600"
+            },
+            {
+              "name": "PROJECT",
+              "value": "[parameters('Project')]"
+            },
+            {
+              "name": "VerifiedID__TenantId",
+              "value": "[parameters('TenantId')]"
+            },
+            {
+              "name": "VerifiedID__DidAuthority",
+              "value": "[parameters('DidAuthority')]"
+            },
+            {
+              "name": "VerifiedID__CredentialType",
+              "value": "[parameters('CredentialType')]"
+            },
+            {
+              "name": "verifiedID__CredentialManifest",
+              "value": "[parameters('CredentialManifest')]"
+            },
+            {
+              "name": "VerifiedID__PhotoClaimName",
+              "value": "[parameters('PhotoClaimName')]"
+            },
+
+            {
+              "name": "AzureAdB2C__TenantId",
+              "value": "[parameters('B2CTenantId')]"
+            },
+            {
+              "name": "AzureAdB2C__Tenant",
+              "value": "[variables('b2cTenantDomainFull')]"
+            },
+            {
+              "name": "AzureAdB2C__Domain",
+              "value": "[variables('b2cTenantDomainFull')]"
+            },
+            {
+              "name": "AzureAdB2C__B2CName",
+              "value": "[parameters('B2CTenantName')]"
+            },
+            {
+              "name": "AzureAdB2C__ClientId",
+              "value": "[parameters('B2CClientId')]"
+            },
+            {
+              "name": "AzureAdB2C__ClientSecret",
+              "value": "[parameters('B2CClientSecret')]"
+            },
+            {
+              "name": "AzureAdB2C__SignUpSignInPolicyId",
+              "value": "[parameters('B2CSignUpSignInPolicyId')]"
+            },
+            {
+              "name": "AzureAdB2C__B2C1ARestApiKey",
+              "value": "[parameters('B2C1ARestApiKey')]"
+            }
+
+          ]
+        }
+      },
+
+      "resources": [
+        {
+          "type": "sourcecontrols",
+          "apiVersion": "2018-02-01",
+          "name": "web",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+          ],
+          "properties": {
+            "repoUrl": "[parameters('repoURL')]",
+            "branch": "[parameters('branch')]",
+            "isManualIntegration": true
+          }
+        }
+      ]
+
+    },
+
+    {
+      "type": "Microsoft.Web/sites/hostNameBindings",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(parameters('webAppName'), '/', parameters('webAppName'), '.azurewebsites.net')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+      ],
+      "properties": {
+        "siteName": "[parameters('webAppName')]",
+        "hostNameType": "Verified"
+      }
+    },
+
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(parameters('webAppName'), '/web')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+      ],
+      "properties": {
+        "numberOfWorkers": 1,
+        "defaultDocuments": [
+          "Default.htm",
+          "Default.html",
+          "Default.asp",
+          "index.htm",
+          "index.html",
+          "iisstart.htm",
+          "default.aspx",
+          "index.php",
+          "hostingstart.html"
+        ],
+        "netFrameworkVersion": "v6.0",
+        "requestTracingEnabled": false,
+        "remoteDebuggingEnabled": false,
+        "remoteDebuggingVersion": "VS2019",
+        "httpLoggingEnabled": true,
+        "acrUseManagedIdentityCreds": false,
+        "logsDirectorySizeLimit": 35,
+        "detailedErrorLoggingEnabled": false,
+        "publishingUsername": "[concat('$', parameters('webAppName'))]",
+        "scmType": "",
+        "use32BitWorkerProcess": true,
+        "webSocketsEnabled": false,
+        "alwaysOn": false,
+        "managedPipelineMode": "Integrated",
+        "appCommandLine": "",
+        "virtualApplications": [
+          {
+            "virtualPath": "/",
+            "physicalPath": "site\\wwwroot",
+            "preloadEnabled": false
+          }
+        ],
+        "loadBalancing": "LeastRequests",
+        "experiments": {
+          "rampUpRules": []
+        },
+        "autoHealEnabled": false,
+        "vnetRouteAllEnabled": false,
+        "vnetPrivatePortsCount": 0,
+        "publicNetworkAccess": "Enabled",
+        "localMySqlEnabled": false,
+        "ipSecurityRestrictions": [
+          {
+            "ipAddress": "Any",
+            "action": "Allow",
+            "priority": 2147483647,
+            "name": "Allow all",
+            "description": "Allow all access"
+          }
+        ],
+        "scmIpSecurityRestrictions": [
+          {
+            "ipAddress": "Any",
+            "action": "Allow",
+            "priority": 2147483647,
+            "name": "Allow all",
+            "description": "Allow all access"
+          }
+        ],
+        "scmIpSecurityRestrictionsUseMain": false,
+        "http20Enabled": false,
+        "minTlsVersion": "1.2",
+        "scmMinTlsVersion": "1.2",
+        "ftpsState": "FtpsOnly",
+        "preWarmedInstanceCount": 0,
+        "elasticWebAppScaleLimit": 0,
+        "functionsRuntimeScaleMonitoringEnabled": false,
+        "minimumElasticInstanceCount": 0,
+        "azureStorageAccounts": {}
+      }
+    }
+
+  ]
+}

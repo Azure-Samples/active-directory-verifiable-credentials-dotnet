@@ -1,0 +1,128 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Camera in browsers - pixo</title>
+
+    <!-- imports the webpage's stylesheet -->
+    <!-- <link rel="stylesheet" href="style.css" /> -->
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #E0E0E0;
+        }
+
+        #cameraFileInput {
+            display: none;
+        }
+
+        #pictureFromCamera {
+            width: 100%;
+            height: auto;
+            margin-top: 16px;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #3B2E58;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+            .btn:hover {
+                filter: brightness(0.9);
+            }
+    </style>
+
+    <!-- imports the webpage's javascript file -->
+    <!-- <script src="script.js" defer></script> -->
+</head>
+<body>
+    <h1>Verified ID - Take Selfie</h1>
+    <p id="textBefore">Prepare to take a selfie. Stand in good lightning and use your front camera to take a passport like photo of yourself. Click Open camera when ready.</p>
+    <p id="textAfter" style="display:none">You can close this app now and continue in the browser.</p>
+
+    <!-- The `label` is attached to the hidden file input -->
+    <label for="cameraFileInput">
+        <span id="btnOpenCamera" class="btn">Open Camera</span>
+
+        <!-- The hidden file `input` for opening the native camera. capture="environment" was the original -->
+        <input id="cameraFileInput"
+               type="file"
+               accept="image/*"
+               capture="camera" />
+    </label>
+
+    <!-- displays the picture uploaded from the native camera -->
+    <img id="photo" width="240" height="320" style="display:none" />
+    </form>
+
+    <script>
+        var selfieCallbackUrl = null;
+
+        document.getElementById("cameraFileInput").addEventListener("change", function () {
+            var imageUrl = window.URL.createObjectURL(this.files[0]);
+            document.getElementById("photo").setAttribute("src", imageUrl);
+            document.getElementById("photo").style.display = "block";
+            var reader = new FileReader();
+            reader.readAsDataURL(this.files[0]);
+            reader.onloadend = function (e) {
+                var imageObj = new Image();
+                imageObj.src = e.target.result;
+                imageObj.onload = function (ev) {
+                    var canvas = document.createElement("canvas");
+                    canvas.width = 480;
+                    canvas.height = 640;
+                    canvas.getContext('2d').drawImage(imageObj, 0, 0, imageObj.naturalWidth, imageObj.naturalHeight, 0, 0, canvas.width, canvas.height);
+                    let image_data_url = canvas.toDataURL('image/jpeg');
+                    postPhoto(image_data_url);
+                }
+            }
+            document.getElementById("cameraFileInput").style.display = "none";
+            document.getElementById("btnOpenCamera").style.display = "none";
+            document.getElementById("textBefore").style.display = "none";
+            document.getElementById("textAfter").style.display = "block";
+        });
+
+        function parseParms(str) {
+            var pieces = str.split("&"), data = {}, i, parts;
+            for (i = 0; i < pieces.length; i++) {
+                parts = pieces[i].split("=");
+                if (parts.length < 2) {
+                    parts.push("");
+                }
+                data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+            }
+            return data;
+        }
+
+        function postPhoto(base64Image) {
+            fetch(selfieCallbackUrl, {
+                headers: { 'Accept': 'application/json', 'Content-Type': 'image/jpeg' },
+                method: 'POST',
+                body: base64Image
+            })
+                .then(function (response) {
+                    response.text()
+                        .catch(error => displayMessage(error))
+                        .then(function (message) {
+                            var resp = JSON.parse(message);
+                        }).catch(error => { console.log(error.message); })
+                }).catch(error => { console.log(error.message); })
+        }
+
+        window.onload = function () {
+            selfieCallbackUrl = parseParms(document.location.search.substring(1)).callbackUrl;
+        }
+
+    </script>
+
+</body>
+</html>

@@ -1,117 +1,133 @@
-# AspNetCoreVerifiableCredentialsB2C
-This sample is an ASP.Net Core sample that is designed to work together with Azure AD B2C in order to have Verifiable Credentials for B2C accounts.
-It is very close to the generic dotnet Verifiable Credential [sample](https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet), but has some specific modification for B2C.
-Even though you could use it for testing generic VC contracts, like VerifiedCredentialExpert, you should use it when integrating with the Azure AD B2C Custom Policies that exists in [this repository](https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C).
+# Verified ID + Azure AD B2C sample
+This sample is an ASP.Net Core sample that is designed to work together with Azure AD B2C in order to use Verified ID with B2C.
 
-## Azure AD B2C and Verifiable Credentials working together - how does it work?
+
+## Deploy to Azure
+
+Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F3-asp-net-core-api-b2c%2FARMTemplate%2Ftemplate.json)
+
+You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
+
+![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
+
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fcljungdemob2c.z6.web.core.windows.net%2FARM%2Ftemplate.json
+
+## Azure AD B2C and Verified ID working together - how does it work?
 
 This sample uses two general areas to form the solution. One is the [custom html](https://docs.microsoft.com/en-us/azure/active-directory-b2c/customize-ui-with-html?pivots=b2c-custom-policy) 
 and self asserted pages in Azure AD B2C and the other is the [REST API Technical Profile](https://docs.microsoft.com/en-us/azure/active-directory-b2c/restful-technical-profile) in Azure AD B2C. 
 The custom html makes it possible to do ajax calls in javascript to generate the QR code. The REST API makes it possible to integrate calls to the VC sample code so that B2C can send claims and query presentation status.
 For this to work, you need this VC sample as a backend for B2C to talk to. The custom html and B2C policies are available in the link above.
 
-![API Overview](media/api-b2c-overview.png)
+![API Overview](ReadmeFiles/api-b2c-overview.png)
 
-## Running the sample
+## Using the sample
 
-### Updating appsettings.json config file
+To use the sample, do the following:
+
+- Open the website in your browser.
+- Step 1
+    - Click Sign-in, then sign-up for creating a local account
+- Step 2
+    - Select `Issue Credential` from home page
+    - If you want a credential that can work with FaceCheck, either take a selfie or upload a photo of yourself
+    - Click `Issue Credential` to issue yourself a credential
+- Step 3
+    - Sign out from the app
+    - Click Sign-in and select `Verified ID` as the Identity Provider
+    - Scan the QR code, present your Verified ID credential, optionally using FaceCheck - and you're signed in
+- Step 4
+    - Being signed in or not, the app can ask the user to present the Verified ID again whenever required in the app 
+    - Click `Verify Credential` in the home page to create a presentation request
+
+## Sample configuraion
 
 This sample now has all its configuration in the [appsettings.json](appsettings.json) file and you need to update it before you run the app.
+If you are running the app locally, you need to edit the appsettings.json file. If you are running the app in Azure AppServices, you need to update the
+settings in an Azure AppServices deployment. You can use this template [appservice-config-template.json](appservice-config-template.json) and apply it in the Advanced Edit editor.
 
-In the [appsettings.json](appsettings.json) file, there are a few settings, but the ones listed below needs your attention.
-First, `TenantId`, `ClientId` and `ClientSecret` are used to acquire an `access_token` so you can authorize the VC Client API to your Azure Key Vault.
-This is explained in the outer [README.md](../README.md#adding-authorization) file under the section `Adding Authorization`. 
+|-----|------|-------|
+| AzureAdB2C | Instance | Update your tenant name https://your-tenant-name.b2clogin.com |
+| | TenantId | Your B2C tenant id (guid) |
+| | Tenant | Update your tenant name your-tenant-name.onmicrosoft.com |
+| | Domain | Update your tenant name your-tenant-name.onmicrosoft.com |
+| | B2CName | Update your tenant name (nam excluding .onmicrosoft.com) |
+| | ClientId | Client Id (AppId) in the B2C tenant that is used |
+| | ClientSecret | Client secret for the client id in the B2C tenant |
+| | SignUpSignInPolicyId | Name of your B2C Custom Policy you want to use for sign-in |
+| | B2C1ARestApiKey | The value of the B2C_1A_RestApiKey you have configured in the B2C portal |
+| VerifiedID | TenantId | Tenant id where Verified ID is setup (can't be the B2C tenant as that is not supported) |
+| | ManagedIdentity | true if you are running the app in Azure AppServices with Managed Identity. In that case, you don't need ClientId/ClientSecret/CertificateName |
+| | ClientId |  Client Id that has permission to call Verified ID Request Service API | 
+| | ClientSecret | Client secret for the app |
+| | CertificateName | Enter a certificate name if using certificate based authentication. Leave blank to use client secret |
+| | DidAuthority | The DID of your Verified ID authority |
+| | CredentialType | Name of the credential type you are using in combination with B2C |
+| | CredentialManifest | URL to the credential manifest for your Verified ID credential |
+| | IssuancePinCodeLength | Enter value 4-6 if you want issuance to have a pin code. Leave 0 for no pin code |
+| | useFaceCheck | If you plan to extend the sample by providing a user photo during issuance, change this flag to true |
+| | PhotoClaimName | Name of photo claim |
 
-The remaining five settings control what VC credential you want to issue and present. 
+### Setup
 
-```JSON
-    "ApiEndpoint": "https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/",
-    "TenantId": "<your-AAD-tenant-for-VC>",
-    "Authority": "https://login.microsoftonline.com/{0}",
-    "scope": "3db474b9-6a0c-4840-96ac-1fceb342124f/.default",
-    "ClientId": "<your-clientid-with-API-Permissions->",
-    "ClientSecret": "your-secret",
-    "VerifierAuthority": "did:ion:...your DID...",
-    "IssuerAuthority": "did:ion:...your DID...",
-    "B2C1ARestApiKey": "your-b2c-app-key",
-    "CredentialType": "B2CVerifiedAccount",
-    "DidManifest": "https://verifiedid.did.msidentity.com/v1.0/<your-tenant-id-for-VC>/verifiableCredential/contracts/<your-name>",
-    "IssuancePinCodeLength": 0
-```
-- **ApiEndpoint** - Request Service API endpoint
-- **TenantId** - This is the Azure AD tenant that you have setup Verifiable Credentials in. It is not the B2C tenant.
-- **ClientId** - This is the App you have registered that has the VC permission `VerifiableCredential.Create.All` and that has access to your VC Azure KeyVault.
-- **VerifierAuthority** - This DID for your Azure AD tenant. You can find in your VC blade in portal.azure.com.
-- **IssuerAuthority** - This DID for your Azure AD tenant. You can find in your VC blade in portal.azure.com.
-- **CredentialType** - Whatever you have as type in the Rules file(s). The default is `B2CVerifiedAccount`.
-- **DidManifest**- The complete url to the DID manifest. It is used to set the attribute `manifest` and it is used for both issuance and presentation.
-- **IssuancePinCodeLength** - If you want your issuance process to use the pin code method, you specify how many digits the pin code should have. A value of zero will not use the pin code method.
+### Entra ID tenant
 
-### Standalone
-To run the sample standalone, just clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use `ngrok` as a reverse proxy to read your app.
+Verified ID can not be setup in the B2C tenant. Therefor, you need an Entra ID tenant to get this sample to work. You can set up a [free tenant](https://learn.microsoft.com/entra/identity-platform/quickstart-create-new-tenant) unless you don't have one already. 
 
-```Powershell
-git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
-cd active-directory-verifiable-credentials-dotnet/tree/main/3-asp-net-core-api-b2c
-dotnet build "AspNetCoreVerifiableCredentialsB2Cdotnet.csproj" -c Debug -o .\bin\Debug\netcoreapp3.1
-dotnet run
-```
+### Setup Verified ID
 
-Then, open a separate command prompt and run the following command
+[Setup Verified ID](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) in your tenant and enable MyAccount. 
+You do not need to register an app or create a custom Verified ID credential schema.
 
-```Powershell
-ngrok http 5002
-```
+### Azure subscription
 
-Grab, the url in the ngrok output (like `https://96a139d4199b.ngrok.io`) and Browse to it.
+The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/azure/app-service/) 
+and use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
+You don't need to do a app registeration in Entra ID.
 
-### Docker build
+### Deploy the B2C Custom Policies
 
-To run it locally with Docker
-```
-docker build -t aspnetcoreverifiablecredentialsb2cdotnet:v1.0 .
-docker run --rm -it -p 5002:80 aspnetcoreverifiablecredentialsb2cdotnet:v1.0
-```
-
-Then, open a separate command prompt and run the following command
-
-```Powershell
-ngrok http 5002
-```
-
-Grab, the url in the ngrok output (like `https://96a139d4199b.ngrok.io`) and Browse to it. Note that the issuer test page is there just to help you do the basic issuance testing. Issuing VCs with this sample is intended to be done via B2C signup policies.
-
-### Pre-integration test for B2C
-
-The Azure AD B2C custom policy will, via its REST API capability, call this sample's `api/verifier/presentation-response-b2c` endpoint in the [ApiVerifierController.cs](ApiVerifierController.cs) controller. 
-To test that is working as it should before you integrate it with B2C custom policies, you can do the following:
-
-- Issue yourself a VC via browsing to `https://96a139d4199b.ngrok.io/issuer.html`. This requires that you already have a B2C Account.
-- Present the VC via browsing to `https://96a139d4199b.ngrok.io/verifier.html`
-- Run the below Powershell script. 
-
-You need to use your own ngrok url. The guid for `state` can be found in the trace in console window when presentation callback happens. 
-
-```JSON
-$url = "https://96a139d4199b.ngrok.io/api/verifier/presentation-response-b2c"
-$state = "69a2610a-6c63-42ed-bb50-99a3951a54cb"
-invoke-restmethod -Uri $url -Method "POST" -ContentType "application/json" -Body "{`"id`":`"$state`"}"
-```
-
-The response should be echoing the claims the sample would pass back to B2C in the REST API call.
-
-### Together with Azure AD B2C
 You follow the instructions and deploy the B2C policies in this github repo [https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C](https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C). 
 Not that the TrustFrameworkExtensionsVC.xml file references the endpoints to this API in several places as they work together.
 
-When you have the B2C policies deployed, the steps to test is to
+### Deploy the app
 
-1. Run the B2C policy [B2C_1A_VC_susi_issuevc](https://github.com/Azure-Samples/active-directory-verifiable-credentials/blob/main/B2C/policies/SignUpVCOrSignin.xml) and signup a new user. After you have validated the email, set the password, etc, the final step in the B2C user journey is to issue the new user with a VC.
-1. Run the B2C policy [https://github.com/Azure-Samples/active-directory-verifiable-credentials/blob/main/B2C/policies/SigninVC.xml](https://github.com/Azure-Samples/active-directory-verifiable-credentials/blob/main/B2C/policies/SigninVC.xml) to sign in your B2C user via presenting the VC.
+1. Register an app in the B2C tenat as documented [here](https://learn.microsoft.com/azure/active-directory-b2c/tutorial-register-applications)
+1. Deploy the sample application to Azure App Services by clicking on the `Deploy to Azure` button above.
+1. Enter all the parameters when asked.
+1. Run the powershell script below to grant the Entra ID app the permissions required by Verified ID.
+1. Update the Redirect URI in the B2C app registration to allow your deployed App Services app. Should be a value like `https://your-app-name.azurewebsites.net/signin-oidc`.
+1. Follow the `Using this sample instructions`
 
+### Entra ID app permissions
 
-### LogLevel Trace
+The Azure AppServices app runs using [Managed Identity](https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
+You don't need to do a app registeration in Entra ID. You do need to grant the app the permission to call Verified ID.
 
-If you set the LogLevel to `Trace` in the appsettings.*.json file, then the DotNet sample will output all HTTP requests, which will make it convenient for you to study the interaction between components.
+1. Make sure Managed Identity is enabled for your App Service app at `Settings` > `Identity`
+1. In portal.azure.com, open the `Cloud Shell` in powershell mode and run the following to grant your MSI service principal the permission to call Verified ID.
 
-![API Overview](media/loglevel-trace.png)
+```Powershell
+$TenantID="<YOUR TENANTID>"
+$YourAppName="<NAME OF YOUR AZURE WEBAPP>"
+
+#Do not change this values below
+#
+$ApiAppId = "3db474b9-6a0c-4840-96ac-1fceb342124f"
+$PermissionName = "VerifiableCredential.Create.All"
+ 
+# Install the module
+Install-Module AzureAD
+
+Connect-AzureAD -TenantId $TenantID
+
+$MSI = (Get-AzureADServicePrincipal -Filter "displayName eq '$YourAppName'")
+
+Start-Sleep -Seconds 10
+
+$ApiServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$ApiAppId'"
+$AppRole = $ApiServicePrincipal.AppRoles | Where-Object {$_.Value -eq $PermissionName -and $_.AllowedMemberTypes -contains "Application"}
+New-AzureAdServiceAppRoleAssignment -ObjectId $MSI.ObjectId -PrincipalId $MSI.ObjectId ` -ResourceId $ApiServicePrincipal.ObjectId -Id $AppRole.Id
+```
