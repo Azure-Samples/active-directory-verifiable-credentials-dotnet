@@ -114,7 +114,7 @@
   "variables": {
     "appServicePlanPortalName": "[concat(parameters('webAppName'), '-plan')]",
     "b2cTenantDomainFull": "[concat(parameters('B2CTenantName'), '.onmicrosoft.com')]",
-    "b2cInstance": [ "concat('https://', parameters('B2CTenantName')", "'.b2clogin.com')" ]
+    "b2cInstance": "[concat('https://', parameters('B2CTenantName'), '.b2clogin.com')]"
     },
     "resources": [
       {
@@ -370,7 +370,7 @@
               "name": "Allow all",
               "description": "Allow all access"
             }
-          ],
+          ], 
           "scmIpSecurityRestrictionsUseMain": false,
           "http20Enabled": false,
           "minTlsVersion": "1.2",
