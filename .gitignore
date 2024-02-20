@@ -354,3 +354,5 @@ appsettings.[Dd]evelopment.json
 
 [Pp]ublish[Pp]rofiles/
 [Ss]ervice[Dd]ependencies
+
+.dev/
