@@ -19,6 +19,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web.UI;
 using Microsoft.AspNetCore.Http;
 
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+
 namespace B2CVerifiedID {
     public class Program {
     public static void Main( string[] args ) {
@@ -40,19 +42,14 @@ namespace B2CVerifiedID {
             options.HandleSameSiteCookieCompatibility();
         } );
 
-        builder.Services.AddMicrosoftIdentityWebAppAuthentication( builder.Configuration, "AzureAdB2C" );
-
-        // Add services to the container.
-        /*
         builder.Services.AddAuthentication( OpenIdConnectDefaults.AuthenticationScheme )
-            .AddMicrosoftIdentityWebApp( builder.Configuration.GetSection( "AzureAdB2C" )
-            );
-        */
+                .AddMicrosoftIdentityWebApp( builder.Configuration, "AzureAdB2C" );
+        //builder.Services.AddMicrosoftIdentityWebAppAuthentication( builder.Configuration, "AzureAdB2C" );
+
         builder.Services.AddInMemoryTokenCaches();
         builder.Services.AddControllersWithViews()
                 .AddMicrosoftIdentityUI();
         builder.Services.AddRazorPages();
-        //.AddMicrosoftIdentityUI();
 
         builder.Services.AddOptions();
         builder.Services.Configure<OpenIdConnectOptions>( builder.Configuration.GetSection( "AzureAdB2C" ) );
@@ -60,8 +57,9 @@ namespace B2CVerifiedID {
         builder.Services.AddMvc();
 
         builder.Services.AddCors( options => {
-            options.AddPolicy( name: "B2CCustomHtml", policy => {
-                policy.WithOrigins( $"https://{builder.Configuration["AzureAdB2C:B2CName"]}.b2clogin.com" );
+            options.AddPolicy( name: "B2CCorsCustomHtml", policy => {
+                policy.WithOrigins( $"https://{builder.Configuration["AzureAdB2C:B2CName"]}.b2clogin.com" )
+                        .WithMethods("GET", "OPTIONS");
             });
         });
 
@@ -84,11 +82,11 @@ namespace B2CVerifiedID {
         app.UseStaticFiles();
 
         app.UseRouting();
-        app.UseCors( "B2CCustomHtml" );
+        app.UseCors( "B2CCorsCustomHtml" );
 
         app.UseAuthentication();
         app.UseAuthorization();
-
+        
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}" );

@@ -24,6 +24,11 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using B2CVerifiedID.Models;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.IdentityModel.Tokens;
+using System.Linq;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace B2CVerifiedID
 {
@@ -75,6 +80,31 @@ namespace B2CVerifiedID
         [Authorize]
         public IActionResult Issuer() {
             CheckLocalhost();
+            return View();
+        }
+
+        [Authorize]
+        public async Task<IActionResult> SensitivePage() {
+            CheckLocalhost();
+
+            var claimMatchConfidenceScore = User.FindFirst( "VCMatchConfidenceScore" );
+            if (claimMatchConfidenceScore == null) {
+                string b2cMfaPolicyId = _configuration["AzureAdB2C:MFAPolicyId"];
+                _log.LogTrace( $"B2C MFA PolicyId = {b2cMfaPolicyId}" );
+                if ( string.IsNullOrWhiteSpace( b2cMfaPolicyId ) ) {
+                    ViewData["message"] = "No MFA B2C Custom Policy is configured.";
+                } else {
+                    // challenge the user via invoking the MFA policy
+                    await HttpContext.ChallengeAsync( OpenIdConnectDefaults.AuthenticationScheme, 
+                        new AuthenticationProperties {
+                            RedirectUri = Url.Action( nameof( HomeController.SensitivePage ), "Home" ),
+                            Items = { { "policy", b2cMfaPolicyId } }
+                        } );
+                }
+            } else {
+                _log.LogTrace( $"Face Check matchConfidenceScore = {claimMatchConfidenceScore.Value}" );
+                ViewData["matchConfidenceScore"] = claimMatchConfidenceScore.Value;
+            }
             return View();
         }
 

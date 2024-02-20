@@ -19,8 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="B2C\html\" />
+    <Folder Include="B2C\policies\" />
+    <Folder Include="B2C\policies\.dev\" />
     <Folder Include="ReadmeFiles\" />
-    <Folder Include="B2CPolicies\" />
   </ItemGroup>
 
 </Project>

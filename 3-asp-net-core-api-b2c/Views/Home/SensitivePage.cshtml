@@ -1,0 +1,20 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+    <div style="text-align: center;">
+        <img src="/VerifiedCredentialExpert-icon.png" class="ninja-img" />
+        <h1>Sensitive page that requires MFA</h1>
+
+        <p>@ViewData["message"]</p>
+
+        <div class="normal-text">
+            <p>
+                This webpage is protected by a B2C Custom Policy that forces the user to present their Verified ID with Face Check to achieve high assurance verification. 
+            </p>
+            <br/>
+            <p>
+            Face Check was successfully performed with a match confidence score of @ViewData["matchConfidenceScore"] which means the system knows it is the correct user.
+            </p>
+        </div>
+    </div>

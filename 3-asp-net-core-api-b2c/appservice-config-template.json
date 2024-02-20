@@ -45,13 +45,8 @@
     "slotSetting": false
   },
   {
-    "name": "AzureAdB2C__Tenant",
-    "value": "your-tenant-name.onmicrosoft.com",
-    "slotSetting": false
-  },
-  {
     "name": "AzureAdB2C__TenantId",
-    "value": "b6c11183-fc66-4937-86fe-98a7af31a023",
+    "value": "...your-b2c-tenantid...",
     "slotSetting": false
   },
   {
@@ -62,6 +57,11 @@
   {
     "name": "VerifiedID__Authority",
     "value": "https://login.microsoftonline.com/",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ManagedIdentity",
+    "value": "true",
     "slotSetting": false
   },
   {

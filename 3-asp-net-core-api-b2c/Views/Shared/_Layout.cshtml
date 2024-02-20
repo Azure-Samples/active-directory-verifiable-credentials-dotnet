@@ -21,12 +21,15 @@
                     <li class="nav-item">
                         <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                     </li>
+
+                    @if (User.Identity?.IsAuthenticated == true) {
+                        <li class="nav-item">
+                            <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="SensitivePage">| Page Requiring MFA</a>
+                        </li>
+                    }
                 </ul>
                 <partial name="_LoginPartial" />
             </div>
-            <!--<div class="container-fluid">
-                    <partial name="_LoginPartial" />
-            </div>-->
         </nav>
     </header>
     <div id="wrap">

@@ -65,7 +65,14 @@
       "metadata": {
         "description": "B2C Custom Policy id"
       },
-      "defaultValue": "B2C_1A_signup_signin_VC"
+      "defaultValue": "B2C_1A_vc_susi"
+    },
+    "B2CMFAPolicyId": {
+      "type": "string",
+      "metadata": {
+        "description": "B2C MFA Custom Policy id"
+      },
+      "defaultValue": "B2C_1A_VC_signinvcmfa"
     },
     "B2C1ARestApiKey": {
       "type": "string",
@@ -211,6 +218,10 @@
                 "value": "[parameters('TenantId')]"
               },
               {
+                "name": "VerifiedID__ManagedIdentity",
+                "value": "true"
+              },
+              {
                 "name": "VerifiedID__DidAuthority",
                 "value": "[parameters('DidAuthority')]"
               },
@@ -236,10 +247,6 @@
                 "value": "[parameters('B2CTenantId')]"
               },
               {
-                "name": "AzureAdB2C__Tenant",
-                "value": "[variables('b2cTenantDomainFull')]"
-              },
-              {
                 "name": "AzureAdB2C__Domain",
                 "value": "[variables('b2cTenantDomainFull')]"
               },
@@ -258,6 +265,10 @@
               {
                 "name": "AzureAdB2C__SignUpSignInPolicyId",
                 "value": "[parameters('B2CSignUpSignInPolicyId')]"
+              },
+              {
+                "name": "AzureAdB2C__MFAPolicyId",
+                "value": "[parameters('B2CMFAPolicyId')]"
               },
               {
                 "name": "AzureAdB2C__B2C1ARestApiKey",

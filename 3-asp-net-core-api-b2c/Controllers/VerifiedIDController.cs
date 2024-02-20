@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Azure.Core;
+using B2CVerifiedID.Helpers;
 
 namespace B2CVerifiedID {
     [Route("api/[controller]/[action]")]
@@ -517,13 +518,14 @@ namespace B2CVerifiedID {
                 //needs to be send as bearer to the VC Request API
                 var accessToken = await MsalAccessTokenHandler.GetAccessToken( _configuration );
                 if (accessToken.Item1 == String.Empty) {
-                    _log.LogError( String.Format( "failed to acquire accesstoken: {0} : {1}" ), accessToken.error, accessToken.error_description );
+                    _log.LogError( String.Format( "failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description ) );
                     return BadRequest( new { error = accessToken.error, error_description = accessToken.error_description } );
                 }
                 _log.LogTrace( accessToken.token );
 
+                string correlationId = this.Request.Query["id"];
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
-                PresentationRequest request = CreatePresentationRequest();
+                PresentationRequest request = CreatePresentationRequest( correlationId );
 
                 string faceCheck = this.Request.Query["faceCheck"];
                 bool useFaceCheck = (!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true"));
@@ -567,7 +569,7 @@ namespace B2CVerifiedID {
                 }
             } catch (Exception ex) {
                 _log.LogError( "Exception: " + ex.Message );
-                return BadRequest( new { error = "400", error_description = "Exception: " + ex.Message } );
+                return BadRequest( new { error = "400", error_description = $"Exception: {ex.Message}", error_stacktrace = ex.StackTrace } );
             }
         }
 
@@ -639,9 +641,9 @@ namespace B2CVerifiedID {
                 // if we didn't get a receipt or a jti, use the wallet's subject as key, but remove all colons
                 if (vcKey == null) {
                     string walletSubject = callback.subject.Replace( "did:", "did." );
-                    int idx = walletSubject.IndexOf( ":" );
+                    int idx = walletSubject.Substring(4).IndexOf( ":" );
                     if (idx != -1) {
-                        walletSubject = walletSubject.Substring( 0, idx ) + "." + walletSubject.Substring( idx );
+                        walletSubject = walletSubject.Substring( 0, idx+4 ) + walletSubject.Substring( idx+4 ).Replace(":",".");
                     }
                     vcKey = walletSubject.Split( ":" )[0];
                 }
@@ -660,6 +662,9 @@ namespace B2CVerifiedID {
                 }
                 if (!string.IsNullOrWhiteSpace( callback.verifiedCredentialsData[0].issuanceDate )) {
                     b2cResponse.Add( new JProperty( "issuanceDate ", callback.verifiedCredentialsData[0].issuanceDate ) );
+                }
+                if (callback.verifiedCredentialsData[0].faceCheck != null) {
+                    b2cResponse.Add( new JProperty( "matchConfidenceScore", callback.verifiedCredentialsData[0].faceCheck.matchConfidenceScore.ToString() ) );
                 }
                 // add all the additional claims in the VC as claims to B2C
                 foreach (KeyValuePair<string, string> kvp in callback.verifiedCredentialsData[0].claims) {

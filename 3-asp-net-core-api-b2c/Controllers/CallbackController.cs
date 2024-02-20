@@ -175,7 +175,7 @@ namespace B2CVerifiedID
                             resp.Add( new JProperty( "expirationDate", callback.verifiedCredentialsData[0].expirationDate ) );
                         }
                         if (!string.IsNullOrWhiteSpace( callback.verifiedCredentialsData[0].issuanceDate )) {
-                            resp.Add( new JProperty( "issuanceDate ", callback.verifiedCredentialsData[0].issuanceDate ) );
+                            resp.Add( new JProperty( "issuanceDate", callback.verifiedCredentialsData[0].issuanceDate ) );
                         }
                         result = resp;
                         break;

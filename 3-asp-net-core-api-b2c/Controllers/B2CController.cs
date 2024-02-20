@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using B2CVerifiedID.Models;
+using Microsoft.AspNetCore.Cors;
 
 namespace B2CVerifiedID
 {
@@ -50,16 +51,19 @@ namespace B2CVerifiedID
             return hostname;
         }
 
+        [EnableCors( "B2CCorsCustomHtml" )]
         [AllowAnonymous]
         public IActionResult selfAsserted() {
             ViewData["apiUrl"] = GetRequestHostName();
             return View();
         }
+        [EnableCors( "B2CCorsCustomHtml" )]
         [AllowAnonymous]
         public IActionResult unified() {
             ViewData["apiUrl"] = GetRequestHostName();
             return View();
         }
+        [EnableCors( "B2CCorsCustomHtml" )]
         [AllowAnonymous]
         public IActionResult unifiedquick() {
             ViewData["apiUrl"] = GetRequestHostName();

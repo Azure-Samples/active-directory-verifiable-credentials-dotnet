@@ -4,7 +4,7 @@
 
     <div style="text-align: center;">
         <img src="VerifiedCredentialExpert-icon.png" class="ninja-img" />
-        <h1>Azure AD B2C + Verified ID issuance and verifier Sample</h1>
+        <h1>Azure AD B2C + Verified ID issuance and verifier sample</h1>
 
         <p>@ViewData["message"]</p>
 
@@ -14,9 +14,12 @@
         <br/><br/>
         <div class="normal-text">
             <ul>
-                <li>To issue a Verified ID credential, you need to do B2C Sign-up/Sign-in to create your account first as the claims in the Verified ID credential is taken from the account. Click Sign in and sign up if you don't have an account.</li>
-                <li>To verify a Verified ID credential, you don't need to be signed in, but you have to have a Verified ID credential.</li>
-                <li>When you have a Verified ID credential, you can present in to the B2C sign-in policy and use it for authentication.</li>
+                <li>To issue a Verified ID credential, you need to do click Sign-in, then Sign-up, to create your B2C account first as the claims in the Verified ID credential is taken from the account.</li>
+                <li>To verify a Verified ID credential, you don't need to be signed in, but you have to have a Verified ID credential. Just click <a href="'@Url.Action("Verifier", "Home")'">Verify Credential</a></li>
+                <li>When you have a Verified ID credential, you can present it to the B2C sign-in policy and use it for authentication.</li>
+                <li>If the sample is configured to use Face Check, then you the verification request will ask you for a liveness check for every presentation.</li>
+                <li>The <a href="@Url.Action("SensitivePage", "Home")">Page Requiring MFA</a> requires that the authenticated user performs a Face Check for high assurance verification. 
+                    The app doesn't need to be configured to use Face Check as the B2C MFA Custom Policy will enforce it.</li>
             </ul>
         </div>
     </div>

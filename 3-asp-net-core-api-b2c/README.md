@@ -1,6 +1,6 @@
 # Verified ID + Azure AD B2C sample
-This sample is an ASP.Net Core sample that is designed to work together with Azure AD B2C in order to use Verified ID with B2C.
 
+This sample is an ASP.Net Core sample that is designed to work together with Azure AD B2C in order to use Verified ID with B2C.
 
 ## Deploy to Azure
 
@@ -41,6 +41,9 @@ To use the sample, do the following:
 - Step 4
     - Being signed in or not, the app can ask the user to present the Verified ID again whenever required in the app 
     - Click `Verify Credential` in the home page to create a presentation request
+- Step 5
+    - Being signed in, You can use Verified ID as MFA
+    - Click on `Page Requiring MFA` to run the B2C MFA policy that will ask you to present your Verified ID with Face Check for high assurance verification. 
 
 ## Sample configuraion
 
@@ -52,12 +55,12 @@ settings in an Azure AppServices deployment. You can use this template [appservi
 |------|--------|--------|
 | AzureAdB2C | Instance | Update your tenant name https://your-tenant-name.b2clogin.com |
 | | TenantId | Your B2C tenant id (guid) |
-| | Tenant | Update your tenant name your-tenant-name.onmicrosoft.com |
 | | Domain | Update your tenant name your-tenant-name.onmicrosoft.com |
 | | B2CName | Update your tenant name (nam excluding .onmicrosoft.com) |
 | | ClientId | Client Id (AppId) in the B2C tenant that is used |
 | | ClientSecret | Client secret for the client id in the B2C tenant |
 | | SignUpSignInPolicyId | Name of your B2C Custom Policy you want to use for sign-in |
+| | MFAPolicyId | Name of your B2C Custom Policy you want to use for MFA |
 | | B2C1ARestApiKey | The value of the B2C_1A_RestApiKey you have configured in the B2C portal |
 | VerifiedID | TenantId | Tenant id where Verified ID is setup (can't be the B2C tenant as that is not supported) |
 | | ManagedIdentity | true if you are running the app in Azure AppServices with Managed Identity. In that case, you don't need ClientId/ClientSecret/CertificateName |
@@ -90,8 +93,7 @@ You don't need to do a app registeration in Entra ID.
 
 ### Deploy the B2C Custom Policies
 
-You follow the instructions and deploy the B2C policies in this github repo [https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C](https://github.com/Azure-Samples/active-directory-verifiable-credentials/tree/main/B2C). 
-Not that the TrustFrameworkExtensionsVC.xml file references the endpoints to this API in several places as they work together.
+Follow the instructions [here](B2C/README.md#setup) for how setup Azure AD B2C and Custom Policies.
 
 ### Deploy the app
 
@@ -116,19 +118,14 @@ $YourAppName="<NAME OF YOUR AZURE WEBAPP>"
 
 #Do not change this values below
 #
-$ApiAppId = "3db474b9-6a0c-4840-96ac-1fceb342124f"
-$PermissionName = "VerifiableCredential.Create.All"
- 
 # Install the module
 Install-Module AzureAD
 
 Connect-AzureAD -TenantId $TenantID
 
 $MSI = (Get-AzureADServicePrincipal -Filter "displayName eq '$YourAppName'")
-
 Start-Sleep -Seconds 10
-
-$ApiServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$ApiAppId'"
-$AppRole = $ApiServicePrincipal.AppRoles | Where-Object {$_.Value -eq $PermissionName -and $_.AllowedMemberTypes -contains "Application"}
+$ApiServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '3db474b9-6a0c-4840-96ac-1fceb342124f'"
+$AppRole = $ApiServicePrincipal.AppRoles | Where-Object {$_.Value -eq "VerifiableCredential.Create.All" -and $_.AllowedMemberTypes -contains "Application"}
 New-AzureAdServiceAppRoleAssignment -ObjectId $MSI.ObjectId -PrincipalId $MSI.ObjectId ` -ResourceId $ApiServicePrincipal.ObjectId -Id $AppRole.Id
 ```
