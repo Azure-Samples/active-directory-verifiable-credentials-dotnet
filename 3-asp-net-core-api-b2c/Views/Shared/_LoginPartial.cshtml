@@ -1,0 +1,15 @@
+﻿@using System.Security.Principal
+
+<ul class="navbar-nav navbar-right">
+    @if (User.Identity?.IsAuthenticated == true) {
+        <span class="navbar-text text-dark">@User.FindFirst( "email" )?.Value</span>
+
+        <li class="nav-item">
+            <a class="nav-link text-nw-white" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignOut">Sign out</a>
+        </li>
+    } else {
+        <li class="nav-item">
+            <a class="nav-link text-nw-white" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignIn">Sign in</a>
+        </li>
+    }
+</ul>

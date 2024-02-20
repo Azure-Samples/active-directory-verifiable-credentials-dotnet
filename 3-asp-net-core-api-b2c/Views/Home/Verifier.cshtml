@@ -1,0 +1,54 @@
+﻿@{
+    ViewData["Title"] = "Verifier";
+}
+<div id="wrap">
+    <div style="text-align: center;">
+        <img src="~/VerifiedCredentialExpert-icon.png" class="ninja-img" />
+        <h1>Azure AD B2C + Verified ID issuance and verifier sample</h1>
+        <h2 id="idSubTitle">Presentation request for type @ViewData["CredentialType"]</h2>
+        <h3 id="idSub3Title">Accepted issuers: @string.Join( ", ", (string[])ViewData["acceptedIssuers"] )</h3>
+
+        <div id="message-wrapper" class="margin-bottom-75">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message">@ViewData["Message"]</div>
+            <br />
+        </div>
+
+        <button type="button" id="verify-credential" class="button">Verify Credential</button>
+        <button type="button" id="check-result" class="button" style="display:none">Check Result</button>
+        @if (!string.IsNullOrWhiteSpace((string)ViewData["PhotoClaimName"])) {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" @((bool)ViewData["useFaceCheck"] ? "checked" : "")>
+            <label for="useFaceCheck" id="labelFaceCheck"> Use FaceCheck</label>
+        } else {
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" value="0" style="display:none">
+            <label for="useFaceCheck" id="labelFaceCheck" style="display:none"> Use FaceCheck</label>
+        }
+
+        <br />
+
+        <div id="qrcode" style="text-align:center;display:none"></div>
+
+        <script src="~/js/qrcode.min.js"></script>
+        <script src="~/js/verifiedid.requestservice.client.js"></script>
+        <script src="~/js/verifiedid.uihandler.js"></script>
+
+        <script>
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var photoClaimName = '@ViewData["PhotoClaimName"]';
+
+            document.getElementById('verify-credential').addEventListener('click', () => {
+                var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
+                if (document.getElementById('useFaceCheck').checked) {
+                    qp += '&photoClaimName=' + photoClaimName;
+                }        
+                requestService.apiCreatePresentationRequest += qp;
+                requestService.createPresentationRequest();
+            });
+
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+        </script>
+    </div>
+
+</div>

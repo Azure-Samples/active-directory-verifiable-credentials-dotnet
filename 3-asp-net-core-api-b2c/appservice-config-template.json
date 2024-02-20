@@ -1,0 +1,127 @@
+[
+  {
+    "name": "AzureAdB2C__B2C1ARestApiKey",
+    "value": "...your B2C RESPI API Key...",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__B2CName",
+    "value": "your-tenant-name",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__CallbackPath",
+    "value": "/signin-oidc",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__ClientId",
+    "value": "...client_id...",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__ClientSecret",
+    "value": "...secret...",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__Domain",
+    "value": "your-tenant-name.onmicrosoft.com",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__Instance",
+    "value": "https://your-tenant-name.b2clogin.com",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__SignedOutCallbackPath",
+    "value": "/signout-oidc",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__SignUpSignInPolicyId",
+    "value": "B2C_1A_vc_susi",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAdB2C__TenantId",
+    "value": "...your-b2c-tenantid...",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ApiEndpoint",
+    "value": "https://verifiedid.did.msidentity.com/v1.0/verifiableCredentials/",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Authority",
+    "value": "https://login.microsoftonline.com/",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ManagedIdentity",
+    "value": "true",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CertificateName",
+    "value": "Enter here the name of a certificate (from the user cert store) as registered with your application",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ClientId",
+    "value": "APP CLIENT ID",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__ClientSecret",
+    "value": "client secret - leave blank to use CertificatName",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__client_name",
+    "value": "DotNet Client API Verifier",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CredentialExpiration",
+    "value": "",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CredentialManifest",
+    "value": "URL to the credential manifest",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__CredentialType",
+    "value": "B2CVerifiedAccount",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__DidAuthority",
+    "value": "YOUR DID",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__PhotoClaimName",
+    "value": "photo",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Purpose",
+    "value": "To prove your identity",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__scope",
+    "value": "3db474b9-6a0c-4840-96ac-1fceb342124f/.default",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__TenantId",
+    "value": "YOURTENANTID",
+    "slotSetting": false
+  }
+]

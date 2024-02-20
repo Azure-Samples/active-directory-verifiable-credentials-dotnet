@@ -1,0 +1,144 @@
+﻿@{
+    ViewData["Title"] = "Verifier";
+}
+<div id="wrap">
+    <div style="text-align: center;">
+        <img src="/VerifiedCredentialExpert-icon.png" height=200px; />
+        <h1 id="vcType">Verified ID Presentation</h1>
+
+
+        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message"></div>
+            <br />
+
+            <table id="claims">
+                <thead>
+                <th style="width:25%">Claims</th>
+                <th>Value</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <br />
+
+            <table id="vcinfo">
+                <thead>
+                <th style="width:25%">VC Details</th>
+                <th>Value</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <br />
+        </div>
+
+        <script src="~/js/verifiedid.requestservice.client.js"></script>
+        <script src="~/js/verifiedid.uihandler.js"></script>
+
+        <script>
+
+            function addTableRowLabel(tbodyRef, key) {
+                var row = tbodyRef.insertRow(0);
+                (row.insertCell(0)).innerHTML = key;
+                return row;
+            }
+            function addTableRow(tbodyRef, key, value) {
+                var row = addTableRowLabel(tbodyRef, key);
+                (row.insertCell(1)).innerHTML = value;
+            }
+
+            function drawClaimsTable(claims) {
+                if (Object.keys(claims).length > 0) {
+                    var tbodyRef = document.getElementById('claims').getElementsByTagName('tbody')[0];
+                    var idx = 0;
+                    for (idx = Object.keys(claims).length - 1; idx >= 0; idx--) {
+                        var claimName = Object.keys(claims)[idx];
+                        if (claimName == "photo" || claimName == "picture") {
+                            var img = document.createElement('img');
+                            img.width = 100;
+                            img.src = "data:image/*;base64," + decodeURI(claims[Object.keys(claims)[idx]]).replaceAll("_", "/").replaceAll("-", "+");
+                            var row = addTableRowLabel(tbodyRef, claimName);
+                            (row.insertCell(1)).appendChild(img);
+                        } else {
+                            addTableRow(tbodyRef, claimName, claims[Object.keys(claims)[idx]]);
+                        }
+                    }
+                }
+            }
+            function drawVcInfoTable(respMsg, payload) {
+                if (Object.keys(payload).length > 0) {
+                    var tbodyRef = document.getElementById('vcinfo').getElementsByTagName('tbody')[0];
+                    var idx = 0;
+                    for (idx = Object.keys(payload).length - 1; idx >= 0; idx--) {
+                        var claimName = Object.keys(payload)[idx];
+                        console.log(claimName);
+                        if (claimName !== "claims") {
+                            if (Object.keys(payload[Object.keys(payload)[idx]]).length > 0) {
+                                addTableRow(tbodyRef, claimName, JSON.stringify(payload[Object.keys(payload)[idx]]))
+                            } else {
+                                addTableRow(tbodyRef, claimName, payload[Object.keys(payload)[idx]])
+                            }
+                        }
+                    }
+                    if (respMsg.jti) {
+                        addTableRow(tbodyRef, "jti", respMsg.jti);
+                    }
+                    var vcSubject = respMsg.subject.split(":");
+                    addTableRow(tbodyRef, "subject", vcSubject[0] + ":" + vcSubject[1] + vcSubject[2] + "...");
+                    if (respMsg.revocationStatus) {
+                        addTableRow(tbodyRef, "revocationStatus", respMsg.revocationStatus);
+                    }
+                    if (respMsg.domainValidation) {
+                        addTableRow(tbodyRef, "domainValidation url", respMsg.domainValidation);
+                    }
+                    if (respMsg.matchConfidenceScore) {
+                        addTableRow(tbodyRef, "faceCheck matchConfidenceScore", respMsg.matchConfidenceScore);
+                    }
+                }
+            }
+            function getPresentationResult(requestId) {
+                fetch(`${requestService.apiPollPresentationRequest}?id=${requestId}`)
+                    .then(response => response.text())
+                    .catch(error => document.getElementById("message").innerHTML = error)
+                    .then(response => {
+                        if (response.length > 0) {
+                            console.log(response)
+                            respMsg = JSON.parse(response);
+                            if (respMsg.status == 'presentation_verified') {
+                                document.getElementById('vcType').innerText = respMsg.type[1] + " " + respMsg.message;
+                                document.getElementById('message').innerHTML = "";
+                                drawClaimsTable(respMsg.payload[0].claims);
+                                drawVcInfoTable(respMsg, respMsg.payload[0]);
+                            }
+                        }
+                    })
+            }
+
+
+            function parseParms(str) {
+                var pieces = str.split("&"), data = {}, i, parts;
+                for (i = 0; i < pieces.length; i++) {
+                    parts = pieces[i].split("=");
+                    if (parts.length < 2) {
+                        parts.push("");
+                    }
+                    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+                }
+                return data;
+            }
+
+            window.onload = function () {
+                var requestId = parseParms(document.location.search.substring(1)).id;
+                if (requestId) {
+                    getPresentationResult(requestId)
+                }
+            }
+        </script>
+    </div>
+
+
+</div>
+<div id="payload" style="text-align:left; display:none; margin:25px"></div>
