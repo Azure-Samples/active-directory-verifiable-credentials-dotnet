@@ -195,7 +195,7 @@
     "slotSetting": false
   },
   {
-    "name": "VerifiedID__GuestDisplayClaimName",
+    "name": "VerifiedID__GuestDisplayNameClaimName",
     "value": "displayName",
     "slotSetting": false
   },
