@@ -52,6 +52,8 @@
     <script src="~/js/qrcode.min.js"></script>
     <script src="~/js/verifiedid.requestservice.client.js"></script>
     <script src="~/js/verifiedid.uihandler.js"></script>
+    <!-- js for Teams Webhook -->
+    <script src="https://unpkg.com/teams-web-send@0.1.1/dist/tws.umd.production.min.js"></script>
 
     <script>
         var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
@@ -121,11 +123,43 @@
                             document.getElementById('userName').innerHTML = respMsg.displayName;
                             document.getElementById('faceScore').innerHTML = respMsg.matchConfidenceScore + "%";
                             document.getElementById('apps-button-wrapper').style.display = "block";
+                            if ("true" == "@Configuration.GetSection( "AppSettings" )["UseTeamsWebhook"]".toLowerCase() ) {
+                                sendHelpdeskRequestNotoficationToTeams(respMsg.displayName, respMsg.email, respMsg.matchConfidenceScore)
+                            }
                         } else {
                             document.getElementById('message').innerHTML = respMsg.error_description;
                         }
                     }
                 })
+        }
+
+        // This function sends a message via a webhook to a Teams channel
+        function sendHelpdeskRequestNotoficationToTeams( displayName, email, matchConfidenceScore ) {
+            var formatted_Card_Payload = JSON.stringify({
+                'type': 'message',
+                'attachments': [
+                    {
+                        'contentType': 'application/vnd.microsoft.card.adaptive',
+                        'content': {
+                            'type': 'AdaptiveCard',
+                            'body': [
+                                { 'type': 'TextBlock', 'text': "Presentation Verified for: " + displayName },
+                                { 'type': 'TextBlock', 'text': "Email: " + email },
+                                { 'type': 'TextBlock', 'text': "Face Check score: " + matchConfidenceScore + "%" }                                
+                            ],
+                            '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+                            'version': '1.0'
+                        }
+                    }
+                ]
+            });
+
+            (() => {
+                const sendMessage = window.tws.bootstrap();
+                sendMessage('@Configuration.GetSection( "AppSettings" )["TeamsWebhookURL"]', formatted_Card_Payload ).then(() => {
+                    console.info('Message sent!')
+                });
+            })();
         }
 
         showCard(1);

@@ -11,7 +11,8 @@ urlFragment: "6-woodgrove-helpdesk"
 # Verified ID Code Sample for Woodgrove Helpdesk
 
 This sample is show casing identifying yourself at a helpdesk by presenting your [VerifiedEmployee](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart-verifiedemployee) card.
-The helpdesk websites requires a Face Check together with the presentation for high assurance that the person is who they claim to be before getting suport.
+The helpdesk websites requires a Face Check together with the presentation for high assurance that the person is who they claim to be before getting suport. 
+More info about this pattern can be found [here](https://learn.microsoft.com/en-us/entra/verified-id/helpdesk-with-verified-id).
 
 **Note** - it is a demo app and not a real helpdesk portal.
 
@@ -52,6 +53,16 @@ Follow the steps above, with the additions.
 - When clicking on the `I already have my card`, you will be asked to open the Microsoft Authenticator and you have to accept that.
 - After sharing the credential and the Face Check result in the Microsoft Authenticator, manually return to your mobile browser app
 - Click `Continue` in the middle section
+
+## Extending the sample with Microwsoft Teams
+
+The sample is prepared to send a message to a Microsoft Teams channel using a [webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/what-are-webhooks-and-connectors). 
+In order to extend the sample, create a [incoming webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet) and update the app's configuration in your Azure AppService's configuration:
+
+|-------|--------|
+| Key | Value |
+| AppSettings__UseTeamsWebhook | "true" |
+| AppSettings__TeamsWebhookURL | URL of the incoming webhook |
 
 ## Setup
 
