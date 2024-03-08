@@ -43,6 +43,12 @@ Scenarios:
 | User-LifeCycleInfo.ReadWrite.All | Application | If you want to set the `EmployeeLeaveDateTime` attribute to the expiry date of the presented VC |
 | VerifiableCredential.Create.PresentationRequest | Application | For application to be able to create a Verified ID presentation request  |
 
+In order to add "VerifiableCredential.Create.PresentationRequest":
+
+1) Select "APIs my organization uses".
+2) Search for "Verifiable Credentials Service Request" and select it.
+3) Choose Application Permission, and select "VerifiableCredential.Create.PresentationRequest".
+4) Select Add permissions.
 
 ### General steps for registering the application:
 
