@@ -57,6 +57,7 @@ In order to add "VerifiableCredential.Create.PresentationRequest":
     - In the Name section, enter a meaningful application name for your issuance and/or verification application
     - In the supported account types section, select Accounts in this organizational directory only ({tenant name})
     - In the Redirect URI section, select `Web` and add `https://localhost:5001/signin-oidc`. You will later come back and add more redirect URIs.
+    - Select "ID tokens (used for implicit and hybrid flows)".
     - If you have deployed the app to `AppServices`, add `https://your-name.azurewebsites.net/signin-oidc` as a Redirect URI (replace with your name).
     - Select Register to create the application
 3.	On the app overview page, find the Application (client) ID value and Directory (tenant) ID and record it for later.
