@@ -1,6 +1,6 @@
 # Guest Onboarding
 
-In the Guest Onboarding scenario, the guest user presents their `VerifiedEmployee` Veified ID credential which triggers the creation of a B2B Guest Account. 
+In the Guest Onboarding scenario, the guest user presents their `VerifiedEmployee` Verified ID credential which triggers the creation of a B2B Guest Account. 
 No email is sent to the guest user and invite redemption is made by clicking a link to `MyApps` and signing in.
 
 The sample also implements a Guest Reverification scenario, where the guest user can present the Verified ID again to prove that the user is still an employee of their company.
@@ -10,7 +10,7 @@ The sample also implements a Guest Reverification scenario, where the guest user
 The admin needs to sign in and updated the trusted partner list as only users from these partners are allowed to onboard as guest accounts. 
 The list can contain a DID or a domain name. The DID is the issuers DID of the VerifiedEmployee credential and the domain name is matched against the linked domain in the VerifiedEmployee presented.
 
-![Truster Partner List screen](ReadmeFiles/TrustedPartnerList.png)
+![Trusted Partner List screen](ReadmeFiles/TrustedPartnerList.png)
 
 ## Guest 
 
@@ -43,7 +43,7 @@ to `false` will disable the use of FaceCheck.
 
 ## Can Guest Onboarding work with another credential types other than VerifiedEmployee?
 
-VerifiedEmployee is natural choice as it represents an Entra ID user profile from a company, but others can be used. Which Verified ID credential type you use is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
+VerifiedEmployee is the natural choice as it represents an Entra ID user profile from a company, but others can be used. Which Verified ID credential type you use is up to you as long as you trust it. The Verified ID credential needs to contain claim values for `email` and `displayName`.
 
 If you use a different credential type, you need to update the appsettings.json file for these three entries.
 

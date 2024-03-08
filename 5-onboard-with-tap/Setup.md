@@ -164,7 +164,7 @@ ie Section, then double underscore, followed by name. There is a template you ca
 
 ## Compile and running the sample locally
 
-1. Compile & run it using either Visual Studio or VSCode.
+1. Compile & run it using either Visual Studio or VS Code.
 ```Powershell
 dotnet build "OnboardWithTAP.csproj" -c Debug -o .\bin\Debug\net6
 dotnet run
