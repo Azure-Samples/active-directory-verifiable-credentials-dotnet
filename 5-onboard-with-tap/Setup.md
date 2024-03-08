@@ -16,7 +16,7 @@ You decide which model you want to follow, but please be aware that you will hav
 
 ## Register an application in Entra ID
 
-You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) an applications to get this sample to work. 
+You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) an application to get this sample to work. 
 
 ### Application permissions required (Employee Onboarding)
 
@@ -106,7 +106,7 @@ This step is only required if you want to change the new hire's password as part
 
 ### Deploying Azure Key Vault (Employee Onboarding) 
 
-The sample creates a link that is sent to the new hire's private email. The link containes a JWT token signed with an Azure Key Vault key. 
+The sample creates a link that is sent to the new hire's private email. The link contains a JWT token signed with an Azure Key Vault key. 
 The token is used as proof upon starting the onboarding process (only the new hire has the token) and is also passed to and returned from TrueIdentity for the same reason.
 If you have set up Verified ID the manual way, you already have an Azure Key Vault and can reuse it. 
 
@@ -118,7 +118,7 @@ If you have set up Verified ID the manual way, you already have an Azure Key Vau
 1. Click `Create`.
 
 **To update Access policies for Verified ID:**
-1. For verified ID setup, you can follow [these](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant#create-a-key-vault) instruction for key permissions needed. 
+1. For verified ID setup, you can follow [these](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant#create-a-key-vault) instructions for key permissions needed. 
 
 **To add the sample application's permission:**
 1. In `Access policies`, click `Create`
@@ -143,12 +143,12 @@ cd active-directory-verifiable-credentials-dotnet/5-onboard-with-tap
 
 ### Update appsettings.json
 
-The appsettings.json file have the following settings that needs to be updated. The default values for the settings not listed doesn't need to be changed just to get the sample running. 
+The appsettings.json file has the following settings that need to be updated. The default values for the settings not listed don't need to be changed just to get the sample running. 
 
 | Section | Name | Value | Note |
 |------|--------|--------|--------|
 | AppSettings | KeyIdentifier | URI | Key Identifier URI of your deployed Azure Key Vault signing key | 
-| AzureAd | Instance | https://login.microsoftonline.com/ | you don't need to chnge this value unless you don't run in the global Azure cloud |
+| AzureAd | Instance | https://login.microsoftonline.com/ | you don't need to change this value unless you don't run in the global Azure cloud |
 | | TenantId | guid | Your tenant id (guid) |
 | | ClientId| guid | AppID (client_id) |
 | | ClientSecret | string | The client secret generated in the portal |
@@ -158,7 +158,7 @@ The appsettings.json file have the following settings that needs to be updated. 
 | | ClientSecret | string | Your client secret can be same or different as the AzureAd.ClientSecret. If it is the same, you can leave this setting blank ("") and the sample will use AzureAd.ClientSecret. |
 | | DidAuthority | did | The authority DID that is making the presentation request. You can copy it from your [Organizational settings](https://portal.azure.com/#view/Microsoft_AAD_DecentralizedIdentity/InitialMenuBlade/~/issuerSettingsBlade) in the Entra portal |
 
-If you are deploying the solution to Azure AppServices, the configuration settings needs to have names like `AppSettings__KeyIdentifier`, `AzureAd__ClientId` and `VerifiedId__DidAuthority`, 
+If you are deploying the solution to Azure AppServices, the configuration settings need to have names like `AppSettings__KeyIdentifier`, `AzureAd__ClientId` and `VerifiedId__DidAuthority`, 
 ie Section, then double underscore, followed by name. There is a template you can use [here](appservices-advanced-settings.json)
 
 ## Compile and running the sample locally
