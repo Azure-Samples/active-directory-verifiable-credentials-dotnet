@@ -59,8 +59,8 @@ Follow the steps above, with the additions.
 The sample is prepared to send a message to a Microsoft Teams channel using a [webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/what-are-webhooks-and-connectors). 
 In order to extend the sample, create a [incoming webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet) and update the app's configuration in your Azure AppService's configuration:
 
-|-------|--------|
 | Key | Value |
+|------|--------|
 | AppSettings__UseTeamsWebhook | "true" |
 | AppSettings__TeamsWebhookURL | URL of the incoming webhook |
 
