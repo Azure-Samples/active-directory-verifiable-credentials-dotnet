@@ -17,7 +17,7 @@ $PSVersionTable.PSEdition
    ```PowerShell
    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
    ```
-1. Run the script to create your Entra ID application and configure the code of the sample application accordinly. (Other ways of running the scripts are described below)
+1. Run the script to create your Entra ID application and configure the code of the sample application accordingly. (Other ways of running the scripts are described below)
    ```PowerShell
    # for Powershell Core
    .\AppCreationScripts\Configure.ps1
@@ -67,7 +67,7 @@ If you do need to run `Update-Module` on Mac/Linux, you need to exit the Powersh
 
 ### openssl on Mac/Linux
 
-If you are running the `Configure.ps1` script on a Mac/Linux, and you plan to use the option of authenticating as the app using a client certificate, you need to install `openssl` on your computer. How you do this varies with what Linux distro you are using, but on Ubunto, you install openssl by running this in the terminal window
+If you are running the `Configure.ps1` script on a Mac/Linux, and you plan to use the option of authenticating as the app using a client certificate, you need to install `openssl` on your computer. How you do this varies with what Linux distro you are using, but on Ubuntu, you install openssl by running this in the terminal window
 
 ```bash
 sudo apt-get install openssl
@@ -92,7 +92,7 @@ Connect-AzConnect -tenantId $tenantId
 
 #### Option 1
 
-Running the script without any parameters will use the current context, if it exist, or ask the user to sign in interactively.
+Running the script without any parameters will use the current context, if it exists, or ask the user to sign in interactively.
 
 ```powershell
 .\Configure.ps1
@@ -108,7 +108,7 @@ Running the script and specifying the tenantId will check that the current is fo
 
 #### Option 3 - specify type of app credentials
 
-The default behaviour of the `Configure.ps1` script is to register the app and create a `client secret` as it's credentials. This allows the sample app to authenticate using a client_id and a client_secret. If you instead prefer that the app authenticates via a `client certificate`, you can let the script generate a self-signed certificate and upload it to the app registration. There is also the possibility of creating both a client secret
+The default behaviour of the `Configure.ps1` script is to register the app and create a `client secret` as its credentials. This allows the sample app to authenticate using a client_id and a client_secret. If you instead prefer that the app authenticates via a `client certificate`, you can let the script generate a self-signed certificate and upload it to the app registration. There is also the possibility of creating both a client secret
 
 ```powershell
 .\Configure.ps1 -ClientCertificate
