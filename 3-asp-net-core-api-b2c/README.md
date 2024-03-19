@@ -45,7 +45,7 @@ To use the sample, do the following:
     - Being signed in, You can use Verified ID as MFA
     - Click on `Page Requiring MFA` to run the B2C MFA policy that will ask you to present your Verified ID with Face Check for high assurance verification. 
 
-## Sample configuraion
+## Sample configuration
 
 This sample now has all its configuration in the [appsettings.json](appsettings.json) file and you need to update it before you run the app.
 If you are running the app locally, you need to edit the appsettings.json file. If you are running the app in Azure AppServices, you need to update the
@@ -56,7 +56,7 @@ settings in an Azure AppServices deployment. You can use this template [appservi
 | AzureAdB2C | Instance | Update your tenant name https://your-tenant-name.b2clogin.com |
 | | TenantId | Your B2C tenant id (guid) |
 | | Domain | Update your tenant name your-tenant-name.onmicrosoft.com |
-| | B2CName | Update your tenant name (nam excluding .onmicrosoft.com) |
+| | B2CName | Update your tenant name (name excluding .onmicrosoft.com) |
 | | ClientId | Client Id (AppId) in the B2C tenant that is used |
 | | ClientSecret | Client secret for the client id in the B2C tenant |
 | | SignUpSignInPolicyId | Name of your B2C Custom Policy you want to use for sign-in |
@@ -89,7 +89,7 @@ You do not need to register an app or create a custom Verified ID credential sch
 
 The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/azure/app-service/) 
 and use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
-You don't need to do a app registeration in Entra ID.
+You don't need to do an app registration in Entra ID.
 
 ### Deploy the B2C Custom Policies
 
@@ -97,7 +97,7 @@ Follow the instructions [here](B2C/README.md#setup) for how setup Azure AD B2C a
 
 ### Deploy the app
 
-1. Register an app in the B2C tenat as documented [here](https://learn.microsoft.com/azure/active-directory-b2c/tutorial-register-applications)
+1. Register an app in the B2C tenant as documented [here](https://learn.microsoft.com/azure/active-directory-b2c/tutorial-register-applications)
 1. Deploy the sample application to Azure App Services by clicking on the `Deploy to Azure` button above.
 1. Enter all the parameters when asked.
 1. Run the powershell script below to grant the Entra ID app the permissions required by Verified ID.
@@ -107,7 +107,7 @@ Follow the instructions [here](B2C/README.md#setup) for how setup Azure AD B2C a
 ### Entra ID app permissions
 
 The Azure AppServices app runs using [Managed Identity](https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
-You don't need to do a app registeration in Entra ID. You do need to grant the app the permission to call Verified ID.
+You don't need to do an app registration in Entra ID. You do need to grant the app the permission to call Verified ID.
 
 1. Make sure Managed Identity is enabled for your App Service app at `Settings` > `Identity`
 1. In portal.azure.com, open the `Cloud Shell` in powershell mode and run the following to grant your MSI service principal the permission to call Verified ID.
