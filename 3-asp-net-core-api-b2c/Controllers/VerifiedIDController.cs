@@ -246,7 +246,6 @@ namespace B2CVerifiedID {
                         _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description));
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
-                    _log.LogTrace( accessToken.token );
                     IssuanceRequest request = CreateIssuanceRequest( correlationId );
 
                     // 1) If we have an interactive user, take the claims from the user session
@@ -521,7 +520,6 @@ namespace B2CVerifiedID {
                     _log.LogError( String.Format( "failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description ) );
                     return BadRequest( new { error = accessToken.error, error_description = accessToken.error_description } );
                 }
-                _log.LogTrace( accessToken.token );
 
                 string correlationId = this.Request.Query["id"];
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";

@@ -122,7 +122,6 @@ namespace OnboardWithTAP.Controllers
                     _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}"), accessToken.error, accessToken.error_description);
                     return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                 }
-                _log.LogTrace( accessToken.token );
 
                 string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
                 OnboardWithTAP.Models.PresentationRequest request = CreatePresentationRequest( null, null );
