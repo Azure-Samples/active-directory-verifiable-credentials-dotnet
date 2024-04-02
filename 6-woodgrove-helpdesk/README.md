@@ -11,7 +11,7 @@ urlFragment: "6-woodgrove-helpdesk"
 # Verified ID Code Sample for Woodgrove Helpdesk
 
 This sample is show casing identifying yourself at a helpdesk by presenting your [VerifiedEmployee](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart-verifiedemployee) card.
-The helpdesk websites requires a Face Check together with the presentation for high assurance that the person is who they claim to be before getting suport. 
+The helpdesk websites require a Face Check together with the presentation for high assurance that the person is who they claim to be before getting support. 
 More info about this pattern can be found [here](https://learn.microsoft.com/en-us/entra/verified-id/helpdesk-with-verified-id).
 
 **Note** - it is a demo app and not a real helpdesk portal.
@@ -54,10 +54,10 @@ Follow the steps above, with the additions.
 - After sharing the credential and the Face Check result in the Microsoft Authenticator, manually return to your mobile browser app
 - Click `Continue` in the middle section
 
-## Extending the sample with Microwsoft Teams
+## Extending the sample with Microsoft Teams
 
 The sample is prepared to send a message to a Microsoft Teams channel using a [webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/what-are-webhooks-and-connectors). 
-In order to extend the sample, create a [incoming webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet) and update the app's configuration in your Azure AppService's configuration:
+In order to extend the sample, create an [incoming webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet) and update the app's configuration in your Azure AppService's configuration:
 
 | Key | Value |
 |------|--------|
@@ -79,7 +79,7 @@ You do not need to register an app or create a custom Verified ID credential sch
 
 The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/en-us/azure/app-service/) 
 and use [Managed Identity](https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
-You don't need to do a app registeration in Entra ID.
+You don't need to do an app registration in Entra ID.
 
 ### Configuring Managed Identity
 

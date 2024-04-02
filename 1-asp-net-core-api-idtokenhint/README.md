@@ -29,12 +29,12 @@ You will be asked to enter some parameters during deployment about your app regi
 ![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
 
 The `photo` claim is for presentation to name the claim in the requested credential when asking for a `FaceCheck`. 
-For issuance, the sample will use the credential manifest to determind if the credential has a photo or not. 
+For issuance, the sample will use the credential manifest to determine if the credential has a photo or not. 
 If you have a claim with a [type](https://learn.microsoft.com/en-us/entra/verified-id/rules-and-display-definitions-model#displayclaims-type) of `image/jpg;base64ur`, then the sample will add the selfie or uploaded photo to that claim during issuance. 
 
 ## Additional appsettings that can be used after deployment
 
-These settings can be set in the deployed AppServices Environment Variables configuration. In AppServices, they need to have a name like `VerifiedID__PhotoClaimName`, ie prefixed by `VerifiedID` followed by a double underscore to match the hierarchy in the appsettingsfile.
+These settings can be set in the deployed AppServices Environment Variables configuration. In AppServices, they need to have a name like `VerifiedID__PhotoClaimName`, i.e. prefixed by `VerifiedID` followed by a double underscore to match the hierarchy in the appsettingsfile.
 
 | Key | value | Description |
 |------|--------|--------|
@@ -42,7 +42,7 @@ These settings can be set in the deployed AppServices Environment Variables conf
 | useFaceCheck | true/false | If to use FaceCheck during presentation requests. This requires that the credential type asked for has a photo claim. |
 | PhotoClaimName | claim name | The name of the claim in the credential type asked for during presentation when `useFaceCheck` is `true`. The PhotoClaimName is not used during issuance. If the credential manifest has a claim with a type of `image/jpg;base64ur`, that claim will hold the photo. You can override the name of the photo claim by specifying it as a query string parameter, like `/verifier?photoClaimName=photo`. |
 | matchConfidenceThreshold | 50-100 | Optional. Confidence threshold for a successful FaceCheck. Default is 70 |
-| CredentialExpiration | any or EOD, EOW, EOM, EOQ, EOY or ""| Optional. In [idTokenHint flow](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart) you can now set the expiration date of the issued credential. This sample illustrates this by giving you the option of setting the expiry date to a calculated value. EOW means end-of-week, EOQ end-of-quearter, etc. |
+| CredentialExpiration | any or EOD, EOW, EOM, EOQ, EOY or ""| Optional. In [idTokenHint flow](https://learn.microsoft.com/en-us/entra/verified-id/how-to-use-quickstart) you can now set the expiration date of the issued credential. This sample illustrates this by giving you the option of setting the expiry date to a calculated value. EOW means end-of-week, EOQ end-of-quarter, etc. |
 
 ## Test Issuance and Verification
 
@@ -54,7 +54,7 @@ If you want to test presenting and verifying other types and credentials, follow
 
 The sample creates a [presentation request](https://learn.microsoft.com/en-us/entra/verified-id/get-started-request-api?tabs=http%2Cconstraints#presentation-request-example) in code based on your configuration in `appsettings.json`. 
 You can also use JSON templates to create other presentation requests without changing the configuration to quickly test different scenarios. 
-This github repo provises four templates for your convenience. Right-click and copy the below links, remove `http://localhost` from the link and append it to your deployed webapp so you have a URL that looks like `.../verifier?template=https://...`. 
+This github repo provides four templates for your convenience. Right-click and copy the below links, remove `http://localhost` from the link and append it to your deployed webapp so you have a URL that looks like `.../verifier?template=https://...`. 
 You can issue yourself a `VerifiedEmployee` credential at [MyAccount](https://myaccound.microsoft.com) if your organization have onboarded to Verified ID and enabled MyAccount (doc [here](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials)).
 
 | Template | Description | Link |
@@ -74,18 +74,18 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 
 | Issuance | |
 |------|--------|
-| Pages/Issuer.cshtml|The basic webpage containing the javascript to call the APIs for issuance. Depending if you use a photo, you will see options to take a selfie or upload a stock photo of you to be issued with the credential. |
+| Pages/Issuer.cshtml|The basic webpage containing the javascript to call the APIs for issuance. Depending on if you use a photo, you will see options to take a selfie or upload a stock photo of you to be issued with the credential. |
 | wwwroot/selfie.html|HTML page used on mobile device to take the selfie. |
 | IssuerController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL. |
 
 | Verification | |
 |------|--------|
-| Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential. Depending if you use a photo, you will have a checkbox that let's you create a presentation request with FaceCheck. |
+| Pages/Verifier.cshtml | The website acting as the verifier of the verifiable credential. Depending on if you use a photo, you will have a checkbox that let's you create a presentation request with FaceCheck. |
 | VerifierController.cs | This is the controller which contains the API called from the webpage. It calls the REST API after getting an access token through MSAL and helps verifying the presented verifiable credential.
 
 | Common | |
 |------|--------|
-| Pages/Index.cshtml|Start page with option to continue with issuance or varification. |
+| Pages/Index.cshtml|Start page with option to continue with issuance or verification. |
 | wwwroot/verifiedid.requestservice.client.js|js lib that handles all the API calls to the app |
 | wwwroot/verifiedid.uihandler.js |js lib that handles common UI updates |
 | CallbackController.cs | Controller that handles common functions between issuance and verification. It handles callback event from Request Service API, the polling requests from the browser and generating the selfie request. |
@@ -96,7 +96,7 @@ Before you can run this sample make sure your environment is setup correctly, fo
 
 ### Create application registration
 
-Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registrations, give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
+Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registration and give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
 Register an application in Azure Active Directory:
 
@@ -118,11 +118,11 @@ Register an application in Azure Active Directory:
   - Click the “Application Permission” and expand “VerifiableCredential.Create.All”
   - Click Grant admin consent for {tenant name} on top of the API/Permission list and click YES. This allows the application to get the correct permissions
 
-![Admin concent](ReadmeFiles/AdminConcent.PNG)
+![Admin consent](ReadmeFiles/AdminConcent.PNG)
 
 ## Setting up and running the sample locally
 
-To run the sample, clone the repository, compile & run it. It's callback endpoint must be publically reachable, and for that reason, use a tool like  `ngrok` as a reverse proxy to reach your app.
+To run the sample, clone the repository, compile & run it. Its callback endpoint must be publically reachable, and for that reason, use a tool like  `ngrok` as a reverse proxy to reach your app.
 
 ```Powershell
 git clone https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git
@@ -140,10 +140,10 @@ The `appsettings.json` needs to be updated with the following from the Verified 
 
 - Copy the authority DID and set the value for `DidAuthority`. 
 - Copy the credential manifest URL in the `CredentialManifest`. 
-- Optionally update the CredentialType if you plan use anothe credential than the `VerifiedCredentialExpert` type.
+- Optionally update the CredentialType if you plan use another credential than the `VerifiedCredentialExpert` type.
 
 The `appsettings.json` needs to be updated with the following from the Entra ID app registration portal blade:
-- `ClientId` should be updated with the App registrations app id should
+- `ClientId` should be updated with the App registrations app id.
 - `ClientSecret` should be updated with the generated client secret.
 - `TenantTd` should be updated with the guid of your tenant/directory id.
 

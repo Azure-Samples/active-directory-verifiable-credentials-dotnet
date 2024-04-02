@@ -19,8 +19,8 @@ Note - You should consider using the new [Entra ID for customers](https://learn.
 - Signin to B2C with your Verified ID credentials by scanning a QR code
 - Using your Verified ID credentials as MFA
  
-The recommended way for issuing Verified ID credentials in B2C/CIAM is to handle in in application code and not in the B2C custom policy. 
-To make use of Verified ID's feature Face Check, the credential needs to be issued with a photo of theuser and that is too complicated for a B2C custom policy.
+The recommended way for issuing Verified ID credentials in B2C/CIAM is to handle it in the application code and not in the B2C custom policy. 
+To make use of Verified ID's feature Face Check, the credential needs to be issued with a photo of the user and that is too complicated for a B2C custom policy.
 
 ![Scan QR code](/ReadmeFiles/b2c-vc-scan-qr-code.png)
 
@@ -46,15 +46,15 @@ This illustrates the scenario were the app requires a high-assurance 2FA before 
 - [Create an Azure AD B2C tenant](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-create-tenant) if you don't have one already.
 - Deployed the `B2C Custom Policy Starter Pack` [https://docs.microsoft.com/en-us/azure/active-directory-b2c/custom-policy-get-started?tabs=applications#custom-policy-starter-pack](https://docs.microsoft.com/en-us/azure/active-directory-b2c/custom-policy-get-started?tabs=applications#custom-policy-starter-pack).
 - Create a REST API key in the B2C portal named `RestApiKey`, manually set a value and copy the value for later use. You need it in `Deploy to Azure`
-- [Register a a web application in B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-register-applications) if you don't have one already.
+- [Register a web application in B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-register-applications) if you don't have one already.
 - Deploy this dotnet sample using the `Deploy To Azure` button.
 - Update the B2C web application's redirect URI to include the new Azure App Service app. Should be something like `https:/your-app-name.azurewebsites.net/signin-oidc`.
 - Edit the B2C Custom Policies in the [policies](./policies) folder
     - In all xml files, update all B2C tenant names from `yourtenant.onmicrosoft.com`	to the name of your tenant, like `mydev92.onmicrosoft.com`
     - In [TrustFrameworkExtensionsVC.xml](.\policies\TrustFrameworkExtensionsVC.xml) file:
-        - Update all `ServiceUrl` to use the endpoint of your deployed Azure App Service, ie `https://your-appname.azurewebsites.net/`
-        - Update the `LoadUri` to use the endpoint of your deployed Azure App Service, ie `https://your-appname.azurewebsites.net/`
-        - [Not needed] Update all `VCServiceUrl` to use the endpoint of your deployed Azure App Service, ie `https://your-appname.azurewebsites.net/` - only needed if you plan to use the B2C policies with another sample.
+        - Update all `ServiceUrl` to use the endpoint of your deployed Azure App Service, i.e. `https://your-appname.azurewebsites.net/`
+        - Update the `LoadUri` to use the endpoint of your deployed Azure App Service, i.e. `https://your-appname.azurewebsites.net/`
+        - [Not needed] Update all `VCServiceUrl` to use the endpoint of your deployed Azure App Service, i.e. `https://your-appname.azurewebsites.net/` - only needed if you plan to use the B2C policies with another sample.
 - Upload the B2C Custom Policies in the [policies](./policies) folder, starting with TrustFrameworkExtensionsVC.xml.
 
 ### SocialAndLocalAccountsWithMfa changes
@@ -70,7 +70,7 @@ The B2C sample policies in this repo are created using the [SocialAndLocalAccoun
 
 The custom html is now served from the dotnet application and you no longer need to deploy html-files to Azure Storage. 
 However, if you want to use the B2C custom policies without the dotnet sample, you need to follow these instructions.
-In this case, make sure to update the LoadUri values to the  [TrustFrameworkExtensionsVC.xml](.\policies\TrustFrameworkExtensionsVC.xml).
+In this case, make sure to update the LoadUri values to the [TrustFrameworkExtensionsVC.xml](.\policies\TrustFrameworkExtensionsVC.xml).
 
 - Create an Azure Storage and create a new container because you need to CORS enable it as explained [here](https://docs.microsoft.com/en-us/azure/active-directory-b2c/customize-ui-with-html?pivots=b2c-user-flow#2-create-an-azure-blob-storage-account). If you create a new storage account, you should perform step 2 through 3.1. Note that you can select `LRS` for Replication as `RA-GRS` is a bit overkill. Make sure you enable CORS for your B2C tenant.
 - Download your copy of [qrcode.min.js](https://raw.githubusercontent.com/davidshimjs/qrcodejs/master/qrcode.min.js) and upload it to the container in the Azure Storage.
