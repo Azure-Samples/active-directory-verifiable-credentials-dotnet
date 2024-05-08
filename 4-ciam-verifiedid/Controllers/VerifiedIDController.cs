@@ -461,6 +461,7 @@ namespace CIAMVerifiedID {
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("/api/issuer/get-manifest")]
         public ActionResult getManifest() {
             _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
