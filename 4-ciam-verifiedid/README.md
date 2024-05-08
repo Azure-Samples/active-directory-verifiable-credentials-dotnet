@@ -38,7 +38,7 @@ This sample now has all its configuration in the [appsettings.json](appsettings.
 If you are running the app locally, you need to edit the appsettings.json file. If you are running the app in Azure AppServices, you need to update the
 settings in an Azure AppServices deployment. You can use this template [appservice-config-template.json](appservice-config-template.json) and apply it in the Advanced Edit editor.
 
-When deploying the app to Azure AppServices, you should use Managed Identity. This means you will have to do register an app in the Entra tenant that is the authority for the Azure subscription of the AppService.
+When deploying the app to Azure AppServices, you should use Managed Identity. This means you do not have to do register an app in the Entra tenant that is the authority for the Azure subscription of the AppService.
 TenantId, ClientId and ClientSecret are repeated in the VerifiedID section ***if*** you ever want to deploy the sample app to Azure AppServices and not use Managed Identity.
 
 | Section | Setting | Description |
@@ -46,10 +46,10 @@ TenantId, ClientId and ClientSecret are repeated in the VerifiedID section ***if
 | AzureAd | Authority | Update your tenant name https://your-tenant-name.ciamlogin.com |
 | | TenantId | Your CIAM tenant id (guid) |
 | | TenantName | Update your tenant name your-tenant-name.onmicrosoft.com |
-| | ClientId | Client Id (AppId) in the B2C tenant that is used |
+| | ClientId | Client Id (AppId) in the CIAM tenant that is used |
 | | ClientSecret | Client secret for the client id - skip if using Managed Identity |
 | VerifiedID | TenantId | Your Verified ID tenant id (guid) |
-| | ClientId | Client Id (AppId) in the B2C tenant that is used |
+| | ClientId | Client Id (AppId) in the Entra tenant that is used |
 | | ClientSecret | Client secret for the client id - skip if using Managed Identity |
 | | ManagedIdentity | true if you are running the app in Azure AppServices with Managed Identity. In that case, you don't need ClientId/ClientSecret/CertificateName |
 | | DidAuthority | The DID of your Verified ID authority |
@@ -63,23 +63,21 @@ TenantId, ClientId and ClientSecret are repeated in the VerifiedID section ***if
 
 ### Create a CIAM tenant
 
-Use your existing CIAM tenant or follow the [quickstart]((https://learn.microsoft.com/en-us/entra/external-id/customers/quickstart-tenant-setup)) for creating a CIAM tenant. 
+Use your existing CIAM tenant or follow the [quickstart](https://learn.microsoft.com/en-us/entra/external-id/customers/quickstart-tenant-setup) for creating a CIAM tenant. 
 
 ### Register an app and create a sign-in flow
 
-Follow the instructions for [registering an app](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-register-ciam-app?tabs=webapp). 
-
-Follow the instructions in the doc page with the following additions
+Follow the instructions for [registering an app](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-register-ciam-app?tabs=webapp) the following additions. 
 
 1. Skip the permissions for claim-ToDoList-api
 1. Authentication
-  1. Add redirect_uris `https://localhost:5001/signin-oidc` and `https://jwt.ms/`
-  1. In Implict grant and hybrid flows, select Access & ID tokens
+    1. Add redirect_uris `https://localhost:5001/signin-oidc` and `https://jwt.ms/`
+    1. In Implict grant and hybrid flows, select Access & ID tokens
 1. Token configuration
-  1. Add optional claim `email` + `preferred_username` for id & access token
+    1. Add optional claim `email` + `preferred_username` for id & access token
 1. API Permissions
-  1. +Add permission > APIs my org uses > Verifiable Credentials Service Request > Application permissions > `VerifiableCredential.Create.All`
-  1. Grant admin consent
+    1. +Add permission > APIs my org uses > Verifiable Credentials Service Request > Application permissions > `VerifiableCredential.Create.All`
+    1. Grant admin consent
 
 The API permission is only required when running the app on localhost.
 
@@ -96,7 +94,7 @@ Test run the user flow to see that it works. Select https://jwt.ms/ as Reply URL
 
 Setup Verified ID in your tenant using the [quick setup](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) method. Note that the Advanced setup method isn't supported. 
 
-Create a custom credential named `NorthwindAirlinesDigitalCard` using the display and rules definitions available [here](Credential Definitions)
+Create a custom credential named `NorthwindAirlinesDigitalCard` using the display and rules definitions available [here](Credential%20Definitions)
 
 ### Azure subscription
 
