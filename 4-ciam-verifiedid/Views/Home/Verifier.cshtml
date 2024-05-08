@@ -1,0 +1,62 @@
+﻿@{
+    ViewData["Title"] = "Verifier";
+}
+<div id="wrap">
+    <div>
+        <p id="idSub3Title">
+            Prove your identity by pressing the <b>Verify Credential</b> button and present your Verified ID credential.
+            When the QR code appears, scan it with your Microsoft Authenticator or your custom wallet app.
+        </p>
+
+        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message">
+                <strong>@ViewData["message"]</strong>
+            </div>
+        </div>
+
+        <button type="button" id="verify-credential" class="button bg-nw-purple text-nw-white">Verify Credential</button>
+        <button type="button" id="check-result" class="button  bg-nw-purple text-nw-white" style="display:none">Check Result</button>
+        <input type="checkbox" id="useFaceCheck" name="useFaceCheck" checked>
+        <label for="useFaceCheck" id="labelFaceCheck"> Use FaceCheck</label>
+
+        <br />
+
+        <div id="qrcode" style="text-align:center;display:none"></div>
+
+        <br /><br/>
+        <div id="idCard" class="idCard" style="display:none">
+            <div class="idCardLogo">
+                <img id="idCardLogo" src="" alt="Logo">
+            </div>
+            <div id="idCardTitle" class="idCardTitle">Card Title</div>
+            <div id="idCardIssuedBy" class="idCardIssuedBy">Issuer</div>
+        </div>
+
+        <script src="~/js/qrcode.min.js"></script>
+        <script src="~/js/verifiedid.card.js"></script>
+        <script src="~/js/verifiedid.requestservice.client.js"></script>
+        <script src="~/js/verifiedid.uihandler.js"></script>
+
+        <script>
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var photoClaimName = '@ViewData["PhotoClaimName"]';
+
+            document.getElementById('verify-credential').addEventListener('click', () => {
+                var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
+                if (document.getElementById('useFaceCheck').checked) {
+                    qp += '&photoClaimName=' + photoClaimName;
+                }        
+                requestService.apiCreatePresentationRequest += qp;
+                requestService.createPresentationRequest();
+            });
+
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+
+            drawVerifiedIDCard();
+        </script>
+    </div>
+
+</div>

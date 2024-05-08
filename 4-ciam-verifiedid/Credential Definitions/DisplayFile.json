@@ -1,0 +1,45 @@
+{
+  "locale": "en-US",
+  "card": {
+    "backgroundColor": "#425368",
+    "description": "Northwind Airlines Digital Card",
+    "issuedBy": "Northwind Airlines",
+    "textColor": "#ffffff",
+    "title": "Northwind Airlines Digital Card",
+    "logo": {
+      "description": "Northwind Airlines Logo",
+      "uri": "https://cljungdemob2c.blob.core.windows.net/uxcust/templates/northwindairlines/northwindairlines-logo.jpg"
+    }
+  },
+  "consent": {
+    "instructions": "Please accept your Northwind Airlines Digital Card",
+    "title": "Please accept your Northwind Airlines Digital Card"
+  },
+  "claims": [
+    {
+      "claim": "vc.credentialSubject.displayName",
+      "label": "Display Name",
+      "type": "String"
+    },
+    {
+      "claim": "vc.credentialSubject.username",
+      "label": "Username",
+      "type": "String"
+    },
+    {
+      "claim": "vc.credentialSubject.memberStatus",
+      "label": "Status",
+      "type": "String"
+    },
+    {
+      "claim": "vc.credentialSubject.membershipNo",
+      "label": "Membership No",
+      "type": "String"
+    },
+    {
+      "claim": "vc.credentialSubject.photo",
+      "label": "User picture",
+      "type": "image/jpg;base64url"
+    }
+  ]
+}
