@@ -209,10 +209,6 @@
               },
 
               {
-                "name": "VerifiedID__ManagedIdentity",
-                "value": "true"
-              },
-              {
                 "name": "VerifiedID__DidAuthority",
                 "value": "[parameters('DidAuthority')]"
               },

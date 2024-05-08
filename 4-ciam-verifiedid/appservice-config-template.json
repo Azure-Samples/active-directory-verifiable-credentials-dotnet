@@ -46,23 +46,8 @@
     "slotSetting": false
   },
   {
-    "name": "VerifiedID__ManagedIdentity",
-    "value": "true",
-    "slotSetting": false
-  },
-  {
     "name": "VerifiedID__CertificateName",
     "value": "Enter here the name of a certificate (from the user cert store) as registered with your application",
-    "slotSetting": false
-  },
-  {
-    "name": "VerifiedID__ClientId",
-    "value": "APP CLIENT ID",
-    "slotSetting": false
-  },
-  {
-    "name": "VerifiedID__ClientSecret",
-    "value": "client secret - leave blank to use CertificatName",
     "slotSetting": false
   },
   {

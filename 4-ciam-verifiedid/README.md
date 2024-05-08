@@ -38,9 +38,6 @@ This sample now has all its configuration in the [appsettings.json](appsettings.
 If you are running the app locally, you need to edit the appsettings.json file. If you are running the app in Azure AppServices, you need to update the
 settings in an Azure AppServices deployment. You can use this template [appservice-config-template.json](appservice-config-template.json) and apply it in the Advanced Edit editor.
 
-When deploying the app to Azure AppServices, you should use Managed Identity. This means you do not have to do register an app in the Entra tenant that is the authority for the Azure subscription of the AppService.
-TenantId, ClientId and ClientSecret are repeated in the VerifiedID section ***if*** you ever want to deploy the sample app to Azure AppServices and not use Managed Identity.
-
 | Section | Setting | Description |
 |------|--------|--------|
 | AzureAd | Authority | Update your tenant name https://your-tenant-name.ciamlogin.com |
@@ -49,9 +46,6 @@ TenantId, ClientId and ClientSecret are repeated in the VerifiedID section ***if
 | | ClientId | Client Id (AppId) in the CIAM tenant that is used |
 | | ClientSecret | Client secret for the client id - skip if using Managed Identity |
 | VerifiedID | TenantId | Your Verified ID tenant id (guid) |
-| | ClientId | Client Id (AppId) in the Entra tenant that is used |
-| | ClientSecret | Client secret for the client id - skip if using Managed Identity |
-| | ManagedIdentity | true if you are running the app in Azure AppServices with Managed Identity. In that case, you don't need ClientId/ClientSecret/CertificateName |
 | | DidAuthority | The DID of your Verified ID authority |
 | | CredentialType | Name of the credential type you are using in combination with CIAM |
 | | CredentialManifest | URL to the credential manifest for your Verified ID credential |
@@ -59,13 +53,13 @@ TenantId, ClientId and ClientSecret are repeated in the VerifiedID section ***if
 | | useFaceCheck | If you plan to extend the sample by providing a user photo during issuance, change this flag to true |
 | | PhotoClaimName | Name of photo claim |
 
-### Setup
+## Setup
 
 ### Create a CIAM tenant
 
 Use your existing CIAM tenant or follow the [quickstart](https://learn.microsoft.com/en-us/entra/external-id/customers/quickstart-tenant-setup) for creating a CIAM tenant. 
 
-### Register an app and create a sign-in flow
+### Register an app
 
 Follow the instructions for [registering an app](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-register-ciam-app?tabs=webapp) the following additions. 
 
@@ -79,8 +73,7 @@ Follow the instructions for [registering an app](https://learn.microsoft.com/en-
     1. +Add permission > APIs my org uses > Verifiable Credentials Service Request > Application permissions > `VerifiableCredential.Create.All`
     1. Grant admin consent
 
-The API permission is only required when running the app on localhost.
-
+### Create a sign-in flow
 Create a sign-up and sign-in flow is documented [here](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-user-flow-sign-up-sign-in-customers).
 Use the following options:
 
@@ -90,41 +83,16 @@ Use the following options:
 
 Test run the user flow to see that it works. Select https://jwt.ms/ as Reply URL, id token as Response type
 
-### Setup Verified ID and create a custom credential
+### Setup Verified ID
 
 Setup Verified ID in your tenant using the [quick setup](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) method. Note that the Advanced setup method isn't supported. 
 A requirement for using the quick setup is that you have registered a [custom domain](https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain) for the tenant. 
+
+### Create a Verified ID custom credential 
 
 Create a custom credential named `NorthwindAirlinesDigitalCard` using the display and rules definitions available [here](Credential%20Definitions)
 
 ### Azure subscription
 
-The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/azure/app-service/) 
-and use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
-You don't need to do an app registration in Entra ID.
-
-### Azure AppServices Managed Identity configuration
-
-The Azure AppServices app runs using [Managed Identity](https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
-You don't need to do an app registration in Entra ID. You do need to grant the app the permission to call Verified ID.
-
-1. Make sure Managed Identity is enabled for your App Service app at `Settings` > `Identity`
-1. In portal.azure.com, open the `Cloud Shell` in powershell mode and run the following to grant your MSI service principal the permission to call Verified ID.
-
-```Powershell
-$TenantID="<YOUR TENANTID>"
-$YourAppName="<NAME OF YOUR AZURE WEBAPP>"
-
-#Do not change this values below
-#
-# Install the module
-Install-Module AzureAD
-
-Connect-AzureAD -TenantId $TenantID
-
-$MSI = (Get-AzureADServicePrincipal -Filter "displayName eq '$YourAppName'")
-Start-Sleep -Seconds 10
-$ApiServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '3db474b9-6a0c-4840-96ac-1fceb342124f'"
-$AppRole = $ApiServicePrincipal.AppRoles | Where-Object {$_.Value -eq "VerifiableCredential.Create.All" -and $_.AllowedMemberTypes -contains "Application"}
-New-AzureAdServiceAppRoleAssignment -ObjectId $MSI.ObjectId -PrincipalId $MSI.ObjectId ` -ResourceId $ApiServicePrincipal.ObjectId -Id $AppRole.Id
-```
+The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/azure/app-service/). You can ***not*** use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
+The sample uses the ClientID and the ClientSecret configured for the CIAM tenant to acquire access tokens to Verified ID.
