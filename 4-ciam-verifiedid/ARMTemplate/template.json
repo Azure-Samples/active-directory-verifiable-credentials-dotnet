@@ -32,7 +32,7 @@
       "defaultValue": "4-ciam-verifiedid"
     },
 
-    "CIAMTenantName": {
+    "TenantName": {
       "type": "string",
       "metadata": {
         "description": "CIAM Tenant name, excluding .onmicrosoft.com"
@@ -47,6 +47,21 @@
       },
       "defaultValue": "<Tenant id>"
     },
+    "ClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "CIAM app's ClientId"
+      },
+      "defaultValue": "<CIAM ClientId>"
+    },
+    "ClientSecret": {
+      "type": "string",
+      "metadata": {
+        "description": "CIAM app's ClientSecret"
+      },
+      "defaultValue": "<CIAM ClientSecret>"
+    },
+
     "DidAuthority": {
       "type": "string",
       "metadata": {
@@ -78,8 +93,8 @@
   },
   "variables": {
     "appServicePlanPortalName": "[concat(parameters('webAppName'), '-plan')]",
-    "ciamTenantDomainFull": "[concat(parameters('CIAMTenantName'), '.onmicrosoft.com')]",
-    "ciamAuthority": "[concat('https://', parameters('CIAMTenantName'), '.ciamlogin.com')]"
+    "ciamTenantDomainFull": "[concat(parameters('TenantName'), '.onmicrosoft.com')]",
+    "ciamAuthority": "[concat('https://', parameters('TenantName'), '.ciamlogin.com')]"
   },
     "resources": [
       {
@@ -188,6 +203,10 @@
                 "name": "AzureAd__ClientId",
                 "value": "[parameters('ClientId')]"
               },
+              {
+                "name": "AzureAd__ClientSecret",
+                "value": "[parameters('ClientSecret')]"
+              },
 
               {
                 "name": "VerifiedID__ManagedIdentity",
@@ -220,8 +239,12 @@
               {
                 "name": "VerifiedID__IssuancePinCodeLength",
                 "value": "4"
+              },
+              {
+                "name": "VerifiedID__includeReceipt",
+                "value": "true"
               }
-              
+
             ]
           }
         },
