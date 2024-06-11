@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 
-namespace CIAMVerifiedID {
+namespace ExternalIDVerifiedID {
     public class IssuanceRequest {
         public string authority { get; set; }
         public bool includeQRCode { get; set; }

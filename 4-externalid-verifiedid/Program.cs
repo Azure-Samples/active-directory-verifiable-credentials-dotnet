@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
-namespace CiamVerifiedID {
+namespace ExternalIDVerifiedID {
     public class Program {
         public static void Main( string[] args ) {
 

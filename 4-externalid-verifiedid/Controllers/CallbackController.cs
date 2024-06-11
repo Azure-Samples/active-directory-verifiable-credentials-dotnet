@@ -11,7 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 
-namespace CIAMVerifiedID
+namespace ExternalIDVerifiedID
 {
     [Route("api/[action]")]
     [ApiController]

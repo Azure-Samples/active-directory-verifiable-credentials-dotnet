@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using CIAMVerifiedID.Models;
+using ExternalIDVerifiedID.Models;
 
-namespace CIAMVerifiedID
+namespace ExternalIDVerifiedID
 {
     public class HomeController : Controller
     {

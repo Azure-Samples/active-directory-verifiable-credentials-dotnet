@@ -1,5 +1,5 @@
 
-namespace CIAMVerifiedID.Models {
+namespace ExternalIDVerifiedID.Models {
     public class ErrorViewModel {
         public string? RequestId { get; set; }
 

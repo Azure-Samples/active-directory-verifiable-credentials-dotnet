@@ -8,7 +8,7 @@ using System;
 using Microsoft.Extensions.Logging;
 using Azure.Identity;
 
-namespace CIAMVerifiedID {
+namespace ExternalIDVerifiedID {
     public class MsalAccessTokenHandler {
         private static X509Certificate2 ReadCertificate( string certificateName ) {
             if (string.IsNullOrWhiteSpace( certificateName )) {

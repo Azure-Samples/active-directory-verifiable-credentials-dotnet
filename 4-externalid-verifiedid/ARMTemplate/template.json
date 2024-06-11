@@ -35,9 +35,9 @@
     "TenantName": {
       "type": "string",
       "metadata": {
-        "description": "CIAM Tenant name, excluding .onmicrosoft.com"
+        "description": "External ID Tenant name, excluding .onmicrosoft.com"
       },
-      "defaultValue": "<CIAM Tenant name, excl .onmicrosoft.com>"
+      "defaultValue": "<External ID Tenant name, excl .onmicrosoft.com>"
     },
 
     "TenantId": {
@@ -50,16 +50,16 @@
     "ClientId": {
       "type": "string",
       "metadata": {
-        "description": "CIAM app's ClientId"
+        "description": "app's ClientId"
       },
-      "defaultValue": "<CIAM ClientId>"
+      "defaultValue": "<ClientId>"
     },
     "ClientSecret": {
       "type": "string",
       "metadata": {
-        "description": "CIAM app's ClientSecret"
+        "description": "app's ClientSecret"
       },
-      "defaultValue": "<CIAM ClientSecret>"
+      "defaultValue": "<ClientSecret>"
     },
 
     "DidAuthority": {
@@ -93,8 +93,8 @@
   },
   "variables": {
     "appServicePlanPortalName": "[concat(parameters('webAppName'), '-plan')]",
-    "ciamTenantDomainFull": "[concat(parameters('TenantName'), '.onmicrosoft.com')]",
-    "ciamAuthority": "[concat('https://', parameters('TenantName'), '.ciamlogin.com')]"
+    "tenantDomainNameFull": "[concat(parameters('TenantName'), '.onmicrosoft.com')]",
+    "tenantAuthority": "[concat('https://', parameters('TenantName'), '.ciamlogin.com')]"
   },
     "resources": [
       {
@@ -193,11 +193,11 @@
               },
               {
                 "name": "AzureAd__TenantName",
-                "value": "[variables('ciamTenantDomainFull')]"
+                "value": "[variables('tenantDomainNameFull')]"
               },
               {
                 "name": "AzureAd__Authority",
-                "value": "[variables('ciamAuthority')]"
+                "value": "[variables('tenantAuthority')]"
               },
               {
                 "name": "AzureAd__ClientId",
