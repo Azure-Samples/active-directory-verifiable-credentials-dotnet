@@ -1,0 +1,34 @@
+﻿@{
+    ViewData["Title"] = "User Profile";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Claims</h1>
+
+    @if (User.Identity?.IsAuthenticated == true) {
+        <p>You are signed in! Below are the claims in your ID token. For more information, visit: <a href="https://learn.microsoft.com/azure/active-directory/develop/id-tokens">Microsoft identity platform ID tokens</a></p>
+
+        <table>
+            <thread>
+                <thead>
+                    <th>Claims</th>
+                    <th>Value</th>
+                </thead>
+            </thread>
+            <tbody>
+                @foreach (var item in @User.Claims)
+                {
+                    <tr>
+                        <td>@item.Type</td>
+                        <td>@item.Value</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    } else {
+        <p>You can only see your user profile when you are signed in.</p>
+    }
+
+    <br />
+    <p>Learn about <a href="https://learn.microsoft.com/azure/active-directory/develop/v2-overview">building web apps with Microsoft identity platform</a>.</p>
+</div>

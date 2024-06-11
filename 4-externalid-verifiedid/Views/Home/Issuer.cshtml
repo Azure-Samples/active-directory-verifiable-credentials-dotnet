@@ -1,0 +1,93 @@
+﻿@{
+    ViewData["Title"] = "Issuer";
+}
+<div id="wrap">
+    <!--<div style="text-align: center;">--> 
+    <div>
+        <p id="photo-help" class="normal-text">
+            Issue your Digital Loyalty Card by pressing the <b>Issue Credential</b> button.
+            When the QR code appears, scan it with your Microsoft Authenticator or your custom wallet app.
+            <br />
+            The Verified ID credential may contain a photo of yourself for later verification via a liveness check that matches against your photo.
+            If you like to add a photo, either upload an existing photo of you via 'Choose File' or click 'Take Selfie' take a selfie of yourself.
+            <br /><br />
+            For selfie, scan the QR code with the <strong>QR Code Reader app</strong> on your mobile, click 'Open Camera' in the page, take selfie and then click 'Use photo' in the mobile.
+            The photo is not persisted anywhere and is just added to the credential you will have in the Authenticator.
+            <br /><br />
+            The photo should be a portrait photo of atleast 200x200 pixels. Glasses, masks, hats, headphones, head coverings and face coverings will result in failure in liveness checks during presentations.
+        </p>
+
+        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
+            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
+            <div id="message">
+                <strong>@ViewData["message"]</strong>
+            </div>
+        </div>
+
+        <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" >Take Selfie</button>
+        <input type='file' id="imageUpload" accept="image/*" class="button bg-nw-blue text-nw-white" />
+        &nbsp;|&nbsp;
+        <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white">Issue Credential</button>
+        <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
+        <br /><br />
+        <div id="qrcode" style="text-align:center; display:none"></div>
+        <br />
+        <div id="pinCode" style="display: none"></div>
+        <br />
+        <img id="selfie" width="240" height="320" style="display:none" />
+
+        <br/>
+        <div id="idCard" class="idCard" style="display:none">
+            <div class="idCardLogo">
+                <img id="idCardLogo" src="" alt="Logo">
+            </div>
+            <div id="idCardTitle" class="idCardTitle">Card Title</div>
+            <div id="idCardIssuedBy" class="idCardIssuedBy">Issuer</div>
+        </div>
+
+        <script src="~/js/qrcode.min.js"></script>
+        <script src="~/js/verifiedid.card.js"></script>
+        <script src="~/js/verifiedid.requestservice.client.js"></script>
+        <script src="~/js/verifiedid.uihandler.js"></script>
+
+        <script>
+            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+            var havePhotoClaim = true;
+
+            document.getElementById('issue-credential').addEventListener('click', () => {
+                if ( havePhotoClaim ) {
+                    setUserPhoto();
+                    hideShowPhotoElements("none");
+                    // make sure the photo is sent to API in backend before we continue
+                    setTimeout(requestService.createIssuanceRequest(), 250);
+                } else {
+                    requestService.createIssuanceRequest();
+                }
+            });
+
+            document.getElementById('take-selfie').addEventListener('click', () => {
+                document.getElementById("selfie").src = "";
+                document.getElementById("selfie").style.display = "none";
+                document.getElementById("imageUpload").style.display = "none";
+                requestService.createSelfieRequest();
+            });
+
+            document.getElementById('check-result').addEventListener('click', () => {
+                requestService.pollRequestStatus(requestService.request.id);
+            });
+
+            document.getElementById('imageUpload').addEventListener('change', function (e) {
+                uploadImage(e)
+            });
+
+            drawVerifiedIDCard((manifest) => {
+                // if the manifest has a claim with type image/jp[e]g, then we should support adding a photo
+                if (!manifest.includes("image/jp")) {
+                    havePhotoClaim = false;
+                    hideShowPhotoElements("none");
+                }
+            });
+
+        </script>
+    </div>
+</div>

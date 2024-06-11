@@ -1,0 +1,53 @@
+{
+  "attestations": {
+    "idTokenHints": [
+      {
+        "mapping": [
+          {
+            "outputClaim": "displayName",
+            "required": true,
+            "inputClaim": "name",
+            "indexed": false
+          },
+          {
+            "outputClaim": "username",
+            "required": true,
+            "inputClaim": "email",
+            "indexed": true
+          },
+          {
+            "outputClaim": "upn",
+            "required": false,
+            "inputClaim": "upn",
+            "indexed": false
+          },
+          {
+            "outputClaim": "memberStatus",
+            "required": true,
+            "inputClaim": "memberStatus",
+            "indexed": false
+          },
+          {
+            "outputClaim": "membershipNo",
+            "required": true,
+            "inputClaim": "membershipNo",
+            "indexed": false
+          },
+          {
+            "outputClaim": "photo",
+            "required": false,
+            "inputClaim": "photo",
+            "indexed": false
+          }
+        ],
+        "required": false
+      }
+    ]
+  },
+  "validityInterval": 2592000,
+  "vc": {
+    "type": [
+      "NorthwindAirlinesDigitalCard"
+    ]
+  }
+}
