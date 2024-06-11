@@ -45,8 +45,7 @@ settings in an Azure AppServices deployment. You can use this template [appservi
 | | TenantName | Update your tenant name your-tenant-name.onmicrosoft.com |
 | | ClientId | Client Id (AppId) in the External ID tenant that is used |
 | | ClientSecret | Client secret for the client id - skip if using Managed Identity |
-| VerifiedID | TenantId | Your Verified ID tenant id (guid) |
-| | DidAuthority | The DID of your Verified ID authority |
+| VerifiedID | DidAuthority | The DID of your Verified ID authority |
 | | CredentialType | Name of the credential type you are using in combination with External ID |
 | | CredentialManifest | URL to the credential manifest for your Verified ID credential |
 | | IssuancePinCodeLength | Enter value 4-6 if you want issuance to have a pin code. Leave 0 for no pin code |
@@ -58,7 +57,6 @@ settings in an Azure AppServices deployment. You can use this template [appservi
 ### Create a External ID tenant
 
 Use your existing External ID tenant or follow the [quickstart](https://learn.microsoft.com/en-us/entra/external-id/customers/quickstart-tenant-setup) for creating a External ID tenant.
-Please note that you need a custom domain for your Entra tenant for Quick setup to work.
 
 ### Setup Verified ID
 
