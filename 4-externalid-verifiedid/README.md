@@ -58,6 +58,17 @@ settings in an Azure AppServices deployment. You can use this template [appservi
 ### Create a External ID tenant
 
 Use your existing External ID tenant or follow the [quickstart](https://learn.microsoft.com/en-us/entra/external-id/customers/quickstart-tenant-setup) for creating a External ID tenant.
+Please note that you need a custom domain for your Entra tenant for Quick setup to work.
+
+### Setup Verified ID
+
+Setup Verified ID in your tenant using the [quick setup](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) method. Note that the Advanced setup method isn't supported. 
+A requirement for using the quick setup is that you have registered a [custom domain](https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain) for the tenant.
+
+### Create a Verified ID custom credential
+
+Create a custom credential named `NorthwindAirlinesDigitalCard` using the display and rules definitions available [here](Credential%20Definitions)
+
 
 ### Register an app
 
@@ -82,15 +93,6 @@ Use the following options:
 1. Applications: Add Applications: Add the application you registered previously
 
 Test run the user flow to see that it works. Select https://jwt.ms/ as Reply URL, id token as Response type
-
-### Setup Verified ID
-
-Setup Verified ID in your tenant using the [quick setup](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) method. Note that the Advanced setup method isn't supported. 
-A requirement for using the quick setup is that you have registered a [custom domain](https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain) for the tenant.
-
-### Create a Verified ID custom credential
-
-Create a custom credential named `NorthwindAirlinesDigitalCard` using the display and rules definitions available [here](Credential%20Definitions)
 
 ### Azure subscription
 
