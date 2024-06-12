@@ -29,7 +29,7 @@
       "metadata": {
         "description": "Github repo subfolder"
       },
-      "defaultValue": "4-ciam-verifiedid"
+      "defaultValue": "4-externalid-verifiedid"
     },
 
     "TenantName": {
