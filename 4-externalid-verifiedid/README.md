@@ -2,6 +2,8 @@
 
 This sample is an ASP.Net Core sample that is designed for External ID and Verified ID to work together. 
 
+> **_NOTE:_**  The feature of signing in via presenting a Verified ID is in private preview.
+
 ## Deploy to Azure
 
 Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
@@ -23,7 +25,7 @@ To use the sample, do the following:
     - Select `Issue Verified ID` in home page
     - If you want a credential that can work with FaceCheck, either take a selfie or upload a photo of yourself
     - Click `Issue Credential` to issue yourself a credential
-- Step 3
+- Step 3 (private preview)
     - Sign out from the app
     - Click Sign-in, type your email, click Next and select `Use a Verified ID` to authenticate
     - Scan the QR code and present your Verified ID credential
