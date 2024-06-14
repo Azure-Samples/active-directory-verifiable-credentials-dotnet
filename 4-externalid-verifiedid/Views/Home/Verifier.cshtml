@@ -43,6 +43,7 @@
             var photoClaimName = '@ViewData["PhotoClaimName"]';
 
             document.getElementById('verify-credential').addEventListener('click', () => {
+                document.getElementById("verify-credential").style.opacity = 0.25;
                 var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
                 if (document.getElementById('useFaceCheck').checked) {
                     qp += '&photoClaimName=' + photoClaimName;

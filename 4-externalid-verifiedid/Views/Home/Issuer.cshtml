@@ -24,9 +24,11 @@
             </div>
         </div>
 
-        <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" >Take Selfie</button>
-        <input type='file' id="imageUpload" accept="image/*" class="button bg-nw-blue text-nw-white" />
-        &nbsp;|&nbsp;
+        <span id="user-photo">
+            <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" >Take Selfie</button>
+            <input type='file' id="imageUpload" accept="image/*" class="button bg-nw-blue text-nw-white" />
+            &nbsp;|&nbsp;
+        </span>
         <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white">Issue Credential</button>
         <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
         <br /><br />
@@ -58,6 +60,8 @@
                 if ( havePhotoClaim ) {
                     setUserPhoto();
                     hideShowPhotoElements("none");
+                    document.getElementById("user-photo").style.display = "none";
+                    document.getElementById("issue-credential").style.opacity = 0.25;
                     // make sure the photo is sent to API in backend before we continue
                     setTimeout(requestService.createIssuanceRequest(), 250);
                 } else {
