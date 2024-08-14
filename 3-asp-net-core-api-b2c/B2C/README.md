@@ -24,7 +24,7 @@ To make use of Verified ID's feature Face Check, the credential needs to be issu
 
 ![Scan QR code](/ReadmeFiles/b2c-vc-scan-qr-code.png)
 
-## Verified ID B2C Custom Policies 
+## Verified ID B2C Custom Policies
 
 | File   | Description |
 | -------- | ----------- |
@@ -38,7 +38,7 @@ To make use of Verified ID's feature Face Check, the credential needs to be issu
 ### MFA and FaceCheck
 
 The policy SigninVCMFA.xml enforces the use of Verified ID Face Check even if the sample app isn't configured to use Face Check. This happens via passing a claim from the policy to selfAsserted UI to tell it to force Face Check.
-This illustrates the scenario were the app requires a high-assurance 2FA before letting the user continue with a sensitive operation. 
+This illustrates the scenario were the app requires a high-assurance 2FA before letting the user continue with a sensitive operation.
 
 ## Setup
 

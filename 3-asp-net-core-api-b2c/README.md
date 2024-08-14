@@ -4,15 +4,13 @@ This sample is an ASP.Net Core sample that is designed to work together with Azu
 
 ## Deploy to Azure
 
-Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
+**Please complete** the [setup](#Setup) before deploying to Azure so that you have all the required parameters for your environment. Then continue with the `Deploy to Azure` step described below.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F3-asp-net-core-api-b2c%2FARMTemplate%2Ftemplate.json)
 
 You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
 
 ![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
-
-https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fcljungdemob2c.z6.web.core.windows.net%2FARM%2Ftemplate.json
 
 ## Azure AD B2C and Verified ID working together - how does it work?
 
@@ -74,7 +72,9 @@ settings in an Azure AppServices deployment. You can use this template [appservi
 | | useFaceCheck | If you plan to extend the sample by providing a user photo during issuance, change this flag to true |
 | | PhotoClaimName | Name of photo claim |
 
-### Setup
+## Setup
+
+The setup process contains many steps and will take some time to work through. Please read the instructions carefully to avoid deployment problems.
 
 ### Entra ID tenant
 
@@ -82,7 +82,7 @@ Verified ID can not be setup in the B2C tenant. Therefor, you need an Entra ID t
 
 ### Setup Verified ID
 
-[Setup Verified ID](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) in your tenant and enable MyAccount. 
+[Setup Verified ID](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) in your tenant and enable MyAccount.
 You do not need to register an app or create a custom Verified ID credential schema.
 
 ### Azure subscription
@@ -91,14 +91,21 @@ The sample is intended to be deployed to [Azure App Services](https://learn.micr
 and use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
 You don't need to do an app registration in Entra ID.
 
+### Azure AD B2C tenant
+
+You need a B2C tenant besides the above Entra ID tenant. [Create an Azure AD B2C tenant](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-create-tenant) if you don't have one already.
+
 ### Deploy the B2C Custom Policies
 
-Follow the instructions [here](B2C/README.md#setup) for how setup Azure AD B2C and Custom Policies.
+Follow the instructions [here](B2C/README.md#setup) for how setup Azure AD B2C and Custom Policies. The policies were developed using `SociualAndLocalAccounts` as base policy. Please see below if you are using the `SociualAndLocalAccountsMFA` base policy.
 
-### Deploy the app
+### Register the B2C app in the B2C tenant
 
 1. Register an app in the B2C tenant as documented [here](https://learn.microsoft.com/azure/active-directory-b2c/tutorial-register-applications)
-1. Deploy the sample application to Azure App Services by clicking on the `Deploy to Azure` button above.
+
+### Deploy the app to Azure App Services
+
+1. Deploy this sample application to Azure App Services by clicking on the `Deploy to Azure` button above.
 1. Enter all the parameters when asked.
 1. Run the powershell script below to grant the Entra ID app the permissions required by Verified ID.
 1. Update the Redirect URI in the B2C app registration to allow your deployed App Services app. Should be a value like `https://your-app-name.azurewebsites.net/signin-oidc`.
