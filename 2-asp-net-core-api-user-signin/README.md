@@ -189,6 +189,16 @@ The sample dynamically copies the hostname to be part of the callback URL, this 
 4. select the VerifiedCredentialExpert credential and click allow
 5. You should see the result presented on the screen.
 
+## Troubleshooting
+
+If you are deploying this sample to Azure App Services, then you can view app logging information in the `Log stream` if you do the following:
+
+- Go to Development Tools, then Extensions
+- Select `+ Add` and add `ASP.NET Core Logging Integration` extension
+- Go to `Log stream` and set `Log level` drop down filter to `verbose`
+- 
+The Log stream console will now contain traces from the deployed.
+
 ## Best practices
 
 When deploying applications which need client credentials and use secrets or certificates the more secure practice is to use certificates. If you are hosting your application on azure make sure you check how to deploy managed identities. This takes away the management and risks of secrets in your application.

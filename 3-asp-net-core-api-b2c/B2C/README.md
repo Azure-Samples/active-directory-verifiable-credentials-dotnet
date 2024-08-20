@@ -45,7 +45,7 @@ This illustrates the scenario were the app requires a high-assurance 2FA before 
 - Complete [setup on Entra Verified ID](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick). Note that Verified ID can not be onboarded in the B2C tenant as that is not supported.
 - [Create an Azure AD B2C tenant](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-create-tenant) if you don't have one already.
 - Deployed the `B2C Custom Policy Starter Pack` [https://docs.microsoft.com/en-us/azure/active-directory-b2c/custom-policy-get-started?tabs=applications#custom-policy-starter-pack](https://docs.microsoft.com/en-us/azure/active-directory-b2c/custom-policy-get-started?tabs=applications#custom-policy-starter-pack).
-- Create a REST API key in the B2C portal named `RestApiKey`, manually set a value and copy the value for later use. You need it in `Deploy to Azure`
+- Create a REST API key in the B2C portal named `RestApiKey`, manually set a value and copy the value for later use. You need it in `Deploy to Azure`. Do **not** select `generate`g. You must provide the key here and update the B2C policy files too.
 - [Register a web application in B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-register-applications) if you don't have one already.
 - Deploy this dotnet sample using the `Deploy To Azure` button.
 - Update the B2C web application's redirect URI to include the new Azure App Service app. Should be something like `https:/your-app-name.azurewebsites.net/signin-oidc`.

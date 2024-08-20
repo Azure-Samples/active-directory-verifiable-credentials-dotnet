@@ -63,6 +63,12 @@ namespace B2CVerifiedID {
             });
         });
 
+        builder.Services.AddLogging(logBuilder =>
+        {
+            logBuilder.AddConsole();
+            logBuilder.AddDebug();
+        });
+           
         var app = builder.Build();
 
         //+ Added for Entra Verified ID so that callback uses proxy's hostname

@@ -62,6 +62,16 @@ The common parts are those that they would be in any dotnet code that interacts 
 | | [wwwroot/js/verifiedid.uihandler.js](wwwroot/js/verifiedid.uihandler.js) | Updates the browser UI and calls the below |
 | | [wwwroot/js/verifiedid.requestserviceclient.js](wwwroot/js/verifiedid.requestservice.client.js) | JavaScript browser component that calls the controller APIs and handles the polling of restest status. |
 
+## Troubleshooting
+
+If you are deploying this sample to Azure App Services, then you can view app logging information in the `Log stream` if you do the following:
+
+- Go to Development Tools, then Extensions
+- Select `+ Add` and add `ASP.NET Core Logging Integration` extension
+- Go to `Log stream` and set `Log level` drop down filter to `verbose`
+- 
+The Log stream console will now contain traces from the deployed.
+
 ## More information
 
 For more information, see MSAL.NET's conceptual documentation:
