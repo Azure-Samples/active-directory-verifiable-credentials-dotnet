@@ -93,7 +93,7 @@
 
         var timeO = setTimeout( function() {
             document.getElementById("signInName").value = '';
-            fetch( apiUrl + "/presentation-request-link?" + SETTINGS.transId)
+            fetch( apiUrl + "api/verifier/presentation-request-link?" + SETTINGS.transId)
             .then(function(response) {
                 response.text().then(function(message) {
                     respPresReq = JSON.parse(message);
@@ -113,7 +113,7 @@
             console.log('checkPresentationResponse');
             tId = setInterval( function () {
                     if ( null == respPresReq) { return; } 
-                    fetch(apiUrl + '/presentation-response-status?id=' + respPresReq.id )
+                    fetch(apiUrl + '/api/request-status?id=' + respPresReq.id )
                     .then(response => response.text())
                     .catch(error => { 
                         displayMessage(error);

@@ -74,7 +74,9 @@ namespace B2CVerifiedID
                     if (!_cache.TryGetValue( callback.state, out string requestState )) {
                         errorMessage = $"Invalid state '{callback.state}'";
                     } else {
+                        callback.state = callback.state.Trim();
                         JObject reqState = JObject.Parse( requestState );
+                        reqState["state"] = callback.state;
                         reqState["status"] = callback.requestStatus;
                         if (reqState.ContainsKey( "callback" )) {
                             reqState["callback"] = body;
@@ -131,6 +133,7 @@ namespace B2CVerifiedID
                 result = JObject.FromObject( new { status = "error", message = "Missing argument 'id'" } );
                 return false;
             }
+            state = state.Trim();
             bool rc = true;
             if (_cache.TryGetValue( state, out string requestState )) {
                 JObject reqState = JObject.Parse(requestState);

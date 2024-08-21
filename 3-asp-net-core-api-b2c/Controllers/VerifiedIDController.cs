@@ -601,6 +601,127 @@ namespace B2CVerifiedID {
         }
 
         /// <summary>
+        /// This method is called from the B2C HTML/javascript to get a QR code deeplink that 
+        /// points back to this API instead of the VC Request Service API.
+        /// You need to pass in QueryString parameters such as 'id' or 'StateProperties' which both
+        /// are the B2C CorrelationId. StateProperties is a base64 encoded JSON structure.
+        /// </summary>
+        /// <returns>JSON deeplink to this API</returns>
+        [AllowAnonymous]
+        [HttpGet("/api/verifier/presentation-request-link")]
+        public async Task<ActionResult> StaticPresentationReferenceGet() {
+            _log.LogTrace(this.Request.GetDisplayUrl());
+            try {
+                string correlationId = this.Request.Query["id"];
+                string stateProp = this.Request.Query["StateProperties"]; // may come from SETTINGS.transId
+                if (string.IsNullOrWhiteSpace(correlationId) && !string.IsNullOrWhiteSpace(stateProp)) {
+                    stateProp = stateProp.PadRight(stateProp.Length + (stateProp.Length % 4), '=');
+                    JObject spJson = JObject.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(stateProp)));
+                    correlationId = spJson["TID"].ToString();
+                }
+                if (string.IsNullOrWhiteSpace(correlationId)) {
+                    correlationId = Guid.NewGuid().ToString();
+                }
+                _cache.Remove(correlationId);
+                var resp = new
+                {
+                    requestId = correlationId,
+                    url = $"openid-vc://?request_uri={GetRequestHostName()}/api/verifier/presentation-request-proxy/{correlationId}",
+                    expiry = (int)(DateTime.UtcNow.AddDays(1) - new DateTime(1970, 1, 1)).TotalSeconds,
+                    id = correlationId
+                };
+                string respJson = JsonConvert.SerializeObject(resp);
+                _log.LogTrace("API static request Response\n{0}", respJson);
+                return new ContentResult { ContentType = "application/json", Content = respJson };
+            }
+            catch (Exception ex) {
+                return BadRequest(new { error = "400", error_description = ex.Message });
+            }
+        }
+        /// <summary>
+        /// This method get's called by the Microsoft Authenticator when it scans the QR code and 
+        /// wants to retrieve the request. We call the VC Request Service API, get the request_uri 
+        /// in the response, invoke that url and retrieve the response and pass it to the caller.
+        /// This way this API acts as a proxy.
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpGet("/api/verifier/presentation-request-proxy/{id}")]
+        public async Task<ActionResult> StaticPresentationReferenceProxy(string id) {
+            _log.LogTrace(this.Request.GetDisplayUrl());
+            try
+            {
+                var accessToken = await MsalAccessTokenHandler.GetAccessToken(_configuration);
+                if (accessToken.Item1 == String.Empty) {
+                    _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description));
+                    return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
+                }
+
+                // 1. Create a Presentation Request and call the Client API to get the 'real' request_uri
+                //string correlationId = this.Request.Query["id"];
+                string correlationId = id; // correlationId.Trim();
+                PresentationRequest request = CreatePresentationRequest(correlationId);
+                if (!hasFaceCheck(request) && _configuration.GetValue("VerifiedID:useFaceCheck", false)) {
+                    AddFaceCheck(request, null, this.Request.Query["photoClaimName"]); // when qp is null, appsettings value is used
+                }
+                AddClaimsConstrains(request);
+
+                string jsonString = JsonConvert.SerializeObject(request, Newtonsoft.Json.Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+                _log.LogTrace("VC Client API Request\n{0}", jsonString);
+                string url = $"{_configuration["VerifiedID:ApiEndpoint"]}createPresentationRequest";
+
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
+                HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                string contents = await res.Content.ReadAsStringAsync();
+                HttpStatusCode statusCode = res.StatusCode;
+                if (statusCode == HttpStatusCode.Created) {
+                    _log.LogTrace("succesfully called Request Service API");
+                    // 2. Get the 'real' request_uri from the response and make a HTTP GET to it to retrieve the JWT Token for the Authenticator
+                    JObject apiResp = JObject.Parse(contents);
+                    string request_uri = apiResp["url"].ToString().Split("=")[1]; // openid-vc://?request_uri=<...url to retrieve request...>
+                    string response = null;
+                    string contentType = null;
+
+                    // simulate the wallet and retrieve the presentation request
+                    var clientWalletSim = _httpClientFactory.CreateClient();
+                    string preferHeader = this.Request.Headers["prefer"].ToString();
+                    if (!string.IsNullOrWhiteSpace(preferHeader)) {
+                        clientWalletSim.DefaultRequestHeaders.Add("prefer", preferHeader); // JWT-interop-profile-0.0.1
+                    }
+                    res = await clientWalletSim.GetAsync(request_uri);
+                    response = await res.Content.ReadAsStringAsync();
+                    statusCode = res.StatusCode;
+                    contentType = res.Content.Headers.ContentType.ToString();
+
+                    //We use in memory cache to keep state about the request. The UI will check the state when calling the presentationResponse method
+                    var cacheData = new
+                    {
+                        status = "request_created",
+                        message = "Waiting for QR code to be scanned",
+                        expiry = apiResp["expiry"].ToString()
+                    };
+                    _cache.Set(request.callback.state, JsonConvert.SerializeObject(cacheData)
+                                    , DateTimeOffset.Now.AddSeconds(_configuration.GetValue<int>("AppSettings:CacheExpiresInSeconds", 300)));
+
+                    // 3. Return the response to the Authenticator
+                    _log.LogTrace("VC Client API GET Response\nStatusCode={0}\nContent-Type={1}\n{2}", statusCode, contentType, response);
+                    return new ContentResult { StatusCode = (int)statusCode, ContentType = contentType, Content = response };
+                }
+                else {
+                    _log.LogError("Error calling Verified ID API: " + contents);
+                    return BadRequest(new { error = "400", error_description = "Verified ID API error response: " + contents, request = jsonString });
+                }
+            }
+            catch (Exception ex) {
+                return BadRequest(new { error = "400", error_description = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Azure AD B2C REST API Endpoint for retrieveing the VC presentation response
         /// HTTP POST comes from Azure AD B2C 
         /// body : The InputClaims from the B2C policy.It will only be one claim named 'id'
