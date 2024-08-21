@@ -106,5 +106,5 @@ If you are deploying this sample to Azure App Services, then you can view app lo
 - Go to Development Tools, then Extensions
 - Select `+ Add` and add `ASP.NET Core Logging Integration` extension
 - Go to `Log stream` and set `Log level` drop down filter to `verbose`
-- 
-The Log stream console will now contain traces from the deployed.
+
+The Log stream console will now contain traces from the deployed. Don't forget do disable extension when troubleshooting is done.
