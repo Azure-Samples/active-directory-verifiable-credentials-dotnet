@@ -71,7 +71,18 @@ namespace AspNetCoreVerifiableCredentials
                 if ( !string.IsNullOrWhiteSpace(template) ) {
                     request = CreatePresentationRequestFromTemplate( template );
                 } else {
-                    request = CreatePresentationRequest();
+                    string credentialType = this.Request.HttpContext.Session.GetString( "credentialType" ); // can be null. Then default
+                    string[] acceptedIssuers = null;
+                    string tmp = this.Request.HttpContext.Session.GetString( "acceptedIssuers" );
+                    if (!string.IsNullOrEmpty( tmp )) {
+                        // accept all issuers
+                        if (tmp == "*") {
+                            acceptedIssuers = new string[] { };
+                        } else {
+                            acceptedIssuers = tmp.Split( ";", StringSplitOptions.RemoveEmptyEntries );
+                        }
+                    }
+                    request = CreatePresentationRequest( null, credentialType, acceptedIssuers );
                 }
 
                 string faceCheck = this.Request.Query["faceCheck"];

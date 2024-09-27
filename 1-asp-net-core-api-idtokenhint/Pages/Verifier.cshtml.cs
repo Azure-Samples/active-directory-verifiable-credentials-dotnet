@@ -22,14 +22,37 @@ namespace AspNetCoreVerifiableCredentials.Pages
         }
         public void OnGet()
         {
+            string credentialType = _configuration["VerifiedID:CredentialType"];
+            string[] acceptedIssuers = new string[] { _configuration["VerifiedID:DidAuthority"] };
+
             ViewData["Message"] = "";
-            ViewData["CredentialType"] = _configuration["VerifiedID:CredentialType"];
-            ViewData["acceptedIssuers"] = new string[] { _configuration["VerifiedID:DidAuthority"] };
+            ViewData["acceptedIssuers"] = acceptedIssuers;
             ViewData["useFaceCheck"] = false;
             ViewData["useConstraints"] = false;
             ViewData["constraintName"] = "";
             ViewData["constraintValue"] = "";
             ViewData["constraintOp"] = "value";
+
+            // setting credentialType via QueriString parameter?
+            if (this.Request.Query.ContainsKey( "credentialType" )) {
+                credentialType = this.Request.Query["credentialType"].ToString();
+                this.Request.HttpContext.Session.SetString( "credentialType", credentialType );
+            } else {
+                HttpContext.Session.Remove( "credentialType" );
+            }
+            ViewData["CredentialType"] = credentialType;
+
+            // setting acceptedIssuers via QueriString parameter? Note - we store "*" to distinguish from empty array
+            if (this.Request.Query.ContainsKey( "acceptedIssuers" )) {
+                acceptedIssuers = this.Request.Query["acceptedIssuers"].ToString().Split( ";", StringSplitOptions.RemoveEmptyEntries );
+                if (acceptedIssuers.Length == 0) {
+                    acceptedIssuers = new string[] { "*" };
+                }
+                this.Request.HttpContext.Session.SetString( "acceptedIssuers", string.Join( ";", acceptedIssuers ) );
+            } else {
+                this.Request.HttpContext.Session.Remove( "acceptedIssuers" );
+            }
+            ViewData["acceptedIssuers"] = acceptedIssuers;
 
             if (this.Request.Query.ContainsKey( "photoClaimName" )) {
                 ViewData["PhotoClaimName"] = this.Request.Query["photoClaimName"].ToString(); // could be empty/null for no-photo
