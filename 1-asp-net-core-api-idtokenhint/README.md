@@ -57,7 +57,7 @@ If you quickly want to make your sample ask for a different kind of Verified ID 
 | Name | Description | 
 |------|--------|
 | credentialType | The credentialType for the presentation request, like `VerifiedEmployee` or `TrueIdentity` |
-| acceptedIssuers | A list of DIDs separated by `;` or `**` for accept all issuers |
+| acceptedIssuers | A list of DIDs separated by `;` or `*` for accept all issuers |
 
 The verifier UI will show what credentialType and acceptedIssuers that is configured before you press the `Verify Credential` button.
 
