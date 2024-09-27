@@ -55,7 +55,7 @@ If you want to test presenting and verifying other types and credentials, follow
 If you quickly want to make your sample ask for a different kind of Verified ID credential without changing the app configuration, you can use the following query string parameters on the URL.
 
 | Name | Description | 
-|------|--------|--------|
+|------|--------|
 | credentialType | The credentialType for the presentation request, like `VerifiedEmployee` or `TrueIdentity` |
 | acceptedIssuers | A list of DIDs separated by `;` or `**` for accept all issuers |
 
