@@ -87,6 +87,13 @@ namespace AspNetCoreVerifiableCredentials
     public class Pin {
         public string value { get; set; }
         public int length { get; set; }
+        // Hashed pin
+        [JsonProperty( NullValueHandling = NullValueHandling.Ignore )]
+        public string? alg { get; set; }
+        [JsonProperty( NullValueHandling = NullValueHandling.Ignore )]
+        public string? salt { get; set; }
+        [JsonProperty( NullValueHandling = NullValueHandling.Ignore )]
+        public int? iterations { get; set; }
     }
 
     /// <summary>

@@ -105,7 +105,7 @@ namespace AspNetCoreVerifiableCredentials
 
                 if (statusCode == HttpStatusCode.Created)
                 {
-                    _log.LogTrace("succesfully called Request Service API");
+                    _log.LogTrace("succesfully called Request Service API\n" + response);
                     JObject requestConfig = JObject.Parse(response);
                     requestConfig.Add(new JProperty("id", request.callback.state));
                     jsonString = JsonConvert.SerializeObject(requestConfig);
