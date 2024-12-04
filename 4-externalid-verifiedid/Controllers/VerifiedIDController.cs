@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Text;
+using System.IO;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
@@ -16,6 +16,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.Extensions;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+
+using Barcoder.Qr;
+using Barcoder.Renderer.Image;
+using Barcoder;
 
 namespace ExternalIDVerifiedID {
     [Route("api/[controller]/[action]")]
@@ -109,6 +113,26 @@ namespace ExternalIDVerifiedID {
         /////////////////////////////////////////////////////////////////////////////////////
         // Issuance Helpers
         /////////////////////////////////////////////////////////////////////////////////////
+        private bool GenerateMembershipQRCode( Dictionary<string, string> claims ) {
+            // if we have a claim name that contains 'QRCode', generate a qr code with some key claims in it
+            ManifestClaim qrCodeClaim = GetManifestClaim( "qrcode" );
+            if ( qrCodeClaim == null || (qrCodeClaim != null & qrCodeClaim.type != "image/jpg;base64url") ) { 
+                return false;
+            }
+            // the QR code data will be key data separated by a LF
+            string credentialType = _configuration["VerifiedID:CredentialType"].ToString();
+            string qrCodeData = $"{credentialType}\n{claims["name"]}\n{claims["email"]}\n{claims["membershipNo"]}\n{claims["memberStatus"]}";
+            var renderer = new ImageRenderer( new ImageRendererOptions() { ImageFormat = ImageFormat.Jpeg, JpegQuality = 1 } );
+            IBarcode barcode = QrEncoder.Encode( qrCodeData, ErrorCorrectionLevel.L, Barcoder.Qr.Encoding.Unicode );
+            using var stream = new MemoryStream();
+            renderer.Render( barcode, stream );
+            stream.Position = 0;
+            byte[] bytes = new byte[stream.Length];
+            stream.Read( bytes, 0, (int)stream.Length );
+            string qrCodeString = "data:image/jpeg;base64," + Base64UrlEncode( Convert.ToBase64String( bytes ) );
+            claims.Add( qrCodeClaim.name, qrCodeString );
+            return true;
+        }
         private Dictionary<string, string> GetClaimsFromInteractiveUser() {
             if (null == User) {
                 throw new ArgumentNullException( "No user principal available" );
@@ -137,15 +161,17 @@ namespace ExternalIDVerifiedID {
                 _log.LogTrace($"upn claim not found in id_token - please update 'Token configuration' for your app");
                 upn = $"{oid}@{_configuration["AzureAd:TenantName"]}";
             }
+            
             Dictionary<string, string> claims = new Dictionary<string, string>();
             claims.Add( "email", User.FindFirst( "email" )!.Value );
             claims.Add( "name", User.FindFirst( "name" )!.Value );
             claims.Add( "upn", upn );
             claims.Add( "memberStatus", "Diamond" );        // this illustrates that you can set claims that come from other sources
             claims.Add( "membershipNo", "123456789" );
-            if (!string.IsNullOrWhiteSpace( photoClaimName ) && !string.IsNullOrEmpty( photo ) ) {
+            if (!string.IsNullOrWhiteSpace( photoClaimName ) && !string.IsNullOrEmpty( photo )) {
                 claims.Add( photoClaimName, Base64UrlEncode( photo! ) );
             }
+            GenerateMembershipQRCode( claims );
             return claims;
         }
 
@@ -161,6 +187,18 @@ namespace ExternalIDVerifiedID {
                 }
             }
             return photoClaimName;
+        }
+        private ManifestClaim GetManifestClaim( string nameContains ) {
+            nameContains = nameContains.ToLowerInvariant();
+            Dictionary<string, ManifestClaim> manifestClaims = (Dictionary<string, ManifestClaim>)_cache.Get( "ManifestClaims" );
+            if (manifestClaims != null) {
+                foreach (KeyValuePair<string, ManifestClaim> mc in manifestClaims) {
+                    if (mc.Value.name.ToLowerInvariant().Contains( nameContains )) {
+                        return mc.Value;
+                    }
+                }
+            }
+            return null;
         }
         private void CacheManifestClaims( JObject manifest ) {
             Dictionary<string, ManifestClaim> manifestClaims = new Dictionary<string, ManifestClaim>();
@@ -451,7 +489,7 @@ namespace ExternalIDVerifiedID {
                     _log.LogTrace( $"Request API {url}\n{jsonString}" );
                     var client = _httpClientFactory.CreateClient();
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
-                    HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                    HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json"));
                     string response = await res.Content.ReadAsStringAsync();
 
                     if (res.StatusCode == HttpStatusCode.Created) {
@@ -566,7 +604,7 @@ namespace ExternalIDVerifiedID {
                 _log.LogTrace( $"Request API {url}\n{jsonString}" );
                 var client = _httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue( "Bearer", accessToken.token );
-                HttpResponseMessage res = await client.PostAsync( url, new StringContent( jsonString, Encoding.UTF8, "application/json" ) );
+                HttpResponseMessage res = await client.PostAsync( url, new StringContent( jsonString, System.Text.Encoding.UTF8, "application/json" ) );
                 string response = await res.Content.ReadAsStringAsync();
                 HttpStatusCode statusCode = res.StatusCode;
 

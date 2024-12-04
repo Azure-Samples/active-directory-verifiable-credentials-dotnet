@@ -34,6 +34,8 @@ To use the sample, do the following:
     - Click `Present Verified ID` in the home page to create a presentation request
     - Check `Use Face Check` to request a liveness check during the presentation
 
+> **_NOTE:_**  Currently Face Check doesn't work in External ID Entra tenants, so step 4 can't be performed.
+
 ## Sample configuration
 
 This sample now has all its configuration in the [appsettings.json](appsettings.json) file and you need to update it before you run the app.

@@ -24,7 +24,7 @@ namespace AspNetCoreVerifiableCredentials {
             // You can run this sample using ClientSecret or Certificate or MSI .
             // The code will differ only when instantiating the IConfidentialClientApplication
             bool useManagedIdentity = configuration.GetValue( "VerifiedID:ManagedIdentity", false );
-            string[] scopes = new string[] { configuration["VerifiedID:scope"] };
+            string[] scopes = new string[] { configuration.GetValue("VerifiedID:scope", "3db474b9-6a0c-4840-96ac-1fceb342124f/.default" ) };
 
             if (useManagedIdentity) {
                 try {
@@ -38,7 +38,8 @@ namespace AspNetCoreVerifiableCredentials {
 
             string tenantId = configuration.GetValue( "VerifiedID:tenantId", configuration["AzureAd:TenantId"] );
             string clientId = configuration.GetValue( "VerifiedID:ClientId", configuration["AzureAd:ClientId"] );
-            string authority = $"{configuration["VerifiedID:Authority"]}{tenantId}";
+            string authority = configuration.GetValue("VerifiedID:Authority", configuration.GetValue("AzureAd:Authority", "https://login.microsoftonline.com/{tenant}/v2.0/" ) );
+            authority = authority.Replace("{tenant}", tenantId);
             string clientSecret = configuration.GetValue( "VerifiedID:ClientSecret", configuration.GetValue( "AzureAd:ClientSecret", "" ) );
 
             // Since we are using application permissions this will be a confidential client application

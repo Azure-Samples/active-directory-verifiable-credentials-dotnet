@@ -22,6 +22,11 @@
       "type": "String"
     },
     {
+      "claim": "vc.credentialSubject.photo",
+      "label": "User picture",
+      "type": "image/jpg;base64url"
+    },
+    {
       "claim": "vc.credentialSubject.username",
       "label": "Username",
       "type": "String"
@@ -37,8 +42,8 @@
       "type": "String"
     },
     {
-      "claim": "vc.credentialSubject.photo",
-      "label": "User picture",
+      "claim": "vc.credentialSubject.membershipQRcode",
+      "label": "Membership QR code",
       "type": "image/jpg;base64url"
     }
   ]

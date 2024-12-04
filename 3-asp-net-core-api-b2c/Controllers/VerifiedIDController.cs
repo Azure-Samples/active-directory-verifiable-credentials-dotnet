@@ -606,7 +606,7 @@ namespace B2CVerifiedID {
         /// You need to pass in QueryString parameters such as 'id' or 'StateProperties' which both
         /// are the B2C CorrelationId. StateProperties is a base64 encoded JSON structure.
         /// </summary>
-        /// <returns>JSON deeplink to this API</returns>
+        /// <returns>JSON static deeplink to this API</returns>
         [AllowAnonymous]
         [HttpGet("/api/verifier/presentation-request-link")]
         public async Task<ActionResult> StaticPresentationReferenceGet() {

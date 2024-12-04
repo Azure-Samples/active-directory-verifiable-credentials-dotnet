@@ -192,10 +192,14 @@ namespace AspNetCoreVerifiableCredentials
                     return false;
                 }
                 JObject resp = JObject.Parse( response );
-                string jwtToken = resp["token"].ToString();
-                jwtToken = jwtToken.Replace( "_", "/" ).Replace( "-", "+" ).Split( "." )[1];
-                jwtToken = jwtToken.PadRight( 4 * ((jwtToken.Length + 3) / 4), '=' );
-                manifest = System.Text.Encoding.UTF8.GetString( Convert.FromBase64String( jwtToken ) );
+                if ( resp.ContainsKey("token")) {
+                    string jwtToken = resp["token"].ToString();
+                    jwtToken = jwtToken.Replace( "_", "/" ).Replace( "-", "+" ).Split( "." )[1];
+                    jwtToken = jwtToken.PadRight( 4 * ((jwtToken.Length + 3) / 4), '=' );
+                    manifest = System.Text.Encoding.UTF8.GetString( Convert.FromBase64String( jwtToken ) );
+                } else {
+                    manifest = response;
+                }
                 _cache.Set( "manifest", manifest );
             }
             return true;
