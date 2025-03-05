@@ -27,7 +27,7 @@ You need to [register](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDi
 | User.ReadWrite.All | Application | 2 | For admin to read/write new hire's profile |
 | UserAuthenticationMethod.ReadWrite.All | Application | 1+2 | For admin to create the TAP code for the new hire |
 | Group.ReadWrite.All | Application | 2 | For admin to add the new hire to the TAP group |
-| VerifiableCredential.Create.PresentationRequest | Application | 1+2 | For application to be able to create a Verified ID presentation request  |
+| VerifiableCredential.Create.PresentRequest | Application | 1+2 | For application to be able to create a Verified ID presentation request  |
 
 Scenarios:
 1) Employee onboarding - You create the new hire user account yourself, using the management portals or other tools outside of the sample. In this case the app does not need User/Group.ReadWrite.All permissions.
@@ -43,11 +43,11 @@ Scenarios:
 | User-LifeCycleInfo.ReadWrite.All | Application | If you want to set the `EmployeeLeaveDateTime` attribute to the expiry date of the presented VC |
 | VerifiableCredential.Create.PresentRequest | Application | For application to be able to create a Verified ID presentation request  |
 
-In order to add "VerifiableCredential.Create.PresentationRequest":
+In order to add "VerifiableCredential.Create.PresentRequest":
 
 1) Select "APIs my organization uses".
 2) Search for "Verifiable Credentials Service Request" and select it.
-3) Choose Application Permission, and select "VerifiableCredential.Create.PresentationRequest".
+3) Choose Application Permission, and select "VerifiableCredential.Create.PresentRequest".
 4) Select Add permissions.
 
 ### General steps for registering the application:
