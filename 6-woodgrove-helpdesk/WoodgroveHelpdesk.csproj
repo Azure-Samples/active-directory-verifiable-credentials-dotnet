@@ -5,11 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-OnboardWithTAP-aa02c0f8-65c5-4a95-8ddb-228b223a077e</UserSecretsId>
+    <NoWarn>8600;8601;8602;8603;8604;8618;8625;8629;8632;8765</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.4.0" />
-    <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.4.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.8.3" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.8.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     
   </ItemGroup>
