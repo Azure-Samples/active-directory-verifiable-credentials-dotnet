@@ -18,9 +18,9 @@
         <p>To get support, you need to have your <a href="https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick#myaccount-available-now-to-simplify-issuance-of-workplace-credentials" target="_blank">
             VerifiedEmployee card</a> with a photo.</p>
         <div>
-            <img width="177px" src="~/verifiedemployee-card.png" />
+            <a id="have-verifiedemployeeI"><img width="177px" src="~/verifiedemployee-card.png" /></a>
             <br />
-            <a id="skip-issuance" class="skipButton">I already have my card</a>
+            <a id="have-verifiedemployee" class="skipButton">I already have my card</a>
         </div>
     </div>
 
@@ -83,7 +83,10 @@
             startVerification();
         });
 
-        document.getElementById('skip-issuance').addEventListener('click', () => {
+        document.getElementById('have-verifiedemployee').addEventListener('click', () => {
+            startVerification();
+        });
+        document.getElementById('have-verifiedemployeeI').addEventListener('click', () => {
             startVerification();
         });
 

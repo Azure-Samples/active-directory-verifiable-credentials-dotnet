@@ -8,7 +8,7 @@
     "title": "Northwind Airlines Digital Card",
     "logo": {
       "description": "Northwind Airlines Logo",
-      "uri": "https://cljungdemob2c.blob.core.windows.net/uxcust/templates/northwindairlines/northwindairlines-logo.jpg"
+      "uri": "https://didcustomerplayground.z13.web.core.windows.net/northwindairlines-logo.jpg"
     }
   },
   "consent": {
@@ -20,6 +20,11 @@
       "claim": "vc.credentialSubject.displayName",
       "label": "Display Name",
       "type": "String"
+    },
+    {
+      "claim": "vc.credentialSubject.photo",
+      "label": "User picture",
+      "type": "image/jpg;base64url"
     },
     {
       "claim": "vc.credentialSubject.username",
@@ -37,8 +42,8 @@
       "type": "String"
     },
     {
-      "claim": "vc.credentialSubject.photo",
-      "label": "User picture",
+      "claim": "vc.credentialSubject.membershipQRcode",
+      "label": "Membership QR code",
       "type": "image/jpg;base64url"
     }
   ]

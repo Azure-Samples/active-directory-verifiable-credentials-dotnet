@@ -22,9 +22,11 @@ Note - You should consider using the new [Entra ID for customers](https://learn.
 The recommended way for issuing Verified ID credentials in B2C/CIAM is to handle it in the application code and not in the B2C custom policy. 
 To make use of Verified ID's feature Face Check, the credential needs to be issued with a photo of the user and that is too complicated for a B2C custom policy.
 
-![Scan QR code](/ReadmeFiles/b2c-vc-scan-qr-code.png)
+![Scan QR code](ReadmeFiles/b2c-vc-scan-qr-code.png)
 
 ## Verified ID B2C Custom Policies
+
+The different signup/signin policy files illustrate different scenarios and you may choose which one meets your requirements. It is not ment as a suite where you use all in your application.
 
 | File   | Description |
 | -------- | ----------- |
@@ -45,7 +47,7 @@ This illustrates the scenario were the app requires a high-assurance 2FA before 
 - Complete [setup on Entra Verified ID](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-tenant-quick). Note that Verified ID can not be onboarded in the B2C tenant as that is not supported.
 - [Create an Azure AD B2C tenant](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-create-tenant) if you don't have one already.
 - Deployed the `B2C Custom Policy Starter Pack` [https://docs.microsoft.com/en-us/azure/active-directory-b2c/custom-policy-get-started?tabs=applications#custom-policy-starter-pack](https://docs.microsoft.com/en-us/azure/active-directory-b2c/custom-policy-get-started?tabs=applications#custom-policy-starter-pack).
-- Create a REST API key in the B2C portal named `RestApiKey`, manually set a value and copy the value for later use. You need it in `Deploy to Azure`
+- Create a REST API key in the B2C portal named `RestApiKey`, manually set a value and copy the value for later use. You need it in `Deploy to Azure`. Do **not** select `generate`g. You must provide the key here and update the B2C policy files too.
 - [Register a web application in B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tutorial-register-applications) if you don't have one already.
 - Deploy this dotnet sample using the `Deploy To Azure` button.
 - Update the B2C web application's redirect URI to include the new Azure App Service app. Should be something like `https:/your-app-name.azurewebsites.net/signin-oidc`.
@@ -57,14 +59,18 @@ This illustrates the scenario were the app requires a high-assurance 2FA before 
         - [Not needed] Update all `VCServiceUrl` to use the endpoint of your deployed Azure App Service, i.e. `https://your-appname.azurewebsites.net/` - only needed if you plan to use the B2C policies with another sample.
 - Upload the B2C Custom Policies in the [policies](./policies) folder, starting with TrustFrameworkExtensionsVC.xml.
 
-### SocialAndLocalAccountsWithMfa changes
+### Changes if you are not using SocialAndLocalAccounts as Base Policy
 
-The B2C sample policies in this repo are created using the [SocialAndLocalAccounts](https://github.com/Azure-Samples/active-directory-b2c-custom-policy-starterpack/tree/main/SocialAndLocalAccounts). This means that if you try and use them with the [SocialAndLocalAccountsWithMfa](https://github.com/Azure-Samples/active-directory-b2c-custom-policy-starterpack/tree/main/SocialAndLocalAccountsWithMfa) version, with a different TrustFrameworkBase.xml file, then you will get errors during uploading of the policies. You need to modify these two files since the orchestration step numbers are different between the two starter pack base files. 
+The B2C sample policies in this repo are created using the [SocialAndLocalAccounts](https://github.com/Azure-Samples/active-directory-b2c-custom-policy-starterpack/tree/main/SocialAndLocalAccounts). This means that if you try and use them with the [SocialAndLocalAccountsWithMfa](https://github.com/Azure-Samples/active-directory-b2c-custom-policy-starterpack/tree/main/SocialAndLocalAccountsWithMfa) version, with a different TrustFrameworkBase.xml file, then you will get errors during uploading of the policies. 
+If you use other base policies, you need to modify these two files since the orchestration step numbers are different between the two starter pack base files. 
+If you don't change the step numbers, uploading will emit errors complaining about multiple steps of type `SendClaims`. 
 
-| File | Changes |
-|------|--------|
-| SignupOrSigninVCQ.xml | OrchestrationStep 7-8-9 should be changed to 9-10-11 |
-| SignUpVCOrSignin.xml | OrchestrationStep 7-8-9 should be changed to 9-10-11 |
+| Base Policy | File | Changes |
+|------|------|--------|
+| LocalAccounts | SignupOrSigninVCQ.xml | OrchestrationStep 7-8-9 should be changed to 4-5-6 |
+| LocalAccounts | SignUpVCOrSignin.xml | OrchestrationStep 7-8-9 should be changed to 4-5-6 |
+| SocialAndLocalAccountsWithMfa | SignupOrSigninVCQ.xml | OrchestrationStep 7-8-9 should be changed to 9-10-11 |
+| SocialAndLocalAccountsWithMfa | SignUpVCOrSignin.xml | OrchestrationStep 7-8-9 should be changed to 9-10-11 |
 
 ### Deploy the custom html
 
@@ -77,3 +83,5 @@ In this case, make sure to update the LoadUri values to the [TrustFrameworkExten
 - Edit [selfAsserted.html](.\html\selfAsserted.html) and [unifiedquick.html](.\html\unifiedquick.html) and change the `script src` reference to point to your Azure Storage location. 
 - Upload the files `selfAsserted.html`, `unified.html` and `unifiedquick.html` to the container in the Azure Storage.
 - Copy the full url to the files and test that you can access them in a browser. If it fails, the B2C UX will not work either. If it works, you need to update the [TrustFrameworkExtensionsVC.xml](.\policies\TrustFrameworkExtensionsVC.xml) files with the `LoadUri` references.
+
+Note that you only need to deploy `unifiedquick.html` if you plan to use `SignUpOrSignInVCQ.xml`. Otherwise you can skip this html file.

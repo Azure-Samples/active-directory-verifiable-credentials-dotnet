@@ -67,7 +67,7 @@ namespace B2CVerifiedID {
 
         //+ Added for Entra Verified ID so that callback uses proxy's hostname
         app.UseForwardedHeaders( new ForwardedHeadersOptions {
-            ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
         } );
         //- 
 

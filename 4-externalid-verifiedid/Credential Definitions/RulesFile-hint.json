@@ -10,6 +10,12 @@
             "indexed": false
           },
           {
+            "outputClaim": "photo",
+            "required": false,
+            "inputClaim": "photo",
+            "indexed": false
+          },
+          {
             "outputClaim": "username",
             "required": true,
             "inputClaim": "email",
@@ -34,9 +40,9 @@
             "indexed": false
           },
           {
-            "outputClaim": "photo",
+            "outputClaim": "membershipQRcode",
             "required": false,
-            "inputClaim": "photo",
+            "inputClaim": "membershipQRcode",
             "indexed": false
           }
         ],

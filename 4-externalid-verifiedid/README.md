@@ -34,6 +34,8 @@ To use the sample, do the following:
     - Click `Present Verified ID` in the home page to create a presentation request
     - Check `Use Face Check` to request a liveness check during the presentation
 
+> **_NOTE:_**  Currently Face Check doesn't work in External ID Entra tenants, so step 4 can't be performed.
+
 ## Sample configuration
 
 This sample now has all its configuration in the [appsettings.json](appsettings.json) file and you need to update it before you run the app.
@@ -98,3 +100,13 @@ Test run the user flow to see that it works. Select https://jwt.ms/ as Reply URL
 
 The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/azure/app-service/). You can ***not*** use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
 The sample uses the ClientID and the ClientSecret configured for the External ID tenant to acquire access tokens to Verified ID.
+
+## Troubleshooting
+
+If you are deploying this sample to Azure App Services, then you can view app logging information in the `Log stream` if you do the following:
+
+- Go to Development Tools, then Extensions
+- Select `+ Add` and add `ASP.NET Core Logging Integration` extension
+- Go to `Log stream` and set `Log level` drop down filter to `verbose`
+
+The Log stream console will now contain traces from the deployed. Don't forget do disable extension when troubleshooting is done.

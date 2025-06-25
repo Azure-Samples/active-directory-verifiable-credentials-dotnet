@@ -202,7 +202,7 @@
           "index.php",
           "hostingstart.html"
         ],
-        "netFrameworkVersion": "v6.0",
+        "netFrameworkVersion": "v8.0",
         "requestTracingEnabled": false,
         "remoteDebuggingEnabled": false,
         "httpLoggingEnabled": true,

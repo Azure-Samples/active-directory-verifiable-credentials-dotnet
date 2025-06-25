@@ -76,6 +76,15 @@ namespace AspNetCoreVerifiableCredentials
             return request;
         }
 
+        public static string Sha256Hash( string source ) {
+            string hash = null;
+            using (SHA256 sha256Hash = SHA256.Create()) {
+                byte[] bytes = sha256Hash.ComputeHash( Encoding.UTF8.GetBytes( source ) );
+                hash = Convert.ToBase64String( bytes );
+            }
+            return hash;
+        }
+
         /// <summary>
         /// This method is called from the UI to initiate the issuance of the verifiable credential
         /// </summary>
@@ -112,7 +121,7 @@ namespace AspNetCoreVerifiableCredentials
                         _log.LogError(String.Format("failed to acquire accesstoken: {0} : {1}", accessToken.error, accessToken.error_description));
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
-                    IssuanceRequest request = CreateIssuanceRequest();
+                    IssuanceRequest request = CreateIssuanceRequest( out string pinCode );                    
 
                     // If the credential uses the idTokenHint attestation flow, then you must set the claims before
                     // calling the Request Service API
@@ -133,7 +142,9 @@ namespace AspNetCoreVerifiableCredentials
                     {
                         _log.LogTrace("succesfully called Request API");
                         JObject requestConfig = JObject.Parse(response);
-                        if (request.pin != null) { requestConfig["pin"] = request.pin.value; }
+                        if (!string.IsNullOrEmpty(pinCode) ) { 
+                            requestConfig["pin"] = pinCode;
+                        }
                         requestConfig.Add(new JProperty("id", request.callback.state));
                         jsonString = JsonConvert.SerializeObject(requestConfig);
 
@@ -181,10 +192,14 @@ namespace AspNetCoreVerifiableCredentials
                     return false;
                 }
                 JObject resp = JObject.Parse( response );
-                string jwtToken = resp["token"].ToString();
-                jwtToken = jwtToken.Replace( "_", "/" ).Replace( "-", "+" ).Split( "." )[1];
-                jwtToken = jwtToken.PadRight( 4 * ((jwtToken.Length + 3) / 4), '=' );
-                manifest = System.Text.Encoding.UTF8.GetString( Convert.FromBase64String( jwtToken ) );
+                if ( resp.ContainsKey("token")) {
+                    string jwtToken = resp["token"].ToString();
+                    jwtToken = jwtToken.Replace( "_", "/" ).Replace( "-", "+" ).Split( "." )[1];
+                    jwtToken = jwtToken.PadRight( 4 * ((jwtToken.Length + 3) / 4), '=' );
+                    manifest = System.Text.Encoding.UTF8.GetString( Convert.FromBase64String( jwtToken ) );
+                } else {
+                    manifest = response;
+                }
                 _cache.Set( "manifest", manifest );
             }
             return true;
@@ -265,7 +280,8 @@ namespace AspNetCoreVerifiableCredentials
             return (userAgent.Contains("Android") || userAgent.Contains("iPhone"));
         }
 
-        public IssuanceRequest CreateIssuanceRequest( string stateId = null ) {
+        public IssuanceRequest CreateIssuanceRequest( out string pinCode ) {
+            pinCode = null;
             IssuanceRequest request = new IssuanceRequest() {
                 includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
                 authority = _configuration["VerifiedID:DidAuthority"],
@@ -275,7 +291,7 @@ namespace AspNetCoreVerifiableCredentials
                 },
                 callback = new Callback() {
                     url = $"{GetRequestHostName()}/api/issuer/issuecallback",
-                    state = string.IsNullOrEmpty( stateId ) ? Guid.NewGuid().ToString() : stateId,
+                    state = Guid.NewGuid().ToString(),
                     headers = new Dictionary<string, string>() { { "api-key", this._apiKey } }
                 },
                 type = "ignore-this",
@@ -285,11 +301,20 @@ namespace AspNetCoreVerifiableCredentials
             if ("" == request.registration.purpose) {
                 request.registration.purpose = null;
             }
-            int issuancePinCodeLength = _configuration.GetValue( "VerifiedID:IssuancePinCodeLength", 0 );
-            // if pincode is required, set it up in the request
-            if (issuancePinCodeLength > 0 && !IsMobile() ) {
-                int pinCode = RandomNumberGenerator.GetInt32( 1, int.Parse( "".PadRight( issuancePinCodeLength, '9' ) ) );
-                SetPinCode( request, string.Format( "{0:D" + issuancePinCodeLength.ToString() + "}", pinCode ) );
+            if ( !IsMobile() ) {
+                int issuancePinCodeLength = _configuration.GetValue( "VerifiedID:IssuancePinCodeLength", 0 );
+                // if pincode is required, set it up in the request
+                if (issuancePinCodeLength > 0 ) {
+                    int pinCodeInt = RandomNumberGenerator.GetInt32( 1, int.Parse( "".PadRight( issuancePinCodeLength, '9' ) ) );
+                    pinCode = string.Format( "{0:D" + issuancePinCodeLength.ToString() + "}", pinCodeInt );
+                    _log.LogTrace( "pin={0}", pinCode );
+                    if (_configuration.GetValue( "VerifiedID:HashPinCode", false ) ) {
+                        string salt = _configuration.GetValue( "VerifiedID:PinCodeSalt", Guid.NewGuid().ToString() );
+                        SetPinCode( request, Sha256Hash( salt + pinCode ), issuancePinCodeLength, salt );
+                    } else {
+                        SetPinCode( request, pinCode, issuancePinCodeLength );
+                    }
+                }
             }
             SetExpirationDate( request );
             return request;
@@ -330,15 +355,20 @@ namespace AspNetCoreVerifiableCredentials
             request.expirationDate = $"{Convert.ToDateTime( expDateUtc ).ToString( "yyyy-MM-dd" )}T23:59:59.000Z";
             return request;
         }
-        public IssuanceRequest SetPinCode( IssuanceRequest request, string pinCode = null ) {
-            _log.LogTrace( "pin={0}", pinCode );
+        public IssuanceRequest SetPinCode( IssuanceRequest request, string pinCode = null, int pinCodeLength = 0, string salt = null) {
             if (string.IsNullOrWhiteSpace( pinCode )) {
                 request.pin = null;
             } else {
                 request.pin = new Pin() {
-                    length = pinCode.Length,
+                    length = pinCodeLength,
                     value = pinCode
                 };
+                // if hashed pin code
+                if ( !string.IsNullOrWhiteSpace( salt )) { 
+                    request.pin.salt = salt;
+                    request.pin.alg = "sha256";
+                    request.pin.iterations = 1;
+                }
             }
             return request;
         }

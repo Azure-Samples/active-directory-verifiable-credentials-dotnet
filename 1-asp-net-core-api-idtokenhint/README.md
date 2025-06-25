@@ -50,6 +50,25 @@ Once you have deployed this sample to Azure AppServices with a working configura
 This requires completing the [Verified ID onboarding and creation](https://learn.microsoft.com/en-us/entra/verified-id/verifiable-credentials-configure-issuer) of the `VerifiedCredentialExpert`.
 If you want to test presenting and verifying other types and credentials, follow the next section.
 
+## Test Verification via query string parameters
+
+If you quickly want to make your sample ask for a different kind of Verified ID credential without changing the app configuration, you can use the following query string parameters on the URL.
+
+| Name | Description | 
+|------|--------|
+| credentialType | The credentialType for the presentation request, like `VerifiedEmployee` or `TrueIdentity` |
+| acceptedIssuers | A list of DIDs separated by `;` or `*` for accept all issuers |
+
+The verifier UI will show what credentialType and acceptedIssuers that is configured before you press the `Verify Credential` button.
+
+Examples: 
+
+```HTTP
+https://your-hostname/verifier?credentialType=TrueIdentity&acceptedIssuers=did:web:did.woodgrovedemo.com
+
+https://your-hostname/verifier?credentialType=VerifiedEmployee&acceptedIssuers=*
+```
+
 ## Test Verification via templates
 
 The sample creates a [presentation request](https://learn.microsoft.com/en-us/entra/verified-id/get-started-request-api?tabs=http%2Cconstraints#presentation-request-example) in code based on your configuration in `appsettings.json`. 
@@ -94,7 +113,39 @@ The project is divided in 2 parts, one for issuance and one for verifying a veri
 
 Before you can run this sample make sure your environment is setup correctly, follow the instructions in the documentation [here](https://aka.ms/didfordevs).
 
+### Configuring Managed Identity
+
+If you deploy the sample to Azure App Services, Managed Identity is the preferred way of authenticating the app over using client secrets.
+
+1. Enable Managed Identity for your App Service app at `Settings` > `Identity`
+1. In portal.azure.com, open the `Cloud Shell` in powershell mode and run the following to grant your MSI service principal the permission to call Verified ID.
+
+```Powershell
+$TenantID="<YOUR TENANTID>"
+$YourAppName="<NAME OF YOUR AZURE WEBAPP>"
+
+#Do not change this values below
+#
+$ApiAppId = "3db474b9-6a0c-4840-96ac-1fceb342124f"
+$PermissionName = "VerifiableCredential.Create.All"
+ 
+# Install the module
+Install-Module AzureAD
+
+Connect-AzureAD -TenantId $TenantID
+
+$MSI = (Get-AzureADServicePrincipal -Filter "displayName eq '$YourAppName'")
+
+Start-Sleep -Seconds 10
+
+$ApiServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$ApiAppId'"
+$AppRole = $ApiServicePrincipal.AppRoles | Where-Object {$_.Value -eq $PermissionName -and $_.AllowedMemberTypes -contains "Application"}
+New-AzureAdServiceAppRoleAssignment -ObjectId $MSI.ObjectId -PrincipalId $MSI.ObjectId ` -ResourceId $ApiServicePrincipal.ObjectId -Id $AppRole.Id
+```
+
 ### Create application registration
+
+If you don't want to use Managed Identity, follow these instructions.
 
 Run the [Configure.PS1](./AppCreationScripts/AppCreationScripts.md) powershell script in the AppCreationScripts directory or follow these manual steps to create an application registration and give the application the correct permissions so it can access the Verifiable Credentials Request REST API:
 
@@ -181,6 +232,16 @@ The sample dynamically copies the hostname to be part of the callback URL, this 
 3. Scan the QR code
 4. select the VerifiedCredentialExpert credential and click allow
 5. You should see the result presented on the screen.
+
+## Troubleshooting
+
+If you are deploying this sample to Azure App Services, then you can view app logging information in the `Log stream` if you do the following:
+
+- Go to Development Tools, then Extensions
+- Select `+ Add` and add `ASP.NET Core Logging Integration` extension
+- Go to `Log stream` and set `Log level` drop down filter to `verbose`
+
+The Log stream console will now contain traces from the deployed. Don't forget do disable extension when troubleshooting is done.
 
 ## Best practices
 
