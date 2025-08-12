@@ -105,7 +105,7 @@ $MSI = (Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0
 
 # Get SP for the service, get permission App Role ID, then assign the App Role to the Managed Identity
 $ApiSP = (Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=appId eq '$ApiAppId'").value
-$AppRole = $ApiSP.AppRoles | Where-Object {$_.Value -eq "VerifiableCredential.Create.PresentRequest" -and $_.AllowedMemberTypes -contains "Application"}
+$AppRole = $ApiSP.AppRoles | Where-Object {$_.Value -eq $PermissionName -and $_.AllowedMemberTypes -contains "Application"}
 $body = @{
     "principalId" = $MSI
     "resourceId" = $ApiSP.Id
