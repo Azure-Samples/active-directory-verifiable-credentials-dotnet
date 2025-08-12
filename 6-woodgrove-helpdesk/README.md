@@ -87,26 +87,31 @@ You don't need to do an app registration in Entra ID.
 1. In portal.azure.com, open the `Cloud Shell` in powershell mode and run the following to grant your MSI service principal the permission to call Verified ID.
 
 ```Powershell
-$TenantID="<YOUR TENANTID>"
 $YourAppName="<NAME OF YOUR AZURE WEBAPP>"
 
-#Do not change this values below
-#
+# Do not change values below this
+# Verifiable Credentials Service Request AppId and Permission
 $ApiAppId = "3db474b9-6a0c-4840-96ac-1fceb342124f"
 $PermissionName = "VerifiableCredential.Create.PresentRequest"
  
-# Install the module
-Install-Module AzureAD
+# Install Graph Authentication module
+Install-Module Microsoft.Graph.Authentication
 
-Connect-AzureAD -TenantId $TenantID
+# Connect to Graph with scope to grant API permissions to Managed Identity
+Connect-MgGraph -Scopes "AppRoleAssignment.ReadWrite.All"
 
-$MSI = (Get-AzureADServicePrincipal -Filter "displayName eq '$YourAppName'")
+# Get Web App Managed Identity
+$MSI = (Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=displayName eq '$YourAppName'").value.id
 
-Start-Sleep -Seconds 10
-
-$ApiServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$ApiAppId'"
-$AppRole = $ApiServicePrincipal.AppRoles | Where-Object {$_.Value -eq $PermissionName -and $_.AllowedMemberTypes -contains "Application"}
-New-AzureAdServiceAppRoleAssignment -ObjectId $MSI.ObjectId -PrincipalId $MSI.ObjectId ` -ResourceId $ApiServicePrincipal.ObjectId -Id $AppRole.Id
+# Get SP for the service, get permission App Role ID, then assign the App Role to the Managed Identity
+$ApiSP = (Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=appId eq '$ApiAppId'").value
+$AppRole = $ApiSP.AppRoles | Where-Object {$_.Value -eq "VerifiableCredential.Create.PresentRequest" -and $_.AllowedMemberTypes -contains "Application"}
+$body = @{
+    "principalId" = $MSI
+    "resourceId" = $ApiSP.Id
+    "appRoleId" = $AppRole.Id
+}
+Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MSI/appRoleAssignments" -Body ($body | ConvertTo-Json) -ContentType "application/json"
 ```
 
 ## Troubleshooting
