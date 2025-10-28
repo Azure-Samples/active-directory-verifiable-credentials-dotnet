@@ -43,45 +43,53 @@ namespace AspNetCoreVerifiableCredentials {
             _apiKey = System.Environment.GetEnvironmentVariable( "API-KEY" );
         }
 
-        private IssuanceRequest SetClaims( IssuanceRequest request ) {
-            request.claims = new Dictionary<string, string>();
-            //retrieve the claims to use as part of the payload to get a VC
-            string username = HttpContext.User.Claims.FirstOrDefault( c => c.Type == "preferred_username" )?.Value;
-            string name = HttpContext.User.Claims.FirstOrDefault( c => c.Type == "name" )?.Value;
-            string given_name = HttpContext.User.Claims.FirstOrDefault( c => c.Type == ClaimTypes.GivenName )?.Value;
-            string family_name = HttpContext.User.Claims.FirstOrDefault( c => c.Type == ClaimTypes.Surname )?.Value;
+  private IssuanceRequest SetClaims(IssuanceRequest request)
+{
+    request.claims = new Dictionary<string, string>();
 
-            request.claims.Add( "username", username );
-            request.claims.Add( "name", name );
-            request.claims.Add( "given_name", given_name );
-            request.claims.Add( "family_name", family_name );
+    // Pull from signed-in user if available, else fallback demo values
+    string given = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value
+                   ?? HttpContext.User.Claims.FirstOrDefault(c => c.Type == "given_name")?.Value
+                   ?? "Megan";
+    string family = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value
+                    ?? HttpContext.User.Claims.FirstOrDefault(c => c.Type == "family_name")?.Value
+                    ?? "Bowen";
 
-            string photoClaimName = "";
-            // get photo claim from manifest
-            if (GetCredentialManifest( out string manifest, out string error )) {
-                JObject jsonManifest = JObject.Parse( manifest );
-                foreach (var claim in jsonManifest["display"]["claims"]) {
-                    string claimName = ((JProperty)claim).Name;
-                    if (jsonManifest["display"]["claims"][claimName]["type"].ToString() == "image/jpg;base64url") {
-                        photoClaimName = claimName.Replace( "vc.credentialSubject.", "" );
-                    }
-                }
-            }
-            if (!string.IsNullOrWhiteSpace( photoClaimName )) {
-                // if we have a photoId in the Session
-                string photoId = this.Request.Headers["rsid"];
-                if (!string.IsNullOrWhiteSpace( photoId )) {
-                    // if we have a photo in-mem cache
-                    if (_cache.TryGetValue( photoId, out string photo )) {
-                        _log.LogTrace( $"Adding user photo to credential. photoId: {photoId}" );
-                        request.claims.Add( photoClaimName, photo );
-                    } else {
-                        _log.LogTrace( $"Couldn't find a user photo to add to credential. photoId: {photoId}" );
-                    }
-                }
-            }
-            return request;
-        }
+    // IMPORTANT: send the exact names your rules expect as inputClaim
+    request.claims["given_name"]  = given;
+    request.claims["family_name"] = family;
+
+    // Birthdate: token might not have it; provide it explicitly
+    string dobFromToken  = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "birthdate")?.Value;
+    string dobFromConfig = _configuration.GetValue<string>("VerifiedID:DefaultDateOfBirth"); // e.g. "1997-04-15"
+    string dob = dobFromToken ?? dobFromConfig ?? "1997-04-15"; // must be YYYY-MM-DD
+    request.claims["birthdate"] = dob;
+
+    // Optional additional claims (only used if your rules map them)
+    // licenseNumber (unique/indexed), address, ageOver18, photo, etc.
+    string lic = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "extension_licenseNumber")?.Value
+                 ?? _configuration.GetValue<string>("VerifiedID:DefaultLicenseNumber") ?? "UK-ABC-12345";
+    request.claims["licenseNumber"] = lic;
+
+    string addr = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "streetAddress")?.Value
+                  ?? _configuration.GetValue<string>("VerifiedID:DefaultAddress") ?? "221B Baker Street, London";
+    request.claims["address"] = addr;
+
+    if (DateTime.TryParse(dob, out var dobDt))
+    {
+        bool over18 = (DateTime.UtcNow - dobDt).TotalDays / 365.25 >= 18.0;
+        request.claims["ageOver18"] = over18.ToString().ToLowerInvariant(); // "true"/"false"
+    }
+
+    string photoId = this.Request.Headers["rsid"];
+    if (!string.IsNullOrWhiteSpace(photoId) && _cache.TryGetValue(photoId, out string photoBase64))
+    {
+        _log.LogTrace($"Adding user photo to credential. photoId: {photoId}");
+        request.claims["photo"] = photoBase64; // just base64, no data: prefix
+    }
+
+    return request;
+}
 
         /// <summary>
         /// This method is called from the UI to initiate the issuance of the verifiable credential
