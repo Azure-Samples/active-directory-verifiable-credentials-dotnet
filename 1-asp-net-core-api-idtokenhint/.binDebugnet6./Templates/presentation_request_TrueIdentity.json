@@ -1,0 +1,29 @@
+{
+  "includeQRCode": false,
+  "callback": {
+    "url": "...set at runtime...",
+    "state": "...set at runtime...",
+    "headers": {
+      "api-key": "...set at runtime..."
+    }
+  },
+  "authority": "...set at runtime...",
+  "registration": {
+    "clientName": "TrueIdentity Verifier",
+    "purpose": "So we can see your identity has been verified by True Identity"
+  },
+  "includeReceipt": true,
+  "requestedCredentials": [
+    {
+      "type": "TrueIdentity",
+      //YOU CAN GET A TRUEIDENTITY VERIFIABLE CREDENTIAL HERE https://trueidentityinc.azurewebsites.net/
+      "acceptedIssuers": [ "did:web:did.woodgrovedemo.com" ],
+      "configuration": {
+        "validation": {
+          "allowRevoked": true,
+          "validateLinkedDomain": true
+        }
+      }
+    }
+  ]
+}
