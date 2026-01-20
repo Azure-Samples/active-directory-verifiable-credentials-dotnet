@@ -57,6 +57,8 @@ Follow the steps above, with the additions.
 ## Extending the sample with Microsoft Teams
 
 The sample is prepared to send a message to a Microsoft Teams channel using a [webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/what-are-webhooks-and-connectors). 
+**Please note: ** this is just a sample to show how this idea of Teams integration can be achieved. This is not a production ready code. For production, use server side logic or use options like Azure Logic apps, that could pick the verification state from the application DB and send out Teams notifications or REST API updates to external systems.
+
 In order to extend the sample, create an [incoming webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet) and update the app's configuration in your Azure AppService's configuration:
 
 | Key | Value |
