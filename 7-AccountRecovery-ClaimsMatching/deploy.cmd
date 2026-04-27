@@ -9,6 +9,7 @@ echo.
 
 :: Prerequisites
 SET ARTIFACTS=%~dp0%..\artifacts
+SET PROJECT_DIR=%~dp0
 
 IF NOT DEFINED DEPLOYMENT_SOURCE (
   SET DEPLOYMENT_SOURCE=%~dp0%.
@@ -20,7 +21,7 @@ IF NOT DEFINED DEPLOYMENT_TARGET (
 
 :: 1. Restore & Publish
 echo Publishing project...
-dotnet publish "%DEPLOYMENT_SOURCE%\account-recovery-claim-matching.csproj" ^
+dotnet publish "%PROJECT_DIR%account-recovery-claim-matching.csproj" ^
   --configuration Release ^
   --output "%DEPLOYMENT_TARGET%" ^
   /p:GenerateFullPaths=true

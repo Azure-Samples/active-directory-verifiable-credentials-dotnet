@@ -259,16 +259,8 @@
               "value": "[parameters('claimsValidatorProvider')]"
             },
             {
-              "name": "PROJECT",
-              "value": "7-AccountRecovery-ClaimsMatching\\account-recovery-claim-matching.csproj"
-            },
-            {
-              "name": "DEPLOYMENT_SOURCE",
-              "value": "D:\\home\\site\\repository\\7-AccountRecovery-ClaimsMatching"
-            },
-            {
-              "name": "SCM_SCRIPT_GENERATOR_ARGS",
-              "value": "--scriptType custom --customScript 7-AccountRecovery-ClaimsMatching\\deploy.cmd"
+              "name": "COMMAND",
+              "value": "7-AccountRecovery-ClaimsMatching\\deploy.cmd"
             },
             {
               "name": "EntraId__TenantId",
