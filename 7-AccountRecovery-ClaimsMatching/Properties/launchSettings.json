@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "account_recovery_claim_matching": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7272",
+      "launchBrowser": false
+    }
+  }
+}

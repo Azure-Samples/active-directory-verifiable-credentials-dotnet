@@ -1,0 +1,342 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppName": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 60,
+      "metadata": {
+        "description": "Name of the Azure Function App. Must be globally unique."
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Standard_RAGRS"
+      ],
+      "metadata": {
+        "description": "Storage account SKU for the Function App."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "excelShareUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "HTTP(S) URL to the Excel file (OneDrive link, Azure Blob SAS URL, or any web-hosted .xlsx). Required only when using the excel provider."
+      }
+    },
+    "excelSheetName": {
+      "type": "string",
+      "defaultValue": "Sheet1",
+      "metadata": {
+        "description": "Worksheet name in the Excel file (defaults to Sheet1)."
+      }
+    },
+    "excelCacheMinutes": {
+      "type": "int",
+      "defaultValue": 5,
+      "metadata": {
+        "description": "Minutes to cache the parsed Excel data in memory (defaults to 5)."
+      }
+    },
+    "claimsValidatorProvider": {
+      "type": "string",
+      "defaultValue": "excel",
+      "allowedValues": [
+        "excel",
+        "hrapi"
+      ],
+      "metadata": {
+        "description": "Claims validation provider. Use 'excel' for testing with an Excel file, or 'hrapi' for production with an HR REST API."
+      }
+    },
+    "hrApiBaseUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Base URL of your HR REST API (for example, https://hr.contoso.com/api). Required only when using the hrapi provider."
+      }
+    },
+    "hrApiAuthMode": {
+      "type": "string",
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "apikey",
+        "oauth"
+      ],
+      "metadata": {
+        "description": "Authentication mode for the HR API: 'apikey' or 'oauth'. Leave empty when using the excel provider."
+      }
+    },
+    "hrApiApiKey": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "API key for the HR API (required when hrApiAuthMode is 'apikey'). Leave empty otherwise."
+      }
+    },
+    "hrApiOAuthScope": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "OAuth scope for the HR API (for example, api://hr-api-app-id/.default). Required when hrApiAuthMode is 'oauth'."
+      }
+    },
+    "entraIdTenantId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Entra ID tenant ID for OAuth 2.0 Bearer token validation. Leave empty to disable."
+      }
+    },
+    "entraIdClientId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Entra ID application (client) ID of the Function App's app registration for OAuth 2.0. Leave empty to disable."
+      }
+    },
+    "repoUrl": {
+      "type": "string",
+      "defaultValue": "https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet",
+      "metadata": {
+        "description": "URL of the GitHub repository containing the function code. The ARM template will deploy both infrastructure and code from this repo."
+      }
+    },
+    "branch": {
+      "type": "string",
+      "defaultValue": "main",
+      "metadata": {
+        "description": "Branch of the repository to deploy."
+      }
+    },
+    "dotnetVersion": {
+      "type": "string",
+      "defaultValue": "v10.0",
+      "allowedValues": [
+        "v8.0",
+        "v10.0"
+      ],
+      "metadata": {
+        "description": "The .NET version for the Function App runtime. Use v10.0 (default) or v8.0 if .NET 10 is not yet available in your region."
+      }
+    }
+  },
+  "variables": {
+    "hostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
+    "storageAccountName": "[concat(uniqueString(resourceGroup().id), 'azfunc')]",
+    "applicationInsightsName": "[concat(parameters('functionAppName'), '-ai')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2",
+        "defaultToOAuthAuthentication": true
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('applicationInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "Request_Source": "rest"
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('hostingPlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic",
+        "size": "Y1",
+        "family": "Y",
+        "capacity": 0
+      },
+      "kind": "functionapp",
+      "properties": {
+        "reserved": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+      ],
+      "properties": {
+        "enabled": true,
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "httpsOnly": true,
+        "clientAffinityEnabled": false,
+        "keyVaultReferenceIdentity": "SystemAssigned",
+        "siteConfig": {
+          "netFrameworkVersion": "[parameters('dotnetVersion')]",
+          "use32BitWorkerProcess": false,
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "http20Enabled": true,
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2022-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2022-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(parameters('functionAppName'))]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "dotnet-isolated"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').InstrumentationKey]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').ConnectionString]"
+            },
+            {
+              "name": "SCM_COMMAND_IDLE_TIMEOUT",
+              "value": "600"
+            },
+            {
+              "name": "Excel__ShareUrl",
+              "value": "[parameters('excelShareUrl')]"
+            },
+            {
+              "name": "Excel__SheetName",
+              "value": "[parameters('excelSheetName')]"
+            },
+            {
+              "name": "Excel__CacheMinutes",
+              "value": "[string(parameters('excelCacheMinutes'))]"
+            },
+            {
+              "name": "ClaimsValidator__Provider",
+              "value": "[parameters('claimsValidatorProvider')]"
+            },
+            {
+              "name": "PROJECT",
+              "value": "7-AccountRecovery-ClaimsMatching\\account-recovery-claim-matching.csproj"
+            },
+            {
+              "name": "DEPLOYMENT_SOURCE",
+              "value": "D:\\home\\site\\repository\\7-AccountRecovery-ClaimsMatching"
+            },
+            {
+              "name": "SCM_SCRIPT_GENERATOR_ARGS",
+              "value": "--scriptType custom --customScript 7-AccountRecovery-ClaimsMatching\\deploy.cmd"
+            },
+            {
+              "name": "EntraId__TenantId",
+              "value": "[parameters('entraIdTenantId')]"
+            },
+            {
+              "name": "EntraId__ClientId",
+              "value": "[parameters('entraIdClientId')]"
+            },
+            {
+              "name": "HrApi__BaseUrl",
+              "value": "[parameters('hrApiBaseUrl')]"
+            },
+            {
+              "name": "HrApi__AuthMode",
+              "value": "[parameters('hrApiAuthMode')]"
+            },
+            {
+              "name": "HrApi__ApiKey",
+              "value": "[parameters('hrApiApiKey')]"
+            },
+            {
+              "name": "HrApi__OAuthScope",
+              "value": "[parameters('hrApiOAuthScope')]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/hostNameBindings",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(parameters('functionAppName'), '/', parameters('functionAppName'), '.azurewebsites.net')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "siteName": "[parameters('functionAppName')]",
+        "hostNameType": "Verified"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/sourcecontrols",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(parameters('functionAppName'), '/web')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "repoUrl": "[parameters('repoUrl')]",
+        "branch": "[parameters('branch')]",
+        "isManualIntegration": true
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[parameters('functionAppName')]"
+    },
+    "functionAppUrl": {
+      "type": "string",
+      "value": "[concat('https://', parameters('functionAppName'), '.azurewebsites.net')]"
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01', 'full').identity.principalId]"
+    }
+  }
+}
