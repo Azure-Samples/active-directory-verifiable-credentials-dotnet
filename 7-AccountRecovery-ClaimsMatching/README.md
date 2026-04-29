@@ -204,6 +204,85 @@ The function endpoint will be available at:
 https://<your-function-app-name>.azurewebsites.net/api/CustomClaimMatching
 ```
 
+### Testing the Function
+
+You can test the function before configuring EasyAuth. When `EntraId__TenantId` and `EntraId__ClientId` are empty (the ARM template defaults), JWT validation is skipped — but a `Bearer` header is still required.
+
+#### PowerShell Test Script
+
+```powershell
+$body = @'
+{
+    "type": "microsoft.graph.authenticationEvent.verifiedIdClaimValidation",
+    "source": "/tenants/<tenant-guid>/applications/<app-id>",
+    "data": {
+        "@odata.type": "microsoft.graph.onVerifiedIdClaimValidationCalloutData",
+        "tenantId": "<tenant-guid>",
+        "authenticationContext": {
+            "correlationId": "00000000-0000-0000-0000-000000000001",
+            "user": {
+                "userPrincipalName": "user@contoso.com"
+            }
+        },
+        "verifiedIdClaimsContext": {
+            "additionalInfo": {
+                "employeeId": "E001"
+            },
+            "claims": {
+                "firstName": "Shan",
+                "lastName": "Yang",
+                "fullName": "Shan Yang",
+                "dateOfBirth": "1990-01-15",
+                "documentNumber": "AB123456",
+                "documentType": "Passport",
+                "homeAddress": "123 Main St",
+                "documentExpiryDate": "2028-01-15"
+            }
+        }
+    }
+}
+'@
+
+(Invoke-WebRequest -Method Post `
+  -Uri "https://<your-function-app-name>.azurewebsites.net/api/CustomClaimMatching" `
+  -ContentType "application/json" `
+  -Headers @{ Authorization = "Bearer test" } `
+  -Body $body -UseBasicParsing).Content
+```
+
+> **Note:** Replace `<your-function-app-name>` with your Function App name. The `userPrincipalName` and claims should match data in your Excel file or HR API.
+
+#### Expected Responses
+
+**Pass** — all claims match the authoritative data source:
+```json
+{
+  "data": {
+    "@odata.type": "microsoft.graph.onVerifiedIdClaimValidationResponseData",
+    "actions": [
+      {
+        "@odata.type": "microsoft.graph.verifiedIdClaimValidation.pass"
+      }
+    ]
+  }
+}
+```
+
+**Fail** — one or more claims don't match:
+```json
+{
+  "data": {
+    "@odata.type": "microsoft.graph.onVerifiedIdClaimValidationResponseData",
+    "actions": [
+      {
+        "@odata.type": "microsoft.graph.verifiedIdClaimValidation.failed",
+        "failedClaims": ["dateOfBirth", "documentExpiryDate"]
+      }
+    ]
+  }
+}
+```
+
 ### Authentication
 
 The function uses `AuthorizationLevel.Anonymous` — **no function keys are required**. All authentication is via OAuth 2.0 Bearer tokens validated by `TokenValidationService`.
