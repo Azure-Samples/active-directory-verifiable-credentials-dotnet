@@ -229,9 +229,9 @@ $body = @'
                 "employeeId": "E001"
             },
             "claims": {
-                "firstName": "Shan",
-                "lastName": "Yang",
-                "fullName": "Shan Yang",
+                "firstName": "John",
+                "lastName": "Doe",
+                "fullName": "John Doe",
                 "dateOfBirth": "1990-01-15",
                 "documentNumber": "AB123456",
                 "documentType": "Passport",
