@@ -110,7 +110,7 @@
     },
     "repoUrl": {
       "type": "string",
-      "defaultValue": "https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet",
+      "defaultValue": "https://github.com/rogulati/AccountRecoveryClaimsMatchingAPI",
       "metadata": {
         "description": "URL of the GitHub repository containing the function code. The ARM template will deploy both infrastructure and code from this repo."
       }
@@ -136,7 +136,7 @@
   },
   "variables": {
     "hostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
-    "storageAccountName": "[concat(uniqueString(resourceGroup().id), 'azfunc')]",
+    "storageAccountName": "[concat(take(toLower(replace(replace(replace(parameters('functionAppName'), '-', ''), '_', ''), ' ', '')), 10), take(uniqueString(resourceGroup().id), 8), 'sa')]",
     "applicationInsightsName": "[concat(parameters('functionAppName'), '-ai')]"
   },
   "resources": [
@@ -257,10 +257,6 @@
             {
               "name": "ClaimsValidator__Provider",
               "value": "[parameters('claimsValidatorProvider')]"
-            },
-            {
-              "name": "COMMAND",
-              "value": "7-AccountRecovery-ClaimsMatching\\deploy.cmd"
             },
             {
               "name": "EntraId__TenantId",
