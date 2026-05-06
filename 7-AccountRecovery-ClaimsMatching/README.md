@@ -165,7 +165,7 @@ The `claims` object is **dynamic** — you can include any set of key/value pair
 
 ### Deploy to Azure
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F7-AccountRecovery-ClaimsMatching%2FARMTemplate%2Ftemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frogulati%2FAccountRecoveryClaimsMatchingAPI%2Fmain%2FARMTemplate%2Ftemplate.json)
 
 You will be prompted for the following parameters:
 
@@ -191,7 +191,7 @@ You will be prompted for the following parameters:
 The template deploys **both infrastructure and code**:
 - **Azure Function App** (Consumption plan, .NET isolated worker, v4 runtime)
 - **Source control integration** — automatically pulls and builds the function code from the GitHub repository
-- **Storage Account** — Required runtime dependency for Azure Functions on the Consumption plan. The Functions host uses it for trigger management and internal orchestration (`AzureWebJobsStorage`). On Consumption plans, it also hosts an Azure Files share that stores the deployed function code for scale-out (`WEBSITE_CONTENTSHARE`). Your application code does not interact with it directly.
+- **Storage Account** — Required runtime dependency for Azure Functions on the Consumption plan. The Functions host uses it for trigger management and internal orchestration (`AzureWebJobsStorage`). On Consumption plans, it also hosts an Azure Files share that stores the deployed function code for scale-out (`WEBSITE_CONTENTSHARE`). Your application code does not interact with it directly. The storage account name is derived from the function app name (first 10 alphanumeric characters) plus a unique hash and `sa` suffix (e.g., `acctrecovexi1q2r3s4tsa`), making it easy to identify in the Azure portal.
 - **Application Insights** for monitoring and logging
 - **System-assigned Managed Identity**
 
@@ -202,85 +202,6 @@ The template deploys **both infrastructure and code**:
 The function endpoint will be available at:
 ```
 https://<your-function-app-name>.azurewebsites.net/api/CustomClaimMatching
-```
-
-### Testing the Function
-
-You can test the function before configuring EasyAuth. When `EntraId__TenantId` and `EntraId__ClientId` are empty (the ARM template defaults), JWT validation is skipped — but a `Bearer` header is still required.
-
-#### PowerShell Test Script
-
-```powershell
-$body = @'
-{
-    "type": "microsoft.graph.authenticationEvent.verifiedIdClaimValidation",
-    "source": "/tenants/<tenant-guid>/applications/<app-id>",
-    "data": {
-        "@odata.type": "microsoft.graph.onVerifiedIdClaimValidationCalloutData",
-        "tenantId": "<tenant-guid>",
-        "authenticationContext": {
-            "correlationId": "00000000-0000-0000-0000-000000000001",
-            "user": {
-                "userPrincipalName": "user@contoso.com"
-            }
-        },
-        "verifiedIdClaimsContext": {
-            "additionalInfo": {
-                "employeeId": "E001"
-            },
-            "claims": {
-                "firstName": "John",
-                "lastName": "Doe",
-                "fullName": "John Doe",
-                "dateOfBirth": "1990-01-15",
-                "documentNumber": "AB123456",
-                "documentType": "Passport",
-                "homeAddress": "123 Main St",
-                "documentExpiryDate": "2028-01-15"
-            }
-        }
-    }
-}
-'@
-
-(Invoke-WebRequest -Method Post `
-  -Uri "https://<your-function-app-name>.azurewebsites.net/api/CustomClaimMatching" `
-  -ContentType "application/json" `
-  -Headers @{ Authorization = "Bearer test" } `
-  -Body $body -UseBasicParsing).Content
-```
-
-> **Note:** Replace `<your-function-app-name>` with your Function App name. The `userPrincipalName` and claims should match data in your Excel file or HR API.
-
-#### Expected Responses
-
-**Pass** — all claims match the authoritative data source:
-```json
-{
-  "data": {
-    "@odata.type": "microsoft.graph.onVerifiedIdClaimValidationResponseData",
-    "actions": [
-      {
-        "@odata.type": "microsoft.graph.verifiedIdClaimValidation.pass"
-      }
-    ]
-  }
-}
-```
-
-**Fail** — one or more claims don't match:
-```json
-{
-  "data": {
-    "@odata.type": "microsoft.graph.onVerifiedIdClaimValidationResponseData",
-    "actions": [
-      {
-        "@odata.type": "microsoft.graph.verifiedIdClaimValidation.failed",
-        "failedClaims": ["dateOfBirth", "documentExpiryDate"]
-      }
-    ]
-  }
-}
 ```
 
 ### Authentication
@@ -462,6 +383,14 @@ Add these to `local.settings.json` (local) or Function App **Configuration** (Az
 | `Excel__SheetName` | Worksheet name (defaults to `Sheet1`) |
 
 > **Note:** Use double underscores (`__`) as the separator for nested config in environment variables / App Settings. In `local.settings.json`, use colons: `"Excel:ShareUrl"`.
+
+## Cold Start Mitigation
+
+The function app includes a **KeepAlive** timer-triggered function that fires every 4 minutes (`0 */4 * * * *`). This prevents the Consumption plan from deallocating the instance after ~20 minutes of inactivity, effectively eliminating cold starts.
+
+- **Cost:** ~10,800 executions/month — well within the Consumption plan's free grant of 1 million executions
+- **Benefit:** Also keeps the in-memory Excel data cache warm between real requests
+- **Limitation:** Not 100% guaranteed — Azure can still recycle instances during platform updates, but eliminates >95% of cold starts in practice
 
 ## Technology Stack
 
