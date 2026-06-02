@@ -110,16 +110,23 @@
     },
     "repoUrl": {
       "type": "string",
-      "defaultValue": "https://github.com/rogulati/AccountRecoveryClaimsMatchingAPI",
+      "defaultValue": "https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git",
       "metadata": {
-        "description": "URL of the GitHub repository containing the function code. The ARM template will deploy both infrastructure and code from this repo."
+        "description": "Git repository to deploy from. Default points at the official Azure-Samples repo; override to deploy from a fork."
       }
     },
     "branch": {
       "type": "string",
       "defaultValue": "main",
       "metadata": {
-        "description": "Branch of the repository to deploy."
+        "description": "Branch in repoUrl to deploy."
+      }
+    },
+    "Project": {
+      "type": "string",
+      "defaultValue": "7-AccountRecovery-ClaimsMatching",
+      "metadata": {
+        "description": "Subfolder of repoUrl that contains the Functions project (csproj + deploy.cmd + .deployment)."
       }
     },
     "dotnetVersion": {
@@ -241,6 +248,10 @@
             {
               "name": "SCM_COMMAND_IDLE_TIMEOUT",
               "value": "600"
+            },
+            {
+              "name": "PROJECT",
+              "value": "[parameters('Project')]"
             },
             {
               "name": "Excel__ShareUrl",
