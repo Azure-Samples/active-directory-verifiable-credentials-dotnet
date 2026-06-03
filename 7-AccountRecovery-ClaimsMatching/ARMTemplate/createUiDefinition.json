@@ -1,0 +1,244 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": true,
+      "basics": {
+        "description": "**Account Recovery Claims Matching API**\n\nDeploys an Azure Function App that handles Microsoft Entra **Custom Authentication Extension** callouts during the Verified ID account-recovery flow.\n\nRuns on a **B1 (Basic) App Service plan** with `alwaysOn=true` so the first CAE call after idle does not cold-start. The function code is deployed from this repo via Kudu sourcecontrols. First deploy takes ~2 minutes; subsequent ARM deploys reuse the running app."
+      }
+    },
+    "basics": [
+      {
+        "name": "functionAppName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Function App name",
+        "toolTip": "Globally unique name. Also used as the public hostname: <name>.azurewebsites.net.",
+        "constraints": {
+          "required": true,
+          "regex": "^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$",
+          "validationMessage": "2\u201360 chars, lowercase letters, numbers, and hyphens only. Must start and end with a letter or number."
+        }
+      },
+      {
+        "name": "dotnetVersion",
+        "type": "Microsoft.Common.DropDown",
+        "label": ".NET version",
+        "defaultValue": ".NET 8 (LTS)",
+        "toolTip": "Runtime version for the .NET isolated worker. v8.0 (LTS) is preinstalled everywhere; v10.0 may require an SDK download on first deploy.",
+        "constraints": {
+          "allowedValues": [
+            { "label": ".NET 8 (LTS)", "value": "v8.0"  },
+            { "label": ".NET 10",      "value": "v10.0" }
+          ],
+          "required": true
+        }
+      }
+    ],
+    "steps": [
+      {
+        "name": "claims",
+        "label": "Claims source",
+        "elements": [
+          {
+            "name": "claimsValidatorProvider",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Claims validator provider",
+            "defaultValue": "Excel (test)",
+            "toolTip": "Where the function looks up authoritative claim values.",
+            "constraints": {
+              "allowedValues": [
+                { "label": "Excel (test)", "value": "excel" },
+                { "label": "HR REST API",  "value": "hrapi" }
+              ],
+              "required": true
+            }
+          },
+          {
+            "name": "excelGroup",
+            "type": "Microsoft.Common.Section",
+            "label": "Excel provider settings",
+            "visible": "[equals(steps('claims').claimsValidatorProvider, 'excel')]",
+            "elements": [
+              {
+                "name": "excelShareUrl",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Excel file URL",
+                "toolTip": "Direct HTTP(S) URL to the .xlsx (OneDrive sharing link, Azure Blob SAS, or any web host).",
+                "constraints": {
+                  "required": false,
+                  "regex": "^(|https?://.+)$",
+                  "validationMessage": "Must be a valid http(s) URL or empty."
+                }
+              },
+              {
+                "name": "excelSheetName",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Worksheet name",
+                "defaultValue": "Sheet1",
+                "constraints": { "required": false }
+              },
+              {
+                "name": "excelCacheMinutes",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Cache duration (minutes)",
+                "defaultValue": "5",
+                "constraints": {
+                  "required": false,
+                  "regex": "^[0-9]+$",
+                  "validationMessage": "Enter a non-negative integer."
+                }
+              }
+            ]
+          },
+          {
+            "name": "hrApiGroup",
+            "type": "Microsoft.Common.Section",
+            "label": "HR API provider settings",
+            "visible": "[equals(steps('claims').claimsValidatorProvider, 'hrapi')]",
+            "elements": [
+              {
+                "name": "hrApiBaseUrl",
+                "type": "Microsoft.Common.TextBox",
+                "label": "HR API base URL",
+                "toolTip": "e.g. https://hr.contoso.com/api",
+                "constraints": {
+                  "required": false,
+                  "regex": "^(|https?://.+)$",
+                  "validationMessage": "Must be a valid http(s) URL or empty."
+                }
+              },
+              {
+                "name": "hrApiAuthMode",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Auth mode",
+                "defaultValue": "API key",
+                "constraints": {
+                  "allowedValues": [
+                    { "label": "API key", "value": "apikey" },
+                    { "label": "OAuth (managed identity)", "value": "oauth" }
+                  ],
+                  "required": false
+                }
+              },
+              {
+                "name": "hrApiApiKey",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": { "password": "API key", "confirmPassword": "Confirm API key" },
+                "options": { "hideConfirmation": true },
+                "visible": "[equals(steps('claims').hrApiGroup.hrApiAuthMode, 'apikey')]",
+                "constraints": { "required": false }
+              },
+              {
+                "name": "hrApiOAuthScope",
+                "type": "Microsoft.Common.TextBox",
+                "label": "OAuth scope",
+                "toolTip": "e.g. api://hr-api-app-id/.default",
+                "visible": "[equals(steps('claims').hrApiGroup.hrApiAuthMode, 'oauth')]",
+                "constraints": { "required": false }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "entra",
+        "label": "Entra ID (optional)",
+        "elements": [
+          {
+            "name": "entraInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Optional. EasyAuth is the recommended way to protect the function (see README Step 5). EntraId__* is an alternative in-code OAuth 2.0 Bearer validation path for environments where EasyAuth cannot be used. Leave blank when EasyAuth is configured."
+            }
+          },
+          {
+            "name": "entraIdTenantId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Entra tenant ID (optional)",
+            "toolTip": "Optional. GUID of the tenant whose CAE calls this function. Leave blank when EasyAuth is configured.",
+            "constraints": {
+              "required": false,
+              "regex": "^(|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
+              "validationMessage": "Must be a GUID or empty."
+            }
+          },
+          {
+            "name": "entraIdClientId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Function App client ID (optional)",
+            "toolTip": "Optional. Application (client) ID of the app registration that fronts this function. Leave blank when EasyAuth is configured.",
+            "constraints": {
+              "required": false,
+              "regex": "^(|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
+              "validationMessage": "Must be a GUID or empty."
+            }
+          }
+        ]
+      },
+      {
+        "name": "advanced",
+        "label": "Advanced",
+        "elements": [
+          {
+            "name": "repoUrl",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Source repository URL",
+            "defaultValue": "https://github.com/Azure-Samples/active-directory-verifiable-credentials-dotnet.git",
+            "toolTip": "Git repo Kudu pulls the Functions source from. Override only if deploying from a fork.",
+            "constraints": {
+              "required": true,
+              "regex": "^https://.+\\.git$",
+              "validationMessage": "Must be an https URL ending in .git."
+            }
+          },
+          {
+            "name": "branch",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Branch",
+            "defaultValue": "main",
+            "toolTip": "Branch to deploy from.",
+            "constraints": { "required": true }
+          },
+          {
+            "name": "storageAccountType",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Storage redundancy",
+            "defaultValue": "LRS",
+            "toolTip": "Replication SKU for the supporting storage account (used by AzureWebJobsStorage).",
+            "constraints": {
+              "allowedValues": [
+                { "label": "LRS (locally redundant)", "value": "Standard_LRS" },
+                { "label": "GRS (geo-redundant)",     "value": "Standard_GRS" },
+                { "label": "RA-GRS",                  "value": "Standard_RAGRS" }
+              ],
+              "required": true
+            }
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "functionAppName": "[basics('functionAppName')]",
+      "location": "[location()]",
+      "dotnetVersion": "[basics('dotnetVersion')]",
+      "claimsValidatorProvider": "[steps('claims').claimsValidatorProvider]",
+      "excelShareUrl": "[coalesce(steps('claims').excelGroup.excelShareUrl, '')]",
+      "excelSheetName": "[coalesce(steps('claims').excelGroup.excelSheetName, 'Sheet1')]",
+      "excelCacheMinutes": "[int(coalesce(steps('claims').excelGroup.excelCacheMinutes, '5'))]",
+      "hrApiBaseUrl": "[coalesce(steps('claims').hrApiGroup.hrApiBaseUrl, '')]",
+      "hrApiAuthMode": "[coalesce(steps('claims').hrApiGroup.hrApiAuthMode, '')]",
+      "hrApiApiKey": "[coalesce(steps('claims').hrApiGroup.hrApiApiKey, '')]",
+      "hrApiOAuthScope": "[coalesce(steps('claims').hrApiGroup.hrApiOAuthScope, '')]",
+      "entraIdTenantId": "[coalesce(steps('entra').entraIdTenantId, '')]",
+      "entraIdClientId": "[coalesce(steps('entra').entraIdClientId, '')]",
+      "repoUrl": "[steps('advanced').repoUrl]",
+      "branch": "[steps('advanced').branch]",
+      "Project": "7-AccountRecovery-ClaimsMatching",
+      "storageAccountType": "[steps('advanced').storageAccountType]"
+    }
+  }
+}
