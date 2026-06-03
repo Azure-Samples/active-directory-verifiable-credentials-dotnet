@@ -165,7 +165,7 @@ The `claims` object is **dynamic** — you can include any set of key/value pair
 
 ### Deploy to Azure
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frogulati%2FAccountRecoveryClaimsMatchingAPI%2Fmain%2FARMTemplate%2Ftemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F7-AccountRecovery-ClaimsMatching%2FARMTemplate%2Ftemplate.json/createUIDefinitionUri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F7-AccountRecovery-ClaimsMatching%2FARMTemplate%2FcreateUiDefinition.json)
 
 You will be prompted for the following parameters:
 
