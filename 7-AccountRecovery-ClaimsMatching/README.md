@@ -189,7 +189,7 @@ You will be prompted for the following parameters:
 | **.NET Version** | *(optional)* `.NET` runtime version — `v10.0` (default) or `v8.0`. Use `v8.0` if .NET 10 is not yet available in your region |
 
 The template deploys **both infrastructure and code**:
-- **Azure Function App** (Consumption plan, .NET isolated worker, v4 runtime)
+- **Azure Function App** (Consumption plan (Y1), .NET isolated worker, v4 runtime)
 - **Source control integration** — automatically pulls and builds the function code from the GitHub repository
 - **Storage Account** — Required runtime dependency for Azure Functions on the Consumption plan. The Functions host uses it for trigger management and internal orchestration (`AzureWebJobsStorage`). On Consumption plans, it also hosts an Azure Files share that stores the deployed function code for scale-out (`WEBSITE_CONTENTSHARE`). Your application code does not interact with it directly. The storage account name is derived from the function app name (first 10 alphanumeric characters) plus a unique hash and `sa` suffix (e.g., `acctrecovexi1q2r3s4tsa`), making it easy to identify in the Azure portal.
 - **Application Insights** for monitoring and logging
