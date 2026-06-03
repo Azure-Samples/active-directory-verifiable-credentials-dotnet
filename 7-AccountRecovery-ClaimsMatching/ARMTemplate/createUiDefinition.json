@@ -6,7 +6,7 @@
     "config": {
       "isWizard": true,
       "basics": {
-        "description": "**Account Recovery Claims Matching API**\n\nDeploys an Azure Function App that handles Microsoft Entra **Custom Authentication Extension** callouts during the Verified ID account-recovery flow.\n\nRuns on a **B1 (Basic) App Service plan** with `alwaysOn=true` so the first CAE call after idle does not cold-start. The function code is deployed from this repo via Kudu sourcecontrols. First deploy takes ~2 minutes; subsequent ARM deploys reuse the running app."
+        "description": "**Account Recovery Claims Matching API**\n\nDeploys an Azure Function App that handles Microsoft Entra **Custom Authentication Extension** callouts during the Verified ID account-recovery flow.\n\nRuns on a **Y1 Consumption plan** (serverless, pay-per-execution). The function code is deployed from this repo via Kudu sourcecontrols. First deploy takes ~2 minutes; subsequent ARM deploys reuse the running app."
       }
     },
     "basics": [
@@ -25,8 +25,8 @@
         "name": "dotnetVersion",
         "type": "Microsoft.Common.DropDown",
         "label": ".NET version",
-        "defaultValue": ".NET 8 (LTS)",
-        "toolTip": "Runtime version for the .NET isolated worker. v8.0 (LTS) is preinstalled everywhere; v10.0 may require an SDK download on first deploy.",
+        "defaultValue": ".NET 10",
+        "toolTip": "Runtime version for the .NET isolated worker. v10.0 is the default; v8.0 (LTS) is also supported.",
         "constraints": {
           "allowedValues": [
             { "label": ".NET 8 (LTS)", "value": "v8.0"  },
