@@ -1,20 +1,23 @@
-function drawVerifiedIDCard(callback) {
-    fetch('/api/issuer/get-manifest')
-        .then(function (response) {
-            response.text()
-                .catch(error => displayMessage(error))
-                .then(function (message) {
-                    var manifest = JSON.parse(message);
-                    document.getElementById('idCardLogo').src = manifest.display.card.logo.uri;
-                    document.getElementById('idCardTitle').innerHTML = manifest.display.card.title;
-                    document.getElementById('idCardIssuedBy').innerHTML = manifest.display.card.issuedBy;
-                    document.getElementById('idCard').style.backgroundColor = manifest.display.card.backgroundColor;
-                    document.getElementById('idCardTitle').style.color = manifest.display.card.textColor;
-                    document.getElementById('idCardIssuedBy').style.color = manifest.display.card.textColor;
-                    document.getElementById('idCard').style.display = "";
-                    if (callback) {
-                        callback(message);
-                    }
-                }).catch(error => { console.log(error); })
-        }).catch(error => { console.log(error); })
+async function drawVerifiedIDCard(callback, url = '/api/issuer/get-manifest') {
+    try {
+        const response = await fetch(url);
+        const details = await response.json();
+        if (!response.ok) {
+            throw new Error(details.error_description || 'Unable to load credential manifest.');
+        }
+        const card = details.manifest.display.card;
+        document.getElementById('idCardLogo').src = card.logo?.uri || '';
+        document.getElementById('idCardTitle').textContent = card.title;
+        document.getElementById('idCardIssuedBy').textContent = card.issuedBy;
+        document.getElementById('idCard').style.backgroundColor = card.backgroundColor;
+        document.getElementById('idCardTitle').style.color = card.textColor;
+        document.getElementById('idCardIssuedBy').style.color = card.textColor;
+        document.getElementById('idCard').style.display = "";
+        if (callback) {
+            callback(details);
+        }
+    } catch (error) {
+        document.getElementById('message-wrapper').style.display = 'block';
+        document.getElementById('message').textContent = 'Credential configuration error: ' + error.message;
+    }
 };

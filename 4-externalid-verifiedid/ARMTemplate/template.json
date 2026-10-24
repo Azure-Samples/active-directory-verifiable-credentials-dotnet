@@ -2,6 +2,20 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "existingAppServicePlanResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional full resource ID of an existing Windows App Service plan in the deployment region. Leave blank to create a new Free F1 plan."
+      }
+    },
+    "deploySourceControl": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy from repoURL and branch. Set false when deploying a locally published ZIP instead."
+      }
+    },
     "webAppName": {
       "type": "string",
       "defaultValue": "<App Name>",
@@ -50,12 +64,12 @@
     "ClientId": {
       "type": "string",
       "metadata": {
-        "description": "app's ClientId"
+        "description": "External ID app registration ClientId. In its Token configuration, add ID-token optional claims email, given_name and family_name. This template does not modify the app registration. Sign out/in after configuring claims."
       },
       "defaultValue": "<ClientId>"
     },
     "ClientSecret": {
-      "type": "string",
+      "type": "secureString",
       "metadata": {
         "description": "app's ClientSecret"
       },
@@ -74,7 +88,7 @@
       "metadata": {
         "description": "CredentialType"
       },
-      "defaultValue": "NorthwindAirlinesDigitalCard"
+      "defaultValue": "NorthstarLoyalty"
     },
     "CredentialManifest": {
       "type": "string",
@@ -83,30 +97,112 @@
       },
       "defaultValue": "<ManifestURL>"
     },
+    "AdditionalIssuanceCredentials": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Additional id-token-hint credentials for this issuer: objects with Id, Name, Type, Manifest. Id must be unique and not 'default'."
+      }
+    },
+    "CredentialVerificationSettings": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Optional App Service name/value objects for VerifiedID__Verification__* or VerifiedID__Credentials__<index>__Verification__* account-binding and profile mappings. No secrets."
+      }
+    },
+    "AccountBindingClaim": {
+      "type": "string",
+      "defaultValue": "email",
+      "metadata": { "description": "Exact claim in the primary credential that binds it to the signed-in account." }
+    },
+    "AccountBindingSource": {
+      "type": "string",
+      "defaultValue": "email",
+      "allowedValues": ["email", "oid"],
+      "metadata": { "description": "Authenticated account claim to compare against AccountBindingClaim." }
+    },
+    "ProfileValueClaim": {
+      "type": "string",
+      "defaultValue": "loyalty",
+      "metadata": { "description": "Exact nonempty claim required in the account credential. Retained only in the in-memory flow; no profile write. Defaults to loyalty for Northstar. Override with membershipNo for the included sample contract." }
+    },
     "PhotoClaimName": {
       "type": "string",
       "metadata": {
-        "description": "claim name for photo - if you are using FaceCheck during presentation. Otherwise leave this field blank"
+        "description": "Portrait photo claim name in the manifest (default photo). Enables issuance upload only for a matching JPEG image claim; leave blank to disable."
       },
       "defaultValue": "photo"
+    },
+    "IdentityIssuer": {
+      "type": "string",
+      "defaultValue": "did:web:did.woodgrovedemo.com",
+      "metadata": { "description": "DID of the trusted TrueIdentity credential issuer; verify against your provider" }
+    },
+    "CallbackApiKey": {
+      "type": "secureString",
+      "metadata": { "description": "Strong shared secret for Verified ID callbacks; store as a Key Vault reference after deployment" }
+    },
+    "ProviderUrl": {
+      "type": "string",
+      "defaultValue": "https://trueidentityincv2.azurewebsites.net/",
+      "metadata": { "description": "Optional HTTPS identity-provider enrollment URL; browser return is not proof of success" }
     }
   },
   "variables": {
     "appServicePlanPortalName": "[concat(parameters('webAppName'), '-plan')]",
+    "appServicePlanResourceId": "[if(empty(parameters('existingAppServicePlanResourceId')), resourceId('Microsoft.Web/serverfarms', variables('appServicePlanPortalName')), parameters('existingAppServicePlanResourceId'))]",
     "tenantDomainNameFull": "[concat(parameters('TenantName'), '.onmicrosoft.com')]",
-    "tenantAuthority": "[concat('https://', parameters('TenantName'), '.ciamlogin.com')]"
+    "tenantAuthority": "[concat('https://', parameters('TenantName'), '.ciamlogin.com')]",
+    "credentialSettingKeys": ["Id", "Name", "Type", "Manifest"],
+    "baseAppSettings": [
+      { "name": "SCM_COMMAND_IDLE_TIMEOUT", "value": "600" },
+      { "name": "PROJECT", "value": "[if(parameters('deploySourceControl'), parameters('Project'), '')]" },
+      { "name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "[if(parameters('deploySourceControl'), 'true', 'false')]" },
+      { "name": "EEID__TenantId", "value": "[parameters('TenantId')]" },
+      { "name": "EEID__TenantName", "value": "[variables('tenantDomainNameFull')]" },
+      { "name": "EEID__Authority", "value": "[variables('tenantAuthority')]" },
+      { "name": "EEID__ClientId", "value": "[parameters('ClientId')]" },
+      { "name": "EEID__ClientSecret", "value": "[parameters('ClientSecret')]" },
+      { "name": "VerifiedID__DidAuthority", "value": "[parameters('DidAuthority')]" },
+      { "name": "VerifiedID__CredentialType", "value": "[parameters('CredentialType')]" },
+      { "name": "VerifiedID__CredentialManifest", "value": "[parameters('CredentialManifest')]" },
+      { "name": "VerifiedID__Verification__AccountBindingClaim", "value": "[parameters('AccountBindingClaim')]" },
+      { "name": "VerifiedID__Verification__AccountBindingSource", "value": "[parameters('AccountBindingSource')]" },
+      { "name": "VerifiedID__Verification__ProfileValueClaim", "value": "[parameters('ProfileValueClaim')]" },
+      { "name": "VerifiedID__PhotoClaimName", "value": "[parameters('PhotoClaimName')]" },
+      { "name": "VerifiedID__client_name", "value": "Northwind Airlines" },
+      { "name": "VerifiedID__purpose", "value": "To prove your membership" },
+      { "name": "VerifiedID__IssuancePinCodeLength", "value": "4" },
+      { "name": "VerifiedID__includeReceipt", "value": "true" },
+      { "name": "IdentityVerification__PublicBaseUrl", "value": "[concat('https://', parameters('webAppName'), '.azurewebsites.net/')]" },
+      { "name": "IdentityVerification__ProviderUrl", "value": "[parameters('ProviderUrl')]" },
+      { "name": "IdentityVerification__IdentityIssuer", "value": "[parameters('IdentityIssuer')]" },
+      { "name": "IdentityVerification__CallbackApiKey", "value": "[parameters('CallbackApiKey')]" }
+    ],
+    "copy": [
+      {
+        "name": "additionalCredentialSettings",
+        "count": "[mul(length(parameters('AdditionalIssuanceCredentials')), 4)]",
+        "input": {
+          "name": "[concat('VerifiedID__Credentials__', string(div(copyIndex('additionalCredentialSettings'), 4)), '__', variables('credentialSettingKeys')[mod(copyIndex('additionalCredentialSettings'), 4)])]",
+          "value": "[parameters('AdditionalIssuanceCredentials')[div(copyIndex('additionalCredentialSettings'), 4)][variables('credentialSettingKeys')[mod(copyIndex('additionalCredentialSettings'), 4)]]]"
+        }
+      }
+    ]
   },
     "resources": [
       {
+        "condition": "[empty(parameters('existingAppServicePlanResourceId'))]",
         "type": "Microsoft.Web/serverfarms",
         "apiVersion": "2020-06-01",
         "name": "[variables('appServicePlanPortalName')]",
         "location": "[resourceGroup().location]",
         "sku": {
-          "name": "B1",
-          "tier": "Basic",
-          "size": "B1",
-          "family": "B",
+          "name": "F1",
+          "tier": "Free",
+          "size": "F1",
+          "family": "F",
           "capacity": 1
         },
         "kind": "app",
@@ -150,7 +246,7 @@
               "hostType": "Repository"
             }
           ],
-          "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanPortalName'))]",
+          "serverFarmId": "[variables('appServicePlanResourceId')]",
           "reserved": false,
           "isXenon": false,
           "hyperV": false,
@@ -165,7 +261,7 @@
           "hostNamesDisabled": false,
           "containerSize": 0,
           "dailyMemoryTimeQuota": 0,
-          "httpsOnly": false,
+          "httpsOnly": true,
           "redundancyMode": "None",
           "storageAccountRequired": false,
           "keyVaultReferenceIdentity": "SystemAssigned",
@@ -177,76 +273,13 @@
             "http20Enabled": false,
             "functionAppScaleLimit": 0,
             "minimumElasticInstanceCount": 0,
-            "appSettings": [
-              {
-                "name": "SCM_COMMAND_IDLE_TIMEOUT",
-                "value": "600"
-              },
-              {
-                "name": "PROJECT",
-                "value": "[parameters('Project')]"
-              },
-
-              {
-                "name": "AzureAd__TenantId",
-                "value": "[parameters('TenantId')]"
-              },
-              {
-                "name": "AzureAd__TenantName",
-                "value": "[variables('tenantDomainNameFull')]"
-              },
-              {
-                "name": "AzureAd__Authority",
-                "value": "[variables('tenantAuthority')]"
-              },
-              {
-                "name": "AzureAd__ClientId",
-                "value": "[parameters('ClientId')]"
-              },
-              {
-                "name": "AzureAd__ClientSecret",
-                "value": "[parameters('ClientSecret')]"
-              },
-
-              {
-                "name": "VerifiedID__DidAuthority",
-                "value": "[parameters('DidAuthority')]"
-              },
-              {
-                "name": "VerifiedID__CredentialType",
-                "value": "[parameters('CredentialType')]"
-              },
-              {
-                "name": "verifiedID__CredentialManifest",
-                "value": "[parameters('CredentialManifest')]"
-              },
-              {
-                "name": "VerifiedID__PhotoClaimName",
-                "value": "[parameters('PhotoClaimName')]"
-              },
-              {
-                "name": "VerifiedID__client_name",
-                "value": "Northwind Airlines"
-              },
-              {
-                "name": "VerifiedID__purpose",
-                "value": "To prove your membership"
-              },
-              {
-                "name": "VerifiedID__IssuancePinCodeLength",
-                "value": "4"
-              },
-              {
-                "name": "VerifiedID__includeReceipt",
-                "value": "true"
-              }
-
-            ]
+            "appSettings": "[concat(variables('baseAppSettings'), variables('additionalCredentialSettings'), parameters('CredentialVerificationSettings'))]"
           }
         },
 
         "resources": [
           {
+            "condition": "[parameters('deploySourceControl')]",
             "type": "sourcecontrols",
             "apiVersion": "2018-02-01",
             "name": "web",
@@ -299,7 +332,7 @@
             "index.php",
             "hostingstart.html"
           ],
-          "netFrameworkVersion": "v8.0",
+          "netFrameworkVersion": "v10.0",
           "requestTracingEnabled": false,
           "remoteDebuggingEnabled": false,
           "httpLoggingEnabled": true,

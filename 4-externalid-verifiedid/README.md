@@ -1,112 +1,160 @@
-# External ID + Verified ID sample
+---
+page_type: sample
+languages:
+- dotnet
+- powershell
+products:
+- Entra
+- Verified ID
+description: "A .NET sample combining External ID sign-in with Verified ID issuance, presentation, and an identity-provider integration."
+urlFragment: "active-directory-verifiable-credentials-dotnet"
+---
+# External ID and Verified ID sample
 
-This sample is an ASP.Net Core sample that is designed for External ID and Verified ID to work together. 
+## About this sample
 
-> **_NOTE:_**  The feature of signing in via presenting a Verified ID is in private preview.
+A .NET 10 web app showing how to combine External ID sign-in with Verified ID
+credential issuance and presentation, including a TrueIdentity provider handoff.
+Users sign in with the normal hosted External ID experience. Verified ID is used
+after sign-in, not as an authentication method.
+
+TrueIdentity is a **dummy IDV service** for this sample. To use an actual IDV
+provider, work directly with an IDV partner and follow the
+[Verified ID integration guidance](https://learn.microsoft.com/en-gb/entra/verified-id/integration-guidance).
 
 ## Deploy to Azure
 
-Complete the [setup](#Setup) before deploying to Azure so that you have all the required parameters.
+Complete the [configuration](#configure) first so you have the required tenant,
+app registration, issuer, credential manifest, and provider values.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Factive-directory-verifiable-credentials-dotnet%2Fmain%2F4-externalid-verifiedid%2FARMTemplate%2Ftemplate.json)
 
-You will be asked to enter some parameters during deployment about your app registration and your Verified ID details. You will find these values in the admin portal. 
+The deployment prompts for the app and Verified ID settings. It deploys from
+the repository's `main` branch; it does not include uncommitted local changes.
+For Northstar, `ProfileValueClaim` defaults to `loyalty`; use `membershipNo`
+for the included sample rules. The template creates a Windows App Service on
+Free F1 by default. It does not create the External ID tenant, app registration,
+issuer, or credential contract.
 
-![Deployment Parameters](ReadmeFiles/DeployToAzure.png)
+## User flow
 
-## Using the sample
+Sign in with the hosted External ID experience, then use the three pages under
+**Credential journey** in the left navigation:
 
-To use the sample, do the following:
+1. **Issue credential** — Choose a configured credential, such as
+   `NorthstarLoyalty`, and issue it to Microsoft Authenticator or another
+   compatible wallet. Issuance uses the signed-in account's configured claims;
+   it does not perform identity proofing.
+2. **Verify credential and identity** — This page guides the identity flow:
+   present the account credential so the app can validate its issuer, type,
+   validity, and account binding; continue to TrueIdentity, the sample's dummy
+   IDV service, for its government document and selfie checks; then present
+   the provider-issued `TrueIdentity` credential. The app validates that
+   presentation's issuer, type, revocation status, and expiration before
+   completing the in-memory flow. Returning from TrueIdentity only confirms
+   navigation, not proofing success.
+3. **Present credential** — Use the standalone verifier page to request a
+   presentation of a credential from your wallet. Scan its QR code and respond
+   in your wallet; this demonstrates credential presentation separately from
+   the gated TrueIdentity integration flow.
 
-- Open the website in your browser.
-- Step 1
-    - Click Sign-in, then sign-up for creating a local account
-- Step 2
-    - Select `Issue Verified ID` in home page
-    - If you want a credential that can work with FaceCheck, either take a selfie or upload a photo of yourself
-    - Click `Issue Credential` to issue yourself a credential
-- Step 3 (private preview)
-    - Sign out from the app
-    - Click Sign-in, type your email, click Next and select `Use a Verified ID` to authenticate
-    - Scan the QR code and present your Verified ID credential
-- Step 4
-    - Being signed in or not, the app can ask the user to present the Verified ID again, if required in the app 
-    - Click `Present Verified ID` in the home page to create a presentation request
-    - Check `Use Face Check` to request a liveness check during the presentation
+Presentation QR codes appear on the relevant page, with instructions to scan
+using Microsoft Authenticator or a compatible wallet. **The app does not
+update the user's profile or write to Microsoft Graph.**
 
-> **_NOTE:_**  Currently Face Check doesn't work in External ID Entra tenants, so step 4 can't be performed.
+## Configure
 
-## Sample configuration
+1. Create an External ID app registration and hosted sign-up/sign-in user flow.
+   Add the app's `/signin-oidc` redirect URI.
+2. Configure ID-token claims `email`, `given_name`, and `family_name` where
+   available. Users whose credential contract requires names must have given
+   name and surname in their profile. Sign out and back in after changing claims.
+3. Configure a Verified ID issuer and publish a credential contract. The
+   default Northstar mapping expects `email` and `loyalty`. The included sample
+   rules use `membershipNo`; set `VerifiedID:Verification:ProfileValueClaim`
+   (or the ARM `ProfileValueClaim` parameter) to `membershipNo` when using them.
+4. Set the provider's actual issuer DID in
+   `IdentityVerification:IdentityIssuer`. The presented identity credential
+   must include the `TrueIdentity` type and come from that issuer.
 
-This sample now has all its configuration in the [appsettings.json](appsettings.json) file and you need to update it before you run the app.
-If you are running the app locally, you need to edit the appsettings.json file. If you are running the app in Azure AppServices, you need to update the
-settings in an Azure AppServices deployment. You can use this template [appservice-config-template.json](appservice-config-template.json) and apply it in the Advanced Edit editor.
+Set configuration with user secrets, environment variables, or App Service
+settings—never commit credentials. Key environment variables include:
 
-| Section | Setting | Description |
-|------|--------|--------|
-| AzureAd | Authority | Update your tenant name https://your-tenant-name.ciamlogin.com |
-| | TenantId | Your External ID tenant id (guid) |
-| | TenantName | Update your tenant name your-tenant-name.onmicrosoft.com |
-| | ClientId | Client Id (AppId) in the External ID tenant that is used |
-| | ClientSecret | Client secret for the client id - skip if using Managed Identity |
-| VerifiedID | DidAuthority | The DID of your Verified ID authority |
-| | CredentialType | Name of the credential type you are using in combination with External ID |
-| | CredentialManifest | URL to the credential manifest for your Verified ID credential |
-| | IssuancePinCodeLength | Enter value 4-6 if you want issuance to have a pin code. Leave 0 for no pin code |
-| | useFaceCheck | If you plan to extend the sample by providing a user photo during issuance, change this flag to true |
-| | PhotoClaimName | Name of photo claim |
+| Setting | Purpose |
+| --- | --- |
+| `EEID__TenantId`, `EEID__TenantName`, `EEID__Authority` | External ID tenant |
+| `EEID__ClientId`, `EEID__ClientSecret` | Web app registration |
+| `VerifiedID__DidAuthority` | Verified ID issuer DID |
+| `VerifiedID__CredentialType`, `VerifiedID__CredentialManifest` | Issuance contract |
+| `IdentityVerification__ProviderUrl` | TrueIdentity enrollment URL; defaults to `https://trueidentityincv2.azurewebsites.net/` |
+| `IdentityVerification__IdentityIssuer` | Trusted `TrueIdentity` issuer DID |
+| `IdentityVerification__PublicBaseUrl` | Public HTTPS origin for callbacks |
+| `IdentityVerification__CallbackApiKey` | Shared secret used to authenticate Verified ID callbacks |
 
-## Setup
+The checked-in `appsettings.json` contains placeholders. The
+`appservice-config-template.json` lists App Service settings without usable
+secrets. No Graph permission or directory extension is required.
 
-### Create a External ID tenant
+## Run locally
 
-Use your existing External ID tenant or follow the [quickstart](https://learn.microsoft.com/en-us/entra/external-id/customers/quickstart-tenant-setup) for creating a External ID tenant.
+From the repository root, with the .NET 10 SDK and Node.js 18+ installed:
 
-### Setup Verified ID
+```powershell
+dotnet test .\4-externalid-verifiedid.Tests\ExternalIDVerifiedID.Tests.csproj
+node --test .\4-externalid-verifiedid.Tests\issuance-ui.test.cjs .\4-externalid-verifiedid.Tests\navigation.test.cjs
+dotnet run --project .\4-externalid-verifiedid\ExternalIDVerifiedID.csproj --launch-profile https
+```
 
-Setup Verified ID in your tenant using the [quick setup](https://learn.microsoft.com/entra/verified-id/verifiable-credentials-configure-tenant-quick) method. Note that the Advanced setup method isn't supported. 
-A requirement for using the quick setup is that you have registered a [custom domain](https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain) for the tenant.
+Open `https://localhost:5001/`. A live issuance/presentation requires a
+configured tenant and issuer. Verified ID callbacks require a publicly
+reachable HTTPS URL; use a trusted HTTPS tunnel for local end-to-end testing.
 
-### Create a Verified ID custom credential
+## Deploy local changes
 
-Create a custom credential named `NorthwindAirlinesDigitalCard` using the display and rules definitions available [here](Credential%20Definitions)
+The ARM template configures the app. F1 is a shared demo tier and can unload
+the app.
 
+To deploy uncommitted local code, publish the app and ZIP the contents of the
+publish directory, then use `az webapp deploy --type zip`. ARM source deployment
+uses the selected remote branch and does not include unpushed local changes.
 
-### Register an app
+After deployment, add the site's `/signin-oidc` URL to the app registration.
+Start a new verification after any app restart or deployment; in-progress
+flows are held in memory.
 
-Follow the instructions for [registering an app](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-register-ciam-app?tabs=webapp) the following additions. 
+## Additional credentials
 
-1. Skip the permissions for claim-ToDoList-api
-1. Authentication
-    1. Add redirect_uris `https://localhost:5001/signin-oidc` and `https://jwt.ms/`
-    1. In Implict grant and hybrid flows, select Access & ID tokens
-1. Token configuration
-    1. Add optional claim `upn` and `email` for id token
-1. API Permissions
-    1. +Add permission > APIs my org uses > Verifiable Credentials Service Request > Application permissions > `VerifiableCredential.Create.All`
-    1. Grant admin consent
+Add credentials to `VerifiedID:Credentials` in `appsettings.json` or through
+indexed App Service settings. Each entry needs an `Id`, `Name`, `Type`,
+`Manifest`, and a `Verification` mapping:
 
-### Create a sign-in flow
-Create a sign-up and sign-in flow is documented [here](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-user-flow-sign-up-sign-in-customers).
-Use the following options:
+```json
+{
+  "Id": "employee-card",
+  "Name": "Employee card",
+  "Type": "Employee",
+  "Manifest": "https://verifiedid.did.msidentity.com/v1.0/tenants/<tenant-id>/verifiableCredentials/contracts/<contract-id>/manifest",
+  "Verification": {
+    "AccountBindingClaim": "email",
+    "AccountBindingSource": "email",
+    "ProfileValueClaim": "employeeNumber"
+  }
+}
+```
 
-1. Identity providers: Email with password
-1. User attributes: select Display Name, Given Name, Surname
-1. Applications: Add Applications: Add the application you registered previously
+`AccountBindingSource` is `email` or `oid`, and claim names must match the
+published credential exactly. Only configured credentials are available for
+issuance. The sample's issuance claim builder is designed for its existing
+Northstar claims; other credentials may require code changes.
 
-Test run the user flow to see that it works. Select https://jwt.ms/ as Reply URL, id token as Response type
+## Limitations
 
-### Azure subscription
-
-The sample is intended to be deployed to [Azure App Services](https://learn.microsoft.com/azure/app-service/). You can ***not*** use [Managed Identity](https://learn.microsoft.com/azure/app-service/overview-managed-identity) for authenticating and acquiring an access token to call Verified ID.
-The sample uses the ClientID and the ClientSecret configured for the External ID tenant to acquire access tokens to Verified ID.
-
-## Troubleshooting
-
-If you are deploying this sample to Azure App Services, then you can view app logging information in the `Log stream` if you do the following:
-
-- Go to Development Tools, then Extensions
-- Select `+ Add` and add `ASP.NET Core Logging Integration` extension
-- Go to `Log stream` and set `Log level` drop down filter to `verbose`
-
-The Log stream console will now contain traces from the deployed. Don't forget do disable extension when troubleshooting is done.
+- Provider return is not proof of successful document checks. The provider
+  must issue a `TrueIdentity` credential; the app completes only after its
+  validated wallet presentation callback.
+- Verification state is in memory and can be lost on restart or unload.
+- The callback uses a shared API key. This sample is for demonstration, not
+  production identity assurance; it does not durably bind the provider's
+  proofed identity to the signed-in account.
+- Verified ID and provider services may have separate costs; Free F1 does not
+  make the full solution free.

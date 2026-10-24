@@ -1,0 +1,219 @@
+@using ExternalIDVerifiedID.Models
+@using System.Linq
+@{
+    ViewData["Title"] = "Identity verification provider integration";
+    var flow = ViewData["Flow"] as string;
+    var transaction = ViewData["Transaction"] as IdentityVerificationState.Transaction;
+    var missing = ViewData["MissingAccountClaims"] as System.Collections.Generic.List<string>;
+    var credentials = ViewData["Credentials"] as System.Collections.Generic.IReadOnlyList<ExternalIDVerifiedID.IssuanceCredential>;
+    var selectedId = ViewData["CredentialId"] as string;
+    var selected = credentials?.FirstOrDefault(c => c.Id == selectedId);
+    var status = transaction?.Status;
+    var credentialVerified = !string.IsNullOrWhiteSpace(transaction?.ProfileValue);
+    var identityVerified = status == "verified";
+    var providerReturned = transaction?.ProviderReturnSeen == true;
+    var failed = status == "failed";
+}
+<div class="identity-heading">
+    <p class="identity-eyebrow">External ID + Verified ID</p>
+    <h1>Your identity</h1>
+    <p>This is an <strong>identity verification provider integration flow</strong>.
+        First present a credential bound to your signed-in account, then complete the provider's
+        document and selfie checks and present its identity credential from your wallet.</p>
+    <p>A browser return is not proof of identity.</p>
+</div>
+<section class="identity-selection sample-panel" aria-labelledby="identity-selection-heading">
+<h2 id="identity-selection-heading">Choose your account credential</h2>
+@if (transaction == null) {
+    <label for="verification-credential">Credential to verify</label>
+    <select id="verification-credential" class="form-select mb-3">
+        @foreach (var credential in credentials) {
+            <option value="@credential.Id" selected="@(credential.Id == selectedId)">
+                @credential.Name@(credential.Verification == null ? " (verification mappings required)" : "")
+            </option>
+        }
+    </select>
+    <script>
+        document.getElementById('verification-credential').addEventListener('change', event => {
+            window.location.assign('/identity?credentialId=' + encodeURIComponent(event.target.value));
+        });
+    </script>
+    @if (selected?.Verification != null) {
+        <p>Account binding: <code>@selected.Verification.AccountBindingClaim</code> must match your signed-in
+            <code>@selected.Verification.AccountBindingSource</code>. Profile value: <code>@selected.Verification.ProfileValueClaim</code>.</p>
+        <p><a asp-controller="Home" asp-action="Issuer" asp-route-credentialId="@selectedId">Issue this credential</a>
+            if you do not already have it in your wallet.</p>
+    } else {
+        <div class="alert alert-warning" role="alert">Configure this credential's <code>Verification</code>
+            account-binding and profile claim mappings before starting.</div>
+    }
+} else {
+    <p>Selected credential: <strong>@transaction.CredentialName</strong> (<code>@transaction.CredentialType</code>).</p>
+    <p>Account binding: <code>@transaction.AccountBindingClaim</code> matches your signed-in
+        <code>@transaction.AccountBindingSource</code>. Profile value: <code>@transaction.ProfileValueClaim</code>.</p>
+    @if (transaction.Status != "verified") {
+        <a asp-controller="IdentityVerification" asp-action="Index" asp-route-credentialId="@selectedId"
+           class="btn btn-secondary">Choose a credential / start again</a>
+    }
+}
+</section>
+@if (missing?.Count > 0) {
+    <div class="alert alert-warning" role="alert">
+        <h2>Account claims need configuration</h2>
+        <p>You are signed in, but verification cannot start because your current session is missing:
+            <strong>@string.Join(", ", missing)</strong>.</p>
+        <p>In your External ID tenant, open <strong>App registrations &gt; this application &gt;
+            Token configuration &gt; Add optional claim &gt; ID</strong>, add <strong>email</strong>
+            if available, and save. Ensure the app is assigned to the intended sign-up/sign-in user flow
+            and the account has an email address. For a missing object ID, confirm you signed in
+            with an account in the configured External ID tenant.</p>
+        <p><a href="https://learn.microsoft.com/en-us/entra/identity-platform/optional-claims">Configure optional token claims</a>.
+            After saving, <strong>sign out and sign in again</strong> to obtain a new token.
+            Restarting the app alone does not refresh an existing sign-in cookie.</p>
+        <p><a asp-controller="Home" asp-action="Profile">Inspect your current claim names on the profile page</a>.
+            Do not share tokens, secrets, or personal claim values.</p>
+    </div>
+}
+<div class="identity-steps" aria-label="Identity verification steps">
+    <section class="identity-step @(credentialVerified ? "is-complete" : "is-current")" aria-labelledby="credential-step-heading">
+        <span class="identity-step-number" aria-hidden="true">1</span>
+        <p class="identity-eyebrow">@(credentialVerified ? "Credential verified" : "Account credential")</p>
+        <h2 id="credential-step-heading">Verify your @(transaction?.CredentialName ?? selected?.Name) credential</h2>
+        <p>Share the card issued for this account. The server checks its issuer, type, validity,
+            account-binding claim and configured profile-value claim.</p>
+        @if (transaction == null && missing?.Count == 0) {
+            <form asp-controller="IdentityVerification" asp-action="Start" method="post">
+                <input type="hidden" name="credentialId" value="@selectedId" />
+                <button type="submit" class="btn btn-primary" disabled="@(selected?.Verification == null)">Start verification</button>
+            </form>
+        } else if (status == "ready") {
+        <form class="presentation" asp-controller="IdentityVerification" asp-action="Presentation" method="post">
+            <input type="hidden" name="flow" value="@flow" />
+            <input type="hidden" name="stage" value="credential" />
+            <button type="submit" class="btn btn-primary">Verify selected credential</button>
+        </form>
+        } else if (credentialVerified) {
+            <p class="identity-step-result">Account credential validated.</p>
+        } else {
+            <p>@(failed ? "Start a new flow after resolving the validation error below." : "Waiting for account credential verification.")</p>
+        }
+        <div class="identity-wallet-slot" id="credential-wallet-slot"></div>
+    </section>
+    <section class="identity-step @(identityVerified ? "is-complete" : providerReturned ? "is-returned" : credentialVerified ? "is-current" : "")" aria-labelledby="provider-step-heading">
+        <span class="identity-step-number" aria-hidden="true">2</span>
+        <p class="identity-eyebrow">@(identityVerified ? "Verification complete" : providerReturned ? "Returned — continue to step 3" : credentialVerified ? "Provider enrollment" : "Locked until step 1 validates")</p>
+        <h2 id="provider-step-heading">Verify your government document</h2>
+        <p>TrueIdentity handles document and selfie checks and issues a <code>TrueIdentity</code>
+            credential to your wallet. This app does not perform those checks.</p>
+        <div class="identity-provider-actions">
+        @if (status == "credential_verified" && !providerReturned && ViewData["ProviderConfigured"] is true) {
+            <a class="btn btn-primary" asp-controller="IdentityVerification" asp-action="Provider" asp-route-flow="@flow">
+                Continue to TrueIdentity
+            </a>
+        } else if (credentialVerified && ViewData["ProviderConfigured"] is not true) {
+            <p>Configure <code>IdentityVerification:ProviderUrl</code>, or use your provider's enrollment process.</p>
+        } else if (!credentialVerified) {
+            <button class="btn btn-secondary" disabled>Verify account credential first</button>
+        }
+        </div>
+        @if (providerReturned && !identityVerified) {
+            <p class="identity-provider-return" role="status"><span class="identity-return-check" aria-hidden="true">✓</span>
+                <span><strong>You've returned from TrueIdentity</strong>
+                Next, present your issued credential in step 3. This confirms the return only—not the proofing result.</span></p>
+        }
+    </section>
+    <section class="identity-step @(identityVerified ? "is-complete" : credentialVerified ? "is-current" : "")" aria-labelledby="identity-step-heading">
+        <span class="identity-step-number" aria-hidden="true">3</span>
+        <p class="identity-eyebrow">@(identityVerified ? "Verification complete" : credentialVerified ? "Wallet presentation" : "Locked until step 1 validates")</p>
+        <h2 id="identity-step-heading">Present your identity credential</h2>
+        <p>After receiving the provider-issued <code>TrueIdentity</code> credential, share it from your wallet.
+            Only a validated backend presentation result can complete this flow. Your External ID profile is not changed.</p>
+        <p>The credential's type array must include <code>TrueIdentity</code> and its issuer must match the configured trusted issuer.
+            If the type changed after your wallet credential was issued, obtain a newly issued credential.</p>
+        @if (status == "credential_verified") {
+        <form class="presentation" asp-controller="IdentityVerification" asp-action="Presentation" method="post">
+            <input type="hidden" name="flow" value="@flow" />
+            <input type="hidden" name="stage" value="identity" />
+            <button type="submit" class="btn btn-primary">Present identity credential</button>
+        </form>
+        } else if (identityVerified) {
+            <p class="identity-step-result">Both presentations validated. Verification complete; your External ID profile was not changed.</p>
+        } else {
+            <button class="btn btn-secondary" disabled>Waiting for preceding steps</button>
+        }
+        <div class="identity-wallet-slot" id="identity-wallet-slot"></div>
+    </section>
+</div>
+@if (transaction != null) {
+    <section class="identity-wallet sample-panel" aria-labelledby="wallet-step-heading">
+    <h2 id="wallet-step-heading">Wallet request status</h2>
+    <p id="flow-message" role="status" aria-live="polite">@transaction.Message</p>
+    @if (failed) {
+        <p>No successful identity verification was recorded. Wallet errors can reflect a rejected backend
+            callback; resolve the reason above, then choose <strong>start again</strong>.</p>
+    }
+    <section class="wallet-scan-panel" id="wallet-scan-panel" hidden aria-labelledby="wallet-scan-heading">
+        <h3 id="wallet-scan-heading">Scan with Microsoft Authenticator</h3>
+        <p>Open Microsoft Authenticator (or a compatible wallet), scan this QR code, and follow the prompt.
+            Keep this page open while your presentation is checked.</p>
+        <div id="verification-qrcode" hidden aria-label="Verified ID presentation QR code"></div>
+        <a id="verification-link" class="btn btn-secondary" hidden>Open in wallet</a>
+    </section>
+    </section>
+    <script src="~/js/qrcode.min.js"></script>
+    <script>
+        const form = document.querySelector('form.presentation');
+        if (form) form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = form.querySelector('button');
+            const message = document.getElementById('flow-message');
+            button.disabled = true;
+            message.textContent = 'Creating a presentation request...';
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST', body: new FormData(form), credentials: 'same-origin'
+                });
+                if (!response.ok) throw new Error(await response.text());
+                const request = await response.json();
+                const stage = form.querySelector('[name="stage"]').value;
+                const scanPanel = document.getElementById('wallet-scan-panel');
+                const walletSlot = document.getElementById(
+                    stage === 'credential' ? 'credential-wallet-slot' : 'identity-wallet-slot');
+                walletSlot.appendChild(scanPanel);
+                scanPanel.hidden = false;
+                const qr = document.getElementById('verification-qrcode');
+                qr.textContent = '';
+                qr.hidden = false;
+                new QRCode('verification-qrcode', { text: request.url, width: 180, height: 180 });
+                const link = document.getElementById('verification-link');
+                link.href = request.url;
+                link.hidden = false;
+                message.textContent = 'Waiting for wallet presentation...';
+                const timer = setInterval(async () => {
+                    try {
+                        const statusResponse = await fetch(`/identity/status/${encodeURIComponent(request.id)}`);
+                        if (!statusResponse.ok) throw new Error('Status request failed.');
+                        const result = await statusResponse.json();
+                        message.textContent = result.message;
+                        if (['credential_verified', 'verified', 'failed'].includes(result.status) ||
+                            Date.now() / 1000 > request.expiry) {
+                            clearInterval(timer);
+                            if (Date.now() / 1000 > request.expiry && !['credential_verified', 'verified'].includes(result.status))
+                                message.textContent = 'Presentation expired. Start a new verification.';
+                            document.getElementById('verification-qrcode').hidden = true;
+                            link.hidden = true;
+                            if (['credential_verified', 'verified', 'failed'].includes(result.status))
+                                window.location.reload();
+                        }
+                    } catch (error) {
+                        clearInterval(timer);
+                        message.textContent = error.message;
+                    }
+                }, 2000);
+            } catch (error) {
+                message.textContent = error.message;
+                button.disabled = false;
+            }
+        });
+    </script>
+}

@@ -1,36 +1,36 @@
 [
   {
-    "name": "AzureAd__TenantId",
+    "name": "EEID__TenantId",
     "value": "...your-ciam-tenantid...",
     "slotSetting": false
   },
   {
-    "name": "AzureAd__TenantName",
+    "name": "EEID__TenantName",
     "value": "your-tenant-name.onmicrosoft.com",
     "slotSetting": false
   },
   {
-    "name": "AzureAd__Authority",
+    "name": "EEID__Authority",
     "value": "https://your-tenant-name.ciamlogin.com/",
     "slotSetting": false
   },
   {
-    "name": "AzureAd__ClientId",
+    "name": "EEID__ClientId",
     "value": "...client_id...",
     "slotSetting": false
   },
   {
-    "name": "AzureAd__ClientSecret",
+    "name": "EEID__ClientSecret",
     "value": "...secret...",
     "slotSetting": false
   },
   {
-    "name": "AzureAd__CallbackPath",
+    "name": "EEID__CallbackPath",
     "value": "/signin-oidc",
     "slotSetting": false
   },
   {
-    "name": "AzureAd__SignedOutCallbackPath",
+    "name": "EEID__SignedOutCallbackPath",
     "value": "/signout-oidc",
     "slotSetting": false
   },
@@ -67,7 +67,22 @@
   },
   {
     "name": "VerifiedID__CredentialType",
-    "value": "NorthwindAirlinesDigitalCard",
+    "value": "NorthstarLoyalty",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Verification__AccountBindingClaim",
+    "value": "email",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Verification__AccountBindingSource",
+    "value": "email",
+    "slotSetting": false
+  },
+  {
+    "name": "VerifiedID__Verification__ProfileValueClaim",
+    "value": "loyalty",
     "slotSetting": false
   },
   {
@@ -94,5 +109,25 @@
     "name": "VerifiedID__TenantId",
     "value": "YOURTENANTID",
     "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__PublicBaseUrl",
+    "value": "https://your-app.azurewebsites.net/",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__ProviderUrl",
+    "value": "https://trueidentityincv2.azurewebsites.net/",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__IdentityIssuer",
+    "value": "did:web:did.woodgrovedemo.com",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__CallbackApiKey",
+    "value": "<set-in-app-service-configuration-or-key-vault-reference>",
+    "slotSetting": true
   }
 ]

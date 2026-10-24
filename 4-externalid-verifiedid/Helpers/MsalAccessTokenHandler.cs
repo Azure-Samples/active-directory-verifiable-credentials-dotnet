@@ -20,11 +20,11 @@ namespace ExternalIDVerifiedID {
             return certificateDescription.Certificate;
         }
 
-        public static async Task<(string token, string error, string error_description)> GetAccessToken( IConfiguration configuration ) {
+        public static async Task<(string token, string error, string error_description)> GetAccessToken( IConfiguration configuration, string scope = null ) {
             // You can run this sample using ClientSecret or Certificate or MSI .
             // The code will differ only when instantiating the IConfidentialClientApplication
             bool useManagedIdentity = configuration.GetValue( "VerifiedID:ManagedIdentity", false );
-            string[] scopes = new string[] { configuration.GetValue("VerifiedID:scope", "3db474b9-6a0c-4840-96ac-1fceb342124f/.default" ) };
+            string[] scopes = new string[] { scope ?? configuration.GetValue("VerifiedID:scope", "3db474b9-6a0c-4840-96ac-1fceb342124f/.default" ) };
 
             if (useManagedIdentity) {
                 try {
@@ -36,10 +36,10 @@ namespace ExternalIDVerifiedID {
                 }
             }
 
-            string tenantId = configuration.GetValue( "VerifiedID:TenantId", configuration["AzureAd:TenantId"] );
-            string clientId = configuration.GetValue( "VerifiedID:ClientId", configuration["AzureAd:ClientId"] );
-            string clientSecret = configuration.GetValue( "VerifiedID:ClientSecret", configuration.GetValue( "AzureAd:ClientSecret", "" ) );
-            string authority = $"{configuration.GetValue("VerifiedID:Authority", "https://login.microsoftonline.com/" )}{tenantId}";
+            string tenantId = configuration.GetValue( "VerifiedID:TenantId", configuration["EEID:TenantId"] );
+            string clientId = configuration.GetValue( "VerifiedID:ClientId", configuration["EEID:ClientId"] );
+            string clientSecret = configuration.GetValue( "VerifiedID:ClientSecret", configuration.GetValue( "EEID:ClientSecret", "" ) );
+            string authority = $"{configuration.GetValue("VerifiedID:Authority", "https://login.microsoftonline.com/")}{tenantId}";
 
             // Since we are using application permissions this will be a confidential client application
             IConfidentialClientApplication app;

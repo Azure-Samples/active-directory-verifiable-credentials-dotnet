@@ -7,6 +7,7 @@
 
     @if (User.Identity?.IsAuthenticated == true) {
         <p>You are signed in! Below are the claims in your ID token. For more information, visit: <a href="https://learn.microsoft.com/azure/active-directory/develop/id-tokens">Microsoft identity platform ID tokens</a></p>
+        <p>Identity verification does not change your External ID profile or the claims in this sign-in token.</p>
 
         <table>
             <thread>

@@ -12,10 +12,12 @@ namespace ExternalIDVerifiedID
     {
         protected readonly ILogger<HomeController> _log;
         private IConfiguration _configuration;
-        public HomeController(IConfiguration configuration, ILogger<HomeController> log)
+        private readonly IssuanceCredentialCatalog _credentials;
+        public HomeController(IConfiguration configuration, ILogger<HomeController> log, IssuanceCredentialCatalog credentials)
         {
             _configuration = configuration;
             _log = log;
+            _credentials = credentials;
         }
 
         private void CheckLocalhost() {
@@ -50,9 +52,20 @@ namespace ExternalIDVerifiedID
         }
 
         [Authorize]
-        public IActionResult Issuer() {
+        public IActionResult Issuer(string credentialId = "default") {
             CheckLocalhost();
-            return View();
+            try {
+                var credentials = _credentials.GetCredentials();
+                if (!System.Linq.Enumerable.Any(credentials, c => c.Id == credentialId)) {
+                    return BadRequest("Unknown issuance credential.");
+                }
+                ViewData["CredentialId"] = credentialId;
+                ViewData["DidAuthority"] = _configuration["VerifiedID:DidAuthority"];
+                return View(credentials);
+            } catch (System.InvalidOperationException ex) {
+                _log.LogError(ex, "Invalid issuance credential catalog.");
+                return Problem("Invalid issuance credential configuration. Check the server configuration.");
+            }
         }
 
         [Authorize]
