@@ -97,11 +97,9 @@ secrets. No Graph permission or directory extension is required.
 
 ## Run locally
 
-From the repository root, with the .NET 10 SDK and Node.js 18+ installed:
+From the repository root, with the .NET 10 SDK installed:
 
 ```powershell
-dotnet test .\4-externalid-verifiedid.Tests\ExternalIDVerifiedID.Tests.csproj
-node --test .\4-externalid-verifiedid.Tests\issuance-ui.test.cjs .\4-externalid-verifiedid.Tests\navigation.test.cjs
 dotnet run --project .\4-externalid-verifiedid\ExternalIDVerifiedID.csproj --launch-profile https
 ```
 
