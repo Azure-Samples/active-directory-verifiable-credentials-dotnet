@@ -2,60 +2,92 @@
      Licensed under the MIT License. -->
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@ViewData["Title"]</title>
     <meta name="description" content="External ID+Verified ID sample">
     <meta name="author" content="Microsoft">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sample-layout.css" asp-append-version="true" />
     <link rel="icon" href="~/favicon.png">
 </head>
 
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light border-bottom box-shadow mb-3 bg-nw-purple">
-            <div class="container-fluid">
-                <a class="navbar-brand text-nw-white" asp-area="" asp-controller="Home" asp-action="Index">External ID+Verified ID</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-
-                        @if (User.Identity?.IsAuthenticated == true) {
-                            <li>
-                                <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="Issuer">Issue Verified ID</a>
-                            </li>
-                        }
-                        <li>
-                            <a class="nav-link text-nw-white" asp-area="" asp-controller="Home" asp-action="Verifier">Present Verified ID</a>
-                        </li>
-
-                    </ul>
-                    <partial name="_LoginPartial" />
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-    <footer>
-        <div class="container">
-            &copy; @DateTime.UtcNow.Year.ToString() - External ID+Verified ID sample - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header class="app-header">
+        <div class="app-brand-group">
+            <button id="navigation-toggle" class="navigation-toggle" type="button"
+                    aria-controls="sample-navigation" aria-expanded="false" aria-label="Open navigation">
+                <span aria-hidden="true">&#9776;</span>
+            </button>
+            <a class="app-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="app-brand-mark" aria-hidden="true">ID</span>
+                <span>External ID <span class="brand-divider">/</span> Verified ID</span>
+            </a>
         </div>
-    </footer>
+        <partial name="_LoginPartial" />
+    </header>
+    @{
+        var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+        var action = ViewContext.RouteData.Values["action"]?.ToString();
+        var overview = controller == "Home" && action == "Index";
+        var issuer = controller == "Home" && action == "Issuer";
+        var identity = controller == "IdentityVerification";
+        var verifier = controller == "Home" && action == "Verifier";
+        var profile = controller == "Home" && action == "Profile";
+        var privacy = controller == "Home" && action == "Privacy";
+    }
+    <div class="app-shell">
+        <nav id="sample-navigation" class="app-sidebar" aria-label="Main navigation">
+            <p class="sidebar-heading">Sample 4</p>
+            <a class="sidebar-link @(overview ? "active" : "")" aria-current="@(overview ? "page" : null)"
+               asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="sidebar-symbol" aria-hidden="true">&#8962;</span>Overview
+            </a>
+            <p class="sidebar-heading">Credential journey</p>
+            @if (User.Identity?.IsAuthenticated == true) {
+                <a class="sidebar-link @(issuer ? "active" : "")" aria-current="@(issuer ? "page" : null)"
+                   asp-area="" asp-controller="Home" asp-action="Issuer">
+                    <span class="sidebar-symbol" aria-hidden="true">+</span>Issue credential
+                </a>
+                <a class="sidebar-link @(identity ? "active" : "")" aria-current="@(identity ? "page" : null)"
+                   asp-area="" asp-controller="IdentityVerification" asp-action="Index">
+                    <span class="sidebar-symbol" aria-hidden="true">&#10003;</span>Verify credential and identity
+                </a>
+            } else {
+                <p class="sidebar-hint">Sign in to issue credentials and start identity verification.</p>
+            }
+            <a class="sidebar-link @(verifier ? "active" : "")" aria-current="@(verifier ? "page" : null)"
+               asp-area="" asp-controller="Home" asp-action="Verifier">
+                <span class="sidebar-symbol" aria-hidden="true">&#8644;</span>Present credential
+            </a>
+            <p class="sidebar-heading">Account and information</p>
+            @if (User.Identity?.IsAuthenticated == true) {
+                <a class="sidebar-link @(profile ? "active" : "")" aria-current="@(profile ? "page" : null)"
+                   asp-area="" asp-controller="Home" asp-action="Profile">
+                    <span class="sidebar-symbol" aria-hidden="true">&#9675;</span>Account claims
+                </a>
+            }
+            <a class="sidebar-link @(privacy ? "active" : "")" aria-current="@(privacy ? "page" : null)"
+               asp-area="" asp-controller="Home" asp-action="Privacy">
+                <span class="sidebar-symbol" aria-hidden="true">i</span>Privacy
+            </a>
+        </nav>
+        <div class="app-workspace">
+            <main id="main-content" tabindex="-1">
+                <div class="workspace-context">Microsoft Entra <span aria-hidden="true">/</span> @ViewData["Title"]</div>
+                @RenderBody()
+            </main>
+            <footer>
+                &copy; @DateTime.UtcNow.Year - External ID + Verified ID sample
+                <span aria-hidden="true">&middot;</span>
+                <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </footer>
+        </div>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

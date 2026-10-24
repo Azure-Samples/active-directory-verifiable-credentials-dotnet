@@ -1,97 +1,156 @@
-﻿@{
+﻿@model System.Collections.Generic.IReadOnlyList<ExternalIDVerifiedID.IssuanceCredential>
+@{
     ViewData["Title"] = "Issuer";
 }
 <div id="wrap">
-    <!--<div style="text-align: center;">--> 
-    <div>
-        <p id="photo-help" class="normal-text">
-            Issue your Digital Loyalty Card by pressing the <b>Issue Credential</b> button.
+    <div class="issuance-heading">
+        <h1>Issue Verified ID</h1>
+        <p>Add a credential to your digital wallet using your signed-in account details.
+            Issuance does not perform identity proofing.</p>
+    </div>
+    <div class="issuance-grid">
+    <section class="sample-panel" aria-labelledby="credential-heading">
+        <h2 id="credential-heading">Choose your credential</h2>
+        <label for="credential-select">Credential</label>
+        <select id="credential-select" class="form-select mb-3">
+            @foreach (var credential in Model) {
+                <option value="@credential.Id" selected="@(credential.Id == (string)ViewData["CredentialId"])">@credential.Name</option>
+            }
+        </select>
+        <dl class="issuer-details">
+            <dt>Issuer DID</dt>
+            <dd><code>@ViewData["DidAuthority"]</code></dd>
+        </dl>
+        <p class="issuance-help">
+            Press <b>Issue Credential</b> to add the selected credential to your wallet.
             When the QR code appears, scan it with your Microsoft Authenticator or your custom wallet app.
-            <br />
-            The Verified ID credential may contain a photo of yourself for later verification via a liveness check that matches against your photo.
-            If you like to add a photo, either upload an existing photo of you via 'Choose File' or click 'Take Selfie' take a selfie of yourself.
+        </p>
+        <p class="issuance-help">
+            If the credential requires given name and surname, add <code>given_name</code> and
+            <code>family_name</code> under your External ID app registration's
+            <b>Token configuration &gt; Add optional claim &gt; ID</b>.
+            Ensure your user profile has both names, then sign out and sign in again.
+            Check the populated values on <a asp-controller="Home" asp-action="Profile">Account claims</a>.
+            These are token claims, not App Service settings.
+        </p>
+        <p id="photo-help" class="normal-text" style="display:none">
+            This credential's manifest contains a photo claim. Optionally upload a portrait via 'Choose File'
+            or click 'Take Selfie' to take a selfie of yourself.
             <br /><br />
-            For selfie, scan the QR code with the <strong>QR Code Reader app</strong> on your mobile, click 'Open Camera' in the page, take selfie and then click 'Use photo' in the mobile.
-            The photo is not persisted anywhere and is just added to the credential you will have in the Authenticator.
+            For selfie, scan the QR code with your mobile's camera/QR reader, then click 'Open Camera' on the mobile page.
+            The photo is cached temporarily in server memory for issuance and included in your wallet credential.
+            A self-uploaded photo is not evidence of identity verification.
             <br /><br />
-            The photo should be a portrait photo of atleast 200x200 pixels. Glasses, masks, hats, headphones, head coverings and face coverings will result in failure in liveness checks during presentations.
+            Use a clear portrait photo of at least 200x200 pixels.
         </p>
 
-        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
-            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
-            <div id="message">
-                <strong>@ViewData["message"]</strong>
-            </div>
+        <div id="message-wrapper" class="issuance-status" style="display: block" role="status" aria-live="polite">
+            <div id="message">@ViewData["message"]</div>
         </div>
 
-        <span id="user-photo">
+        <span id="user-photo" style="display:none">
             <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" >Take Selfie</button>
-            <input type='file' id="imageUpload" accept="image/*" class="button bg-nw-blue text-nw-white" />
-            &nbsp;|&nbsp;
+            <input type='file' id="imageUpload" accept="image/*" aria-label="Upload portrait photo" />
         </span>
-        <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white">Issue Credential</button>
+        <div class="issuance-actions">
+        <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white" disabled>Issue Credential</button>
         <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
-        <br /><br />
+        </div>
         <div id="qrcode" style="text-align:center; display:none"></div>
-        <br />
         <div id="pinCode" style="display: none"></div>
-        <br />
-        <img id="selfie" width="240" height="320" style="display:none" />
+        <img id="selfie" width="240" height="320" alt="Selected portrait preview" style="display:none" />
 
-        <br/>
+    </section>
+    <aside class="sample-panel" aria-labelledby="wallet-heading">
+        <h2 id="wallet-heading">Add to your wallet</h2>
+        <ol>
+            <li>Select the credential you want to receive.</li>
+            <li>Add a portrait if the credential supports a photo.</li>
+            <li>Choose <strong>Issue Credential</strong> and scan the QR code with your wallet.</li>
+        </ol>
+        <p class="issuance-help">The preview below uses your published credential's design.
+            It appears after the manifest loads successfully.</p>
         <div id="idCard" class="idCard" style="display:none">
             <div class="idCardLogo">
                 <img id="idCardLogo" src="" alt="Logo">
             </div>
+    </aside>
+    </div>
             <div id="idCardTitle" class="idCardTitle">Card Title</div>
             <div id="idCardIssuedBy" class="idCardIssuedBy">Issuer</div>
         </div>
 
         <script src="~/js/qrcode.min.js"></script>
-        <script src="~/js/verifiedid.card.js"></script>
-        <script src="~/js/verifiedid.requestservice.client.js"></script>
-        <script src="~/js/verifiedid.uihandler.js"></script>
+        <script src="~/js/verifiedid.card.js" asp-append-version="true"></script>
+        <script src="~/js/verifiedid.requestservice.client.js" asp-append-version="true"></script>
+        <script src="~/js/verifiedid.uihandler.js" asp-append-version="true"></script>
 
         <script>
             var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
-            var havePhotoClaim = true;
+            var havePhotoClaim = false;
+            const credentialSelect = document.getElementById('credential-select');
+            const selection = '?credentialId=' + encodeURIComponent(credentialSelect.value);
+            requestService.apiCreateIssuanceRequest += selection;
+            requestService.apiSetPhoto += selection;
+            requestService.apiCreateSelfieRequest += selection;
 
-            document.getElementById('issue-credential').addEventListener('click', () => {
-                if ( havePhotoClaim ) {
-                    setUserPhoto();
+            credentialSelect.addEventListener('change', () => {
+                window.location.assign('/Home/Issuer?credentialId=' + encodeURIComponent(credentialSelect.value));
+            });
+
+            document.getElementById('issue-credential').addEventListener('click', async () => {
+                const issueButton = document.getElementById('issue-credential');
+                issueButton.disabled = true;
+                credentialSelect.disabled = true;
+                try {
+                    if (havePhotoClaim) {
+                        await setUserPhoto();
+                    }
+                    await requestService.createIssuanceRequest();
                     hideShowPhotoElements("none");
                     document.getElementById("user-photo").style.display = "none";
-                    document.getElementById("issue-credential").style.opacity = 0.25;
-                    // make sure the photo is sent to API in backend before we continue
-                    setTimeout(requestService.createIssuanceRequest(), 250);
-                } else {
-                    requestService.createIssuanceRequest();
+                } catch (error) {
+                    document.getElementById('message').textContent = error.message;
+                    issueButton.disabled = false;
+                    credentialSelect.disabled = false;
                 }
             });
 
-            document.getElementById('take-selfie').addEventListener('click', () => {
+            document.getElementById('take-selfie').addEventListener('click', async () => {
                 document.getElementById("selfie").src = "";
                 document.getElementById("selfie").style.display = "none";
                 document.getElementById("imageUpload").style.display = "none";
-                requestService.createSelfieRequest();
+                document.getElementById("issue-credential").disabled = true;
+                try {
+                    await requestService.createSelfieRequest();
+                } catch (error) {
+                    document.getElementById('message').textContent = error.message;
+                    document.getElementById("issue-credential").disabled = false;
+                    document.getElementById("imageUpload").style.display = "";
+                }
             });
 
             document.getElementById('check-result').addEventListener('click', () => {
                 requestService.pollRequestStatus(requestService.request.id);
             });
 
-            document.getElementById('imageUpload').addEventListener('change', function (e) {
-                uploadImage(e)
-            });
-
-            drawVerifiedIDCard((manifest) => {
-                // if the manifest has a claim with type image/jp[e]g, then we should support adding a photo
-                if (!manifest.includes("image/jp")) {
-                    havePhotoClaim = false;
-                    hideShowPhotoElements("none");
+            document.getElementById('imageUpload').addEventListener('change', async function (e) {
+                document.getElementById("issue-credential").disabled = true;
+                try {
+                    await uploadImage(e);
+                } catch (error) {
+                    document.getElementById('message').textContent = error.message;
+                } finally {
+                    document.getElementById("issue-credential").disabled = false;
                 }
             });
 
+            drawVerifiedIDCard((details) => {
+                havePhotoClaim = Boolean(details.photoClaimName);
+                hideShowPhotoElements(havePhotoClaim ? "" : "none");
+                document.getElementById("user-photo").style.display = havePhotoClaim ? "" : "none";
+                document.getElementById('issue-credential').disabled = false;
+            }, '/api/issuer/get-manifest' + selection);
+
         </script>
-    </div>
 </div>

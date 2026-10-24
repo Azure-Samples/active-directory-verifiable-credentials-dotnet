@@ -25,17 +25,17 @@
     this.createRequest = async function (url) {
         const response = await fetch(url);
         const respJson = await response.json();
-        console.log(respJson);
-        if (respJson.error_description) {
+        if (!response.ok || respJson.error_description) {
             this.onError(this.requestType, respJson.error_description);
+            throw new Error(respJson.error_description || 'Request failed.');
         } else {
             this.request = respJson;
             if (/Android/i.test(navigator.userAgent) || /iPhone/i.test(navigator.userAgent)) {
                 this.log(`Mobile device (${navigator.userAgent})! Using deep link (${respJson.url}).`);
                 this.onNavigateToDeepLink(this.requestType, respJson.id, respJson.url);
             } else {
-                this.log(`Not Android or IOS. Generating QR code encoded with ${message}`);
-                this.onDrawQRCode(this.requestType, respJson.id, respJson.url);
+                this.log('Generating request QR code.');
+                this.onDrawQRCode(this.requestType, respJson.id, respJson.url, respJson.pin);
                 this.pollRequestStatus(respJson.id);
             }
         }
@@ -46,11 +46,11 @@
     };
     this.createIssuanceRequest = function () {
         this.requestType = "issuance";
-        this.createRequest(this.apiCreateIssuanceRequest)
+        return this.createRequest(this.apiCreateIssuanceRequest)
     };
     this.createSelfieRequest = function () {
         this.requestType = "selfie";
-        this.createRequest(this.apiCreateSelfieRequest);
+        return this.createRequest(this.apiCreateSelfieRequest);
     };
 
     // function to pull for presentation status
@@ -100,7 +100,6 @@
     }; // pollRequestStatus
 
     this.setUserPhoto = async function (base64Image) {
-        this.log('setUserPhoto(): ' + base64Image);
         const response = await fetch(this.apiSetPhoto, {
             headers: { 'Accept': 'application/json', 'Content-Type': 'image/jpeg' },
             method: 'POST',
@@ -108,8 +107,9 @@
         });
         const respJson = await response.json();
         this.log(respJson);
-        if (respJson.error_description) {
+        if (!response.ok || respJson.error_description) {
             this.onError(this.requestType, respJson.error_description);
+            throw new Error(respJson.error_description || 'Photo upload failed.');
         }
     };
 

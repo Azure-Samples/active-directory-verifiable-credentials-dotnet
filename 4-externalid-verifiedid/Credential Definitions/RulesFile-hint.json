@@ -22,6 +22,12 @@
             "indexed": true
           },
           {
+            "outputClaim": "email",
+            "required": true,
+            "inputClaim": "email",
+            "indexed": false
+          },
+          {
             "outputClaim": "upn",
             "required": false,
             "inputClaim": "upn",
@@ -53,7 +59,7 @@
   "validityInterval": 2592000,
   "vc": {
     "type": [
-      "NorthwindAirlinesDigitalCard"
+      "NorthstarLoyalty"
     ]
   }
 }

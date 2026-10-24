@@ -10,6 +10,7 @@ using Microsoft.Identity.Web.TokenCacheProviders.InMemory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
+using ExternalIDVerifiedID.Models;
 
 namespace ExternalIDVerifiedID {
     public class Program {
@@ -25,7 +26,9 @@ namespace ExternalIDVerifiedID {
 
             // Add services to the container.
             builder.Services.AddAuthentication( OpenIdConnectDefaults.AuthenticationScheme )
-                .AddMicrosoftIdentityWebApp( builder.Configuration.GetSection( "AzureAd" ) );
+                .AddMicrosoftIdentityWebApp( builder.Configuration.GetSection( "EEID" ) );
+            builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme,
+                options => options.Scope.Add("email"));
             builder.Services.AddInMemoryTokenCaches();
             builder.Services.AddControllersWithViews( options => {
                 var policy = new AuthorizationPolicyBuilder()
@@ -37,6 +40,10 @@ namespace ExternalIDVerifiedID {
                 .AddMicrosoftIdentityUI();
 
             builder.Services.AddMvc();
+            builder.Services.AddMemoryCache();
+            builder.Services.AddHttpClient();
+            builder.Services.AddSingleton<IdentityVerificationState>();
+            builder.Services.AddSingleton<IssuanceCredentialCatalog>();
 
             var app = builder.Build();
 

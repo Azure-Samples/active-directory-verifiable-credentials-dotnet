@@ -1,17 +1,31 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "External ID and Verified ID";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p style="display:inline-block;text-align:left">
-        Learn about:
-        <br />
-        <a href="https://docs.microsoft.com/aspnet/core" target="_blank">Building Web apps with ASP.NET Core</a>.
-        <br />
-        <a href="https://learn.microsoft.com/en-us/azure/active-directory/external-identities/customers/sample-web-app-dotnet-sign-in" target="_blank">Building Web apps with ASP.NET Core and External ID</a>.
-        <br />
-        <a href="https://aka.ms/didfordevs" target="_blank">Building apps with Microsoft Entra Verified ID</a>.
-        </br>
-    </p>
+    <h1 class="display-4">External ID and Verified ID</h1>
+    <p>This sample shows how an application combines customer sign-in, digital credentials,
+        and identity verification. Microsoft Entra External ID signs the user in;
+        Microsoft Entra Verified ID handles credential issuance and presentation after sign-in.</p>
 </div>
+<h2>What you can try</h2>
+<ol>
+    <li><strong>Sign up or sign in</strong> using the normal hosted External ID experience.</li>
+    <li><strong>Issue a loyalty credential</strong> from your account details and add it to Microsoft Authenticator.</li>
+    <li><strong>Select and verify a configured credential</strong> using the Verified ID Request Service.
+        The default is the loyalty card; other credentials need account-binding and profile claim mappings.</li>
+    <li><strong>Try identity verification (IDV)</strong> with the TrueIdentity demo provider,
+        which issues a separate credential after its proofing experience. Present that credential
+        to the application to complete the staged demo.</li>
+</ol>
+<p>A validated TrueIdentity presentation completes verification without changing
+    the signed-in account's profile. Returning from the provider alone is not proof of success.</p>
+<p>This is an educational demo. The IDV provider and public callback endpoints must be configured;
+    production use requires stronger binding between the proofed identity and the signed-in account.</p>
+<h2>Setup and integration guidance</h2>
+<ul>
+    <li><a href="https://learn.microsoft.com/en-us/entra/external-id/customers/verified-id-setup-issuance-presentation">Set up Microsoft Entra Verified ID</a>
+        in an External ID tenant for credential issuance and presentation.</li>
+    <li><a href="https://learn.microsoft.com/en-us/entra/external-id/customers/identity-verification-integration">Identity verification integration for Microsoft Entra External ID</a>
+        explains the IDV integration patterns. This sample uses the credential-based presentation pattern.</li>
+</ul>

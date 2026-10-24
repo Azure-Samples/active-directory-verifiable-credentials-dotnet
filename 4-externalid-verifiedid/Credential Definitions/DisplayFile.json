@@ -32,6 +32,11 @@
       "type": "String"
     },
     {
+      "claim": "vc.credentialSubject.email",
+      "label": "Email",
+      "type": "String"
+    },
+    {
       "claim": "vc.credentialSubject.memberStatus",
       "label": "Status",
       "type": "String"
