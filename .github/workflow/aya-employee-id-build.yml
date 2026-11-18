@@ -1,0 +1,32 @@
+
+name: Aya Employee ID - Build
+
+on:
+  push:
+    paths:
+      - '1-asp-net-core-api-idtokenhint/**'
+      - '.github/workflows/aya-employee-id-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Aya Employee ID
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ./1-asp-net-core-api-idtokenhint/AspNetCoreVerifiableCredentials.csproj
+
+      - name: Build application
+        run: dotnet build ./1-asp-net-core-api-idtokenhint/AspNetCoreVerifiableCredentials.csproj --configuration Release --no-restore
