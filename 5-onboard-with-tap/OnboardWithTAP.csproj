@@ -13,7 +13,7 @@
     <PackageReference Include="Microsoft.Graph.Beta" Version="4.74.0-preview" />
     <PackageReference Include="Microsoft.Graph.Core" Version="2.0.15" />
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.4.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.8.2" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
