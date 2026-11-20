@@ -452,6 +452,7 @@ namespace ExternalIDVerifiedID {
 
         [Authorize]
         [HttpPost("/api/issuer/issuance-request")]
+        [ValidateAntiForgeryToken]
         [RequestSizeLimit(16 * 1024)]
         public Task<ActionResult> IdentityIssuanceRequest(
             [FromQuery] string credentialId = "verifiedidentity",
@@ -506,8 +507,7 @@ namespace ExternalIDVerifiedID {
                     string jsonString = SerializeToJsonNoNull( request );
 
                     string url = $"{_apiEndpoint}createIssuanceRequest";
-                    _log.LogTrace("Creating issuance request for credential {CredentialId} and type {CredentialType}.",
-                        credentialId, manifest.Credential.Type);
+                    _log.LogTrace("Creating Verified ID issuance request.");
                     var client = _httpClientFactory.CreateClient();
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
                     HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json"));

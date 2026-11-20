@@ -34,6 +34,7 @@
         </p>
         </div>
 
+        @Html.AntiForgeryToken()
         <form id="identity-claims" class="identity-claims" hidden aria-labelledby="identity-claims-heading">
             <h3 id="identity-claims-heading">VerifiedIdentity credential details</h3>
             <p class="issuance-help">Enter the claims that will be written into the configured VerifiedIdentity credential.</p>
@@ -162,7 +163,11 @@
                 });
                 await requestService.createIssuanceRequest({
                     method: 'POST',
-                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
                     body: JSON.stringify({ claims })
                 });
             } else {
