@@ -15,6 +15,9 @@ namespace ExternalIDVerifiedID {
         public string Name { get; set; } = "";
         public string Type { get; set; } = "";
         public string Manifest { get; set; } = "";
+        public string Authority { get; set; } = "";
+        public string? PhotoClaimName { get; set; }
+        public bool IsIdentityProfile { get; set; }
         public CredentialVerificationMapping? Verification { get; set; }
     }
 
@@ -60,6 +63,17 @@ namespace ExternalIDVerifiedID {
                         ?? new CredentialVerificationMapping {
                             AccountBindingClaim = "email", ProfileValueClaim = "membershipNo"
                         }
+                },
+                new() {
+                    Id = "verifiedidentity",
+                    Name = "VerifiedIdentity",
+                    Type = configuration["IdentityVerification:IssuanceCredentialType"] ?? "VerifiedIdentity",
+                    Manifest = configuration["IdentityVerification:IssuanceManifest"] ?? "",
+                    Authority = configuration["IdentityVerification:IssuanceIssuer"] ??
+                        configuration["VerifiedID:DidAuthority"] ?? "",
+                    PhotoClaimName = configuration["IdentityVerification:IssuancePhotoClaimName"] ??
+                        configuration["VerifiedID:PhotoClaimName"] ?? "photo",
+                    IsIdentityProfile = true
                 }
             };
             foreach (var section in configuration.GetSection("VerifiedID:Credentials").GetChildren()) {
@@ -78,6 +92,9 @@ namespace ExternalIDVerifiedID {
         public async Task<IssuanceManifest> GetManifestAsync(string? credentialId) {
             var credential = GetCredentials().SingleOrDefault(c => c.Id == (credentialId ?? "default"))
                 ?? throw new ArgumentException("Unknown issuance credential.");
+            if (string.IsNullOrWhiteSpace(credential.Manifest) && credential.IsIdentityProfile) {
+                throw new InvalidOperationException("Configure IdentityVerification:IssuanceManifest with a published VerifiedIdentity credential manifest before issuing this credential.");
+            }
             if (!Uri.TryCreate(credential.Manifest, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) {
                 throw new InvalidOperationException("Configure an HTTPS manifest URL for the selected credential.");
             }
@@ -104,15 +121,19 @@ namespace ExternalIDVerifiedID {
                 // Cache only the downloaded document; recheck issuer/type against current configuration on every use.
                 cache.Set(key, json, TimeSpan.FromMinutes(5));
             }
-            return ReadManifest(credential, JObject.Parse(json!), configuration["VerifiedID:DidAuthority"] ?? "",
-                configuration["VerifiedID:PhotoClaimName"] ?? "photo");
+            string authority = string.IsNullOrWhiteSpace(credential.Authority)
+                ? configuration["VerifiedID:DidAuthority"] ?? ""
+                : credential.Authority;
+            string photoClaimName = credential.PhotoClaimName ??
+                configuration["VerifiedID:PhotoClaimName"] ?? "photo";
+            return ReadManifest(credential, JObject.Parse(json!), authority, photoClaimName);
         }
 
         public static IssuanceManifest ReadManifest(IssuanceCredential credential, JObject document,
             string didAuthority, string photoClaimName = "photo") {
             if (string.IsNullOrWhiteSpace(didAuthority) ||
                 !string.Equals((string?)document["input"]?["issuer"], didAuthority, StringComparison.Ordinal)) {
-                throw new InvalidOperationException("The selected credential manifest issuer does not match VerifiedID:DidAuthority.");
+                throw new InvalidOperationException("The selected credential manifest issuer does not match its configured issuer DID.");
             }
             var types = (document["vcTypes"] ?? document["input"]?["credential"]?["type"]) as JArray;
             if (string.IsNullOrWhiteSpace(credential.Type) || types == null ||

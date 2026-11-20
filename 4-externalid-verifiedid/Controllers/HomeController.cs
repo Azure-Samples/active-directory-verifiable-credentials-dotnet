@@ -43,6 +43,8 @@ namespace ExternalIDVerifiedID
             } else {
                 ViewData["PhotoClaimName"] = _configuration.GetValue( "VerifiedID:PhotoClaimName", "" );
             }
+            ViewData["IdentityPresentationPhotoClaimName"] =
+                _configuration.GetValue("IdentityVerification:PresentationPhotoClaimName", "photo");
 
             return View();
         }

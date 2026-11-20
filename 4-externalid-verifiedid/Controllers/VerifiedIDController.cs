@@ -20,12 +20,25 @@ using Newtonsoft.Json;
 using Barcoder.Qr;
 using Barcoder.Renderer.Image;
 using Barcoder;
+using ExternalIDVerifiedID.Models;
 
 namespace ExternalIDVerifiedID {
     [Route("api/[controller]/[action]")]
     [ApiController]
     public class VerifiedIDController : ControllerBase
     {
+        private const int FaceCheckThreshold = 70;
+        private static readonly Dictionary<string, string[]> IdentityFieldAliases = new() {
+            ["firstName"] = new[] { "givenName", "firstName", "first_name", "given_name" },
+            ["lastName"] = new[] { "surname", "lastName", "familyName", "last_name", "family_name" },
+            ["gender"] = new[] { "gender" },
+            ["address"] = new[] { "address" },
+            ["nationality"] = new[] { "nationality" },
+            ["documentNumber"] = new[] { "documentNumber", "document_number" },
+            ["documentType"] = new[] { "documentType", "document_type", "documentCode" },
+            ["dateOfBirth"] = new[] { "dateOfBirth", "date_of_birth", "birthDate" },
+            ["expiryDate"] = new[] { "expiryDate", "expiry_date", "expirationDate", "dateOfExpiry" }
+        };
         protected IMemoryCache _cache;
         protected readonly ILogger<VerifiedIDController> _log;
         private IHttpClientFactory _httpClientFactory;
@@ -86,17 +99,24 @@ namespace ExternalIDVerifiedID {
             }
         }
 
-        private string HandleCreatedRequest( string state, string response, string pinCode = null ) {
+        private string HandleCreatedRequest( string state, string response, string pinCode = null,
+            string presentationProfile = null, bool faceCheckRequested = false ) {
             _log.LogTrace( "succesfully called Request Service API" );
             JObject requestConfig = JObject.Parse( response );
             if ( !string.IsNullOrWhiteSpace(pinCode)) {
                 requestConfig["pin"] = pinCode;
             }
             requestConfig.Add( new JProperty( "id", state ) );
-            var cacheData = new {
-                status = "request_created",
-                expiry = requestConfig["expiry"].ToString()
+            JObject cacheData = new JObject {
+                ["status"] = "request_created",
+                ["expiry"] = requestConfig["expiry"].ToString()
             };
+            if (!string.IsNullOrWhiteSpace(presentationProfile)) {
+                cacheData["profile"] = presentationProfile;
+            }
+            if (faceCheckRequested) {
+                cacheData["faceCheckThreshold"] = FaceCheckThreshold;
+            }
             _cache.Set( state, JsonConvert.SerializeObject( cacheData )
                             , DateTimeOffset.Now.AddSeconds( _configuration.GetValue<int>( "AppSettings:CacheExpiresInSeconds", 300 ) ) );
             return JsonConvert.SerializeObject( requestConfig );
@@ -168,7 +188,8 @@ namespace ExternalIDVerifiedID {
         private IssuanceRequest CreateIssuanceRequest( IssuanceCredential credential, string stateId = null ) {
             IssuanceRequest request = new IssuanceRequest() {
                 includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
-                authority = _configuration["VerifiedID:DidAuthority"],
+                authority = string.IsNullOrWhiteSpace(credential.Authority)
+                    ? _configuration["VerifiedID:DidAuthority"] : credential.Authority,
                 registration = new Registration() {
                     clientName = _configuration["VerifiedID:client_name"],
                     purpose = _configuration.GetValue( "VerifiedID:purpose", "" )
@@ -245,7 +266,8 @@ namespace ExternalIDVerifiedID {
         /////////////////////////////////////////////////////////////////////////////////////
         // Presentation Helpers
         /////////////////////////////////////////////////////////////////////////////////////
-        private PresentationRequest CreatePresentationRequest( string stateId = null, string credentialType = null, string[] acceptedIssuers = null ) {
+        private PresentationRequest CreatePresentationRequest( string stateId = null, string credentialType = null,
+            string[] acceptedIssuers = null, bool? allowRevokedOverride = null, bool acceptAnyIssuer = false ) {
             PresentationRequest request = new PresentationRequest() {
                 includeQRCode = _configuration.GetValue( "VerifiedID:includeQRCode", false ),
                 authority = _configuration["VerifiedID:DidAuthority"],
@@ -268,12 +290,15 @@ namespace ExternalIDVerifiedID {
                 credentialType = _configuration["VerifiedID:CredentialType"];
             }
             List<string> okIssuers;
-            if (acceptedIssuers == null) {
+            if (acceptAnyIssuer) {
+                okIssuers = null;
+            } else if (acceptedIssuers == null) {
                 okIssuers = new List<string>( new string[] { _configuration["VerifiedID:DidAuthority"] } );
             } else {
                 okIssuers = new List<string>( acceptedIssuers );
             }
-            bool allowRevoked = _configuration.GetValue( "VerifiedID:allowRevoked", false );
+            bool allowRevoked = allowRevokedOverride ??
+                _configuration.GetValue( "VerifiedID:allowRevoked", false );
             bool validateLinkedDomain = _configuration.GetValue( "VerifiedID:validateLinkedDomain", true );
             AddRequestedCredential( request, credentialType, okIssuers, allowRevoked, validateLinkedDomain );
             return request;
@@ -283,7 +308,7 @@ namespace ExternalIDVerifiedID {
                                                 , bool allowRevoked = false, bool validateLinkedDomain = true ) {
             request.requestedCredentials.Add( new RequestedCredential() {
                 type = credentialType,
-                acceptedIssuers = (null == acceptedIssuers ? new List<string>() : acceptedIssuers),
+                acceptedIssuers = acceptedIssuers,
                 configuration = new Configuration() {
                     validation = new Validation() {
                         allowRevoked = allowRevoked,
@@ -369,13 +394,94 @@ namespace ExternalIDVerifiedID {
         // Issuance Endpoints
         /////////////////////////////////////////////////////////////////////////////////////
 
+        private Dictionary<string, string> GetClaimsFromIdentityForm(IssuanceManifest manifest,
+            IDictionary<string, string> suppliedClaims)
+        {
+            if (!manifest.Credential.IsIdentityProfile) {
+                throw new InvalidOperationException("Manual identity claims are only accepted for the VerifiedIdentity issuance profile.");
+            }
+            if (suppliedClaims == null || suppliedClaims.Count != IdentityFieldAliases.Count ||
+                IdentityFieldAliases.Keys.Any(key => !suppliedClaims.ContainsKey(key)) ||
+                suppliedClaims.Keys.Any(key => !IdentityFieldAliases.ContainsKey(key))) {
+                throw new ArgumentException("Enter all VerifiedIdentity details in the form before issuing.");
+            }
+
+            var claimNames = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var field in IdentityFieldAliases) {
+                string value = suppliedClaims[field.Key]?.Trim();
+                if (string.IsNullOrWhiteSpace(value)) {
+                    throw new ArgumentException($"Enter a value for {field.Key}.");
+                }
+                if (value.Length > 1000) {
+                    throw new ArgumentException($"The {field.Key} value is too long.");
+                }
+                var match = manifest.Claims.FirstOrDefault(claim =>
+                    field.Value.Any(alias => string.Equals(claim.name, alias, StringComparison.OrdinalIgnoreCase)));
+                if (match == null) {
+                    throw new InvalidOperationException(
+                        $"The configured VerifiedIdentity manifest must include a display claim for '{field.Key}'.");
+                }
+                claimNames.Add(field.Key, match.name);
+            }
+
+            string oid = GetOid();
+            if (string.IsNullOrWhiteSpace(oid)) {
+                throw new InvalidOperationException("The signed-in account is missing its object ID.");
+            }
+            var claims = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var field in IdentityFieldAliases.Keys) {
+                claims.Add(claimNames[field], suppliedClaims[field].Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(manifest.PhotoClaimName)) {
+                string photoKey = $"issuance-photo:{oid}:{manifest.Credential.Id}";
+                if (_cache.TryGetValue(photoKey, out string photo) && !string.IsNullOrWhiteSpace(photo)) {
+                    claims.Add(manifest.PhotoClaimName, Base64UrlEncode(photo));
+                    _cache.Remove(photoKey);
+                }
+            }
+            return claims;
+        }
+
         [Authorize]
         [HttpGet("/api/issuer/issuance-request")]
-        public async Task<ActionResult> IssuanceRequest(string credentialId = "default")
+        public Task<ActionResult> IssuanceRequest(string credentialId = "default")
+        {
+            return ProcessIssuanceRequest(credentialId, null);
+        }
+
+        [Authorize]
+        [HttpPost("/api/issuer/issuance-request")]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(16 * 1024)]
+        public Task<ActionResult> IdentityIssuanceRequest(
+            [FromQuery] string credentialId = "verifiedidentity",
+            [FromBody] IdentityCredentialInput input = null)
+        {
+            if (!string.Equals(credentialId, "verifiedidentity", StringComparison.Ordinal)) {
+                return Task.FromResult<ActionResult>(BadRequest(new {
+                    error = "invalid_credential",
+                    error_description = "Manual claim issuance is only available for the VerifiedIdentity profile."
+                }));
+            }
+            return ProcessIssuanceRequest(credentialId, input?.claims);
+        }
+
+        private async Task<ActionResult> ProcessIssuanceRequest(string credentialId,
+            IDictionary<string, string> suppliedClaims)
         {
             _log.LogTrace( this.HttpContext.Request.GetDisplayUrl() );
-            if (string.IsNullOrWhiteSpace(ExternalIdClaims.Email(User)) ||
-                string.IsNullOrWhiteSpace(User.FindFirst("name")?.Value ?? User.Identity?.Name)) {
+            bool identityProfile = string.Equals(credentialId, "verifiedidentity", StringComparison.Ordinal);
+            if (identityProfile != (suppliedClaims != null)) {
+                return BadRequest(new {
+                    error = "invalid_issuance_profile",
+                    error_description = identityProfile
+                        ? "Use the VerifiedIdentity form to provide its credential claims."
+                        : "Manual claims can only be issued through the VerifiedIdentity profile."
+                });
+            }
+            if (!identityProfile && (string.IsNullOrWhiteSpace(ExternalIdClaims.Email(User)) ||
+                string.IsNullOrWhiteSpace(User.FindFirst("name")?.Value ?? User.Identity?.Name))) {
                 _log.LogWarning("Issuance requires email and name claims from External ID.");
                 return BadRequest(new {
                     error = "missing_claims",
@@ -395,11 +501,13 @@ namespace ExternalIDVerifiedID {
                         return BadRequest(new { error = accessToken.error, error_description = accessToken.error_description });
                     }
                     IssuanceRequest request = CreateIssuanceRequest(manifest.Credential);
-                    request.claims = GetClaimsFromInteractiveUser(manifest);
+                    request.claims = suppliedClaims == null
+                        ? GetClaimsFromInteractiveUser(manifest)
+                        : GetClaimsFromIdentityForm(manifest, suppliedClaims);
                     string jsonString = SerializeToJsonNoNull( request );
 
                     string url = $"{_apiEndpoint}createIssuanceRequest";
-                    _log.LogTrace( $"Request API {url}\n{jsonString}" );
+                    _log.LogTrace("Creating Verified ID issuance request.");
                     var client = _httpClientFactory.CreateClient();
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.token);
                     HttpResponseMessage res = await client.PostAsync(url, new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json"));
@@ -520,6 +628,29 @@ namespace ExternalIDVerifiedID {
         public async Task<ActionResult> PresentationRequest() {
             _log.LogTrace( this.Request.GetDisplayUrl() );
             try {
+                string profile = this.Request.Query["profile"];
+                bool identityProfile = string.Equals(profile, "VerifiedIdentity", StringComparison.Ordinal);
+                bool northstarProfile = string.IsNullOrWhiteSpace(profile) ||
+                    string.Equals(profile, "NorthstarLoyalty", StringComparison.Ordinal);
+                if (!identityProfile && !northstarProfile) {
+                    return BadRequest(new { error = "invalid_profile", error_description = "Choose NorthstarLoyalty or VerifiedIdentity." });
+                }
+
+                string credentialType;
+                string[] acceptedIssuers;
+                if (identityProfile) {
+                    credentialType = "VerifiableCredential";
+                    acceptedIssuers = null;
+                } else {
+                    credentialType = _configuration["VerifiedID:CredentialType"];
+                    string issuer = _configuration["VerifiedID:DidAuthority"];
+                    if (string.IsNullOrWhiteSpace(credentialType) || string.IsNullOrWhiteSpace(issuer)) {
+                        _log.LogWarning("NorthstarLoyalty presentation requested without a configured credential type or issuer.");
+                        return BadRequest(new { error = "missing_presentation_configuration", error_description = "Configure VerifiedID:CredentialType and VerifiedID:DidAuthority before requesting a presentation." });
+                    }
+                    acceptedIssuers = new[] { issuer };
+                }
+
                 //The VC Request API is an authenticated API. We need to clientid and secret (or certificate) to create an access token which 
                 //needs to be send as bearer to the VC Request API
                 var accessToken = await MsalAccessTokenHandler.GetAccessToken( _configuration );
@@ -528,12 +659,25 @@ namespace ExternalIDVerifiedID {
                     return BadRequest( new { error = accessToken.error, error_description = accessToken.error_description } );
                 }
 
-                PresentationRequest request = CreatePresentationRequest();
+                PresentationRequest request = CreatePresentationRequest(
+                    credentialType: credentialType,
+                    acceptedIssuers: acceptedIssuers,
+                    allowRevokedOverride: identityProfile ? false : null,
+                    acceptAnyIssuer: identityProfile);
 
                 string faceCheck = this.Request.Query["faceCheck"];
-                bool useFaceCheck = (!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true"));
-                if (!hasFaceCheck( request ) && (useFaceCheck || _configuration.GetValue( "VerifiedID:useFaceCheck", false ))) {
-                    AddFaceCheck( request, null, this.Request.Query["photoClaimName"] ); // when qp is null, appsettings value is used
+                bool useFaceCheck =
+                    ((!string.IsNullOrWhiteSpace( faceCheck ) && (faceCheck == "1" || faceCheck == "true")) ||
+                     (string.IsNullOrWhiteSpace(faceCheck) && !identityProfile &&
+                      _configuration.GetValue( "VerifiedID:useFaceCheck", false )));
+                if (!hasFaceCheck( request ) && useFaceCheck) {
+                    string photoClaim = identityProfile
+                        ? _configuration.GetValue("IdentityVerification:PresentationPhotoClaimName", "photo")
+                        : this.Request.Query["photoClaimName"].ToString();
+                    if (identityProfile && string.IsNullOrWhiteSpace(photoClaim)) {
+                        photoClaim = "photo";
+                    }
+                    AddFaceCheck( request, null, photoClaim, FaceCheckThreshold );
                 }
                 AddClaimsConstrains( request );
 
@@ -548,7 +692,9 @@ namespace ExternalIDVerifiedID {
                 HttpStatusCode statusCode = res.StatusCode;
 
                 if (statusCode == HttpStatusCode.Created) {
-                    jsonString = HandleCreatedRequest( request.callback.state, response );
+                    jsonString = HandleCreatedRequest(request.callback.state, response,
+                        presentationProfile: identityProfile ? "VerifiedIdentity" : "NorthstarLoyalty",
+                        faceCheckRequested: useFaceCheck);
                     return new ContentResult { ContentType = "application/json", Content = jsonString };
                 } else {
                     _log.LogError( "Error calling Verified ID API: " + response );

@@ -22,8 +22,8 @@
     this.requestType = "";
 
     // function to create a presentation request
-    this.createRequest = async function (url) {
-        const response = await fetch(url);
+    this.createRequest = async function (url, options) {
+        const response = await fetch(url, options);
         const respJson = await response.json();
         if (!response.ok || respJson.error_description) {
             this.onError(this.requestType, respJson.error_description);
@@ -32,7 +32,7 @@
             this.request = respJson;
             if (/Android/i.test(navigator.userAgent) || /iPhone/i.test(navigator.userAgent)) {
                 this.log(`Mobile device (${navigator.userAgent})! Using deep link (${respJson.url}).`);
-                this.onNavigateToDeepLink(this.requestType, respJson.id, respJson.url);
+                this.onNavigateToDeepLink(this.requestType, respJson.id, respJson.url, respJson.pin);
             } else {
                 this.log('Generating request QR code.');
                 this.onDrawQRCode(this.requestType, respJson.id, respJson.url, respJson.pin);
@@ -42,11 +42,11 @@
     };
     this.createPresentationRequest = function () {
         this.requestType = "presentation";
-        this.createRequest(this.apiCreatePresentationRequest)
+        return this.createRequest(this.apiCreatePresentationRequest)
     };
-    this.createIssuanceRequest = function () {
+    this.createIssuanceRequest = function (options) {
         this.requestType = "issuance";
-        return this.createRequest(this.apiCreateIssuanceRequest)
+        return this.createRequest(this.apiCreateIssuanceRequest, options)
     };
     this.createSelfieRequest = function () {
         this.requestType = "selfie";

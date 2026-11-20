@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
+using ExternalIDVerifiedID.Models;
 
 namespace ExternalIDVerifiedID
 {
@@ -50,7 +51,6 @@ namespace ExternalIDVerifiedID
                 }
                 if ( body == null) {
                     body = await new System.IO.StreamReader( this.Request.Body ).ReadToEndAsync();
-                    _log.LogTrace( body );
                 }
 
                 bool rc = false;
@@ -68,11 +68,30 @@ namespace ExternalIDVerifiedID
                         errorMessage = $"Invalid state '{callback.state}'";
                     } else {
                         JObject reqState = JObject.Parse( requestState );
+                        if (requestType == RequestType.Presentation &&
+                            callback.requestStatus == "presentation_verified" &&
+                            string.Equals(reqState["profile"]?.Value<string>(), "VerifiedIdentity", StringComparison.Ordinal)) {
+                            if (!IdentityPresentationValidator.TryValidateStandalonePresentation(
+                                callback, out string validationError)) {
+                                callback.requestStatus = "presentation_error";
+                                callback.error = new Error {
+                                    code = "identity_presentation_rejected",
+                                    message = validationError
+                                };
+                            }
+                        }
+                        if (requestType == RequestType.Presentation &&
+                            callback.requestStatus == "presentation_verified" &&
+                            reqState["faceCheckThreshold"]?.Value<int?>() is int threshold &&
+                            !IdentityPresentationValidator.TryValidateFaceCheck(callback, threshold, out string faceCheckError)) {
+                            callback.requestStatus = "presentation_error";
+                            callback.error = new Error { code = "face_check_rejected", message = faceCheckError };
+                        }
                         reqState["status"] = callback.requestStatus;
                         if (reqState.ContainsKey( "callback" )) {
-                            reqState["callback"] = body;
+                            reqState["callback"] = JsonConvert.SerializeObject(callback);
                         } else {
-                            reqState.Add( "callback", body );
+                            reqState.Add( "callback", JsonConvert.SerializeObject(callback) );
                         }
                         _cache.Set( callback.state, JsonConvert.SerializeObject( reqState )
                             , DateTimeOffset.Now.AddSeconds( _configuration.GetValue<int>( "AppSettings:CacheExpiresInSeconds", 300 ) ) );
@@ -194,7 +213,6 @@ namespace ExternalIDVerifiedID
             _log.LogTrace( this.Request.GetDisplayUrl() );
             try {
                 string body = new System.IO.StreamReader( this.Request.Body ).ReadToEndAsync().Result;
-                _log.LogTrace( body );
                 string dataImage = "data:image/jpeg;base64,";
                 int idx = body.IndexOf( ";base64," );
                 if (-1 == idx) {

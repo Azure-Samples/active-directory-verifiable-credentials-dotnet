@@ -116,13 +116,38 @@
     "slotSetting": false
   },
   {
+    "name": "IdentityVerification__PresentationPhotoClaimName",
+    "value": "photo",
+    "slotSetting": false
+  },
+  {
     "name": "IdentityVerification__ProviderUrl",
-    "value": "https://trueidentityincv2.azurewebsites.net/",
+    "value": "https://trueidentity-vcdemo01.azurewebsites.net/",
     "slotSetting": false
   },
   {
     "name": "IdentityVerification__IdentityIssuer",
     "value": "did:web:did.woodgrovedemo.com",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__IssuanceCredentialType",
+    "value": "VerifiedIdentity",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__IssuanceManifest",
+    "value": "HTTPS URL to the published VerifiedIdentity manifest in this Verified ID tenant",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__IssuanceIssuer",
+    "value": "Optional issuer DID; defaults to VerifiedID__DidAuthority",
+    "slotSetting": false
+  },
+  {
+    "name": "IdentityVerification__IssuancePhotoClaimName",
+    "value": "photo",
     "slotSetting": false
   },
   {

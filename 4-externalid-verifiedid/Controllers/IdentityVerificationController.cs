@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 namespace ExternalIDVerifiedID {
     [Route("identity")]
     public sealed class IdentityVerificationController : Controller {
+        private const int FaceCheckThreshold = 70;
         private readonly IdentityVerificationState _state;
         private readonly IConfiguration _config;
         private readonly IHttpClientFactory _clients;
@@ -177,38 +178,24 @@ namespace ExternalIDVerifiedID {
                 _log.LogError(ex, "Invalid public callback URL");
                 return BadRequest(ex.Message);
             }
+            var id = Guid.NewGuid().ToString("N");
+            PresentationRequest payload;
+            try {
+                payload = CreatePresentationRequest(transaction, stage, id, key, baseUrl);
+            } catch (InvalidOperationException ex) {
+                transaction.Status = expectedStatus;
+                _log.LogError(ex, "Invalid identity Face Check configuration");
+                return BadRequest(ex.Message);
+            }
             var token = await MsalAccessTokenHandler.GetAccessToken(_config);
             if (string.IsNullOrEmpty(token.token)) {
                 transaction.Status = expectedStatus;
                 _log.LogError("Verified ID token acquisition failed: {Error}", token.error_description);
                 return StatusCode(502, "Could not authenticate to Verified ID.");
             }
-
-            var id = Guid.NewGuid().ToString("N");
-            var payload = new PresentationRequest {
-                authority = _config["VerifiedID:DidAuthority"],
-                includeQRCode = true,
-                registration = new Registration {
-                    clientName = _config["VerifiedID:client_name"],
-                    purpose = stage == "credential" ? $"Verify your {transaction.CredentialName} credential" : "Verify your TrueIdentity credential"
-                },
-                callback = new Callback {
-                    url = new Uri(baseUrl, "identity/callback").ToString(),
-                    state = id,
-                    headers = new Dictionary<string, string> { ["api-key"] = key }
-                },
-                requestedCredentials = new List<RequestedCredential> {
-                    new RequestedCredential {
-                        type = credentialType,
-                        acceptedIssuers = new List<string> { issuer },
-                        configuration = new Configuration { validation = new Validation {
-                            allowRevoked = false, validateLinkedDomain = true
-                        } }
-                    }
-                }
-            };
             lock (transaction) {
                 transaction.RequestId = id;
+                transaction.IdentityFaceCheckThreshold = stage == "identity" ? FaceCheckThreshold : null;
                 transaction.Status = stage + "_request_created";
                 transaction.Message = "Waiting for " + stage + " credential presentation";
                 _state.Add(id, transaction, TimeSpan.FromMinutes(10));
@@ -246,6 +233,46 @@ namespace ExternalIDVerifiedID {
             }
         }
 
+        private PresentationRequest CreatePresentationRequest(IdentityVerificationState.Transaction transaction,
+            string stage, string id, string key, Uri baseUrl) {
+            FaceCheck faceCheck = null;
+            if (stage == "identity") {
+                var photoClaim = _config.GetValue("IdentityVerification:PresentationPhotoClaimName", "photo");
+                if (string.IsNullOrWhiteSpace(photoClaim))
+                    throw new InvalidOperationException("Configure IdentityVerification:PresentationPhotoClaimName with the TrueIdentity credential's photo claim.");
+                faceCheck = new FaceCheck {
+                    sourcePhotoClaimName = photoClaim,
+                    matchConfidenceThreshold = FaceCheckThreshold
+                };
+            }
+            return new PresentationRequest {
+                authority = _config["VerifiedID:DidAuthority"],
+                includeQRCode = true,
+                includeReceipt = false,
+                registration = new Registration {
+                    clientName = _config["VerifiedID:client_name"],
+                    purpose = stage == "credential" ? $"Verify your {transaction.CredentialName} credential" :
+                        "Verify your TrueIdentity credential with Face Check"
+                },
+                callback = new Callback {
+                    url = new Uri(baseUrl, "identity/callback").ToString(),
+                    state = id,
+                    headers = new Dictionary<string, string> { ["api-key"] = key }
+                },
+                requestedCredentials = new List<RequestedCredential> {
+                    new RequestedCredential {
+                        type = stage == "credential" ? transaction.CredentialType : "TrueIdentity",
+                        acceptedIssuers = new List<string> {
+                            stage == "credential" ? transaction.CredentialIssuer : _config["IdentityVerification:IdentityIssuer"]
+                        },
+                        configuration = new Configuration { validation = new Validation {
+                            allowRevoked = false, validateLinkedDomain = true, faceCheck = faceCheck
+                        } }
+                    }
+                }
+            };
+        }
+
         private void ResetRequest(IdentityVerificationState.Transaction transaction, string id, string status) {
             lock (transaction) {
                 if (transaction.RequestId == id && transaction.Status == (status == "ready" ?
@@ -254,6 +281,7 @@ namespace ExternalIDVerifiedID {
                     transaction.Message = status == "ready" ?
                         "Present your selected credential" : "Credential verified. Continue to TrueIdentity.";
                     transaction.RequestId = null;
+                    transaction.IdentityFaceCheckThreshold = null;
                     _state.Remove(id);
                 }
             }
@@ -322,8 +350,16 @@ namespace ExternalIDVerifiedID {
                     transaction.Message = "TrueIdentity credential did not validate";
                     return BadRequest(transaction.Message);
                 }
+                if (!transaction.IdentityFaceCheckThreshold.HasValue ||
+                    !IdentityPresentationValidator.TryValidateFaceCheck(callback,
+                        transaction.IdentityFaceCheckThreshold.Value, out _)) {
+                    transaction.Status = "failed";
+                    transaction.Message = "TrueIdentity Face Check is missing or below the required confidence threshold. Start a new flow.";
+                    _log.LogWarning("Identity presentation rejected: required Face Check did not validate.");
+                    return BadRequest(transaction.Message);
+                }
                 transaction.Status = "verified";
-                transaction.Message = "TrueIdentity credential validated. Verification complete; your External ID profile was not changed.";
+                transaction.Message = "TrueIdentity credential and Face Check validated. Verification complete; your External ID profile was not changed.";
                 return Ok();
             }
         }

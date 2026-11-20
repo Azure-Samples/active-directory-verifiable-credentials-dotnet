@@ -1,63 +1,160 @@
 ﻿@{
     ViewData["Title"] = "Verifier";
 }
-<div id="wrap">
-    <div>
-        <p id="idSub3Title">
-            Prove your identity by pressing the <b>Verify Credential</b> button and present your Verified ID credential.
-            When the QR code appears, scan it with your Microsoft Authenticator or your custom wallet app.
+<div class="issuance-heading">
+    <h1>Present a credential</h1>
+    <p>Choose a presentation profile, then scan the request with a compatible wallet.</p>
+</div>
+<div class="issuance-grid">
+<section class="sample-panel verifier-panel" aria-labelledby="presentation-heading">
+    <h2 id="presentation-heading">Credential to present</h2>
+    <div id="verifier-options">
+        <label for="credential-profile">Credential</label>
+        <select id="credential-profile" class="form-select">
+            <option value="NorthstarLoyalty">NorthstarLoyalty</option>
+            <option value="VerifiedIdentity">VerifiedIdentity</option>
+        </select>
+
+        <div id="northstar-options" class="verifier-options" hidden>
+            <input type="checkbox" id="useFaceCheck" name="useFaceCheck" checked>
+            <label for="useFaceCheck" id="labelFaceCheck">Use Face Check for NorthstarLoyalty</label>
+        </div>
+        <div id="identity-options" class="verifier-options" hidden>
+            <input type="checkbox" id="useIdentityFaceCheck">
+            <label for="useIdentityFaceCheck">Use Face Check for VerifiedIdentity</label>
+        </div>
+        <p id="face-check-help" class="issuance-help" role="status" aria-live="polite"></p>
+        <p id="identity-profile-help" class="issuance-help" hidden>
+            VerifiedIdentity makes one request using the common VerifiableCredential type because the Request
+            Service API has no OR-type selector. It can match a compatible credential from any issuer;
+            the app checks that exactly one credential was presented and that its returned
+            types include VerifiableCredential, TrueIdentity, or VerifiedIdentity before reporting success.
+            Face Check requires a photo in the configured claim; a match does not establish trust in the
+            issuer or prove identity.
         </p>
-
-        <div id="message-wrapper" class="margin-bottom-75 margin-top-75" style="display: block">
-            <i class="fas fa-user-check green icon-text-large margin-bottom-25"></i>
-            <div id="message">
-                <strong>@ViewData["message"]</strong>
-            </div>
-        </div>
-
-        <button type="button" id="verify-credential" class="button bg-nw-purple text-nw-white">Verify Credential</button>
-        <button type="button" id="check-result" class="button  bg-nw-purple text-nw-white" style="display:none">Check Result</button>
-        <input type="checkbox" id="useFaceCheck" name="useFaceCheck" checked>
-        <label for="useFaceCheck" id="labelFaceCheck"> Use FaceCheck</label>
-
-        <br />
-
-        <div id="qrcode" style="text-align:center;display:none"></div>
-
-        <br /><br/>
-        <div id="idCard" class="idCard" style="display:none">
-            <div class="idCardLogo">
-                <img id="idCardLogo" src="" alt="Logo">
-            </div>
-            <div id="idCardTitle" class="idCardTitle">Card Title</div>
-            <div id="idCardIssuedBy" class="idCardIssuedBy">Issuer</div>
-        </div>
-
-        <script src="~/js/qrcode.min.js"></script>
-        <script src="~/js/verifiedid.card.js"></script>
-        <script src="~/js/verifiedid.requestservice.client.js"></script>
-        <script src="~/js/verifiedid.uihandler.js"></script>
-
-        <script>
-            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
-            var photoClaimName = '@ViewData["PhotoClaimName"]';
-
-            document.getElementById('verify-credential').addEventListener('click', () => {
-                document.getElementById("verify-credential").style.opacity = 0.25;
-                var qp = '?faceCheck=' + (document.getElementById('useFaceCheck').checked ? '1' : '0');
-                if (document.getElementById('useFaceCheck').checked) {
-                    qp += '&photoClaimName=' + photoClaimName;
-                }        
-                requestService.apiCreatePresentationRequest += qp;
-                requestService.createPresentationRequest();
-            });
-
-            document.getElementById('check-result').addEventListener('click', () => {
-                requestService.pollRequestStatus(requestService.request.id);
-            });
-
-            drawVerifiedIDCard();
-        </script>
     </div>
 
+    <div id="message-wrapper" class="issuance-status" style="display:block" role="status" aria-live="polite">
+        <div id="message">@ViewData["message"]</div>
+    </div>
+    <div class="issuance-actions">
+        <button type="button" id="verify-credential" class="button bg-nw-purple text-nw-white">Create presentation request</button>
+        <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
+    </div>
+</section>
+<aside class="sample-panel">
+    <div id="wallet-instructions">
+        <h2>Present from your wallet</h2>
+        <p class="issuance-help">Create a request, then scan it with Microsoft Authenticator or another compatible wallet.
+            The wallet will ask you to approve sharing the requested credential.</p>
+    <div id="idCard" class="idCard" style="display:none">
+        <div class="idCardLogo">
+            <img id="idCardLogo" src="" alt="Logo">
+        </div>
+        <div id="idCardTitle" class="idCardTitle">Card Title</div>
+        <div id="idCardIssuedBy" class="idCardIssuedBy">Issuer</div>
+    </div>
+    </div>
+    <section id="wallet-request" class="wallet-request" hidden aria-labelledby="wallet-request-heading">
+        <h2 id="wallet-request-heading">Scan to present</h2>
+        <p id="wallet-request-help">Scan with Microsoft Authenticator or a compatible wallet.</p>
+        <div id="qrcode" style="text-align:center;display:none"></div>
+    </section>
+</aside>
 </div>
+
+<script src="~/js/qrcode.min.js"></script>
+<script src="~/js/verifiedid.card.js" asp-append-version="true"></script>
+<script src="~/js/verifiedid.requestservice.client.js" asp-append-version="true"></script>
+<script src="~/js/verifiedid.uihandler.js" asp-append-version="true"></script>
+<script>
+    var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+    const profileSelect = document.getElementById('credential-profile');
+    const faceCheck = document.getElementById('useFaceCheck');
+    const identityFaceCheck = document.getElementById('useIdentityFaceCheck');
+    const verifyButton = document.getElementById('verify-credential');
+    const northstarOptions = document.getElementById('northstar-options');
+    const identityOptions = document.getElementById('identity-options');
+    const identityProfileHelp = document.getElementById('identity-profile-help');
+    const faceCheckHelp = document.getElementById('face-check-help');
+    const verifierOptions = document.getElementById('verifier-options');
+    const credentialCard = document.getElementById('idCard');
+    let credentialCardLoaded = false;
+    let profileRevision = 0;
+    const photoClaimName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["PhotoClaimName"]?.ToString() ?? ""));
+    const identityPhotoClaimName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["IdentityPresentationPhotoClaimName"]?.ToString() ?? "photo"));
+
+    async function updateCredentialOptions() {
+        const revision = ++profileRevision;
+        const isIdentity = profileSelect.value === 'VerifiedIdentity';
+        const options = isIdentity ? identityOptions : northstarOptions;
+        const claimName = (isIdentity ? identityPhotoClaimName : photoClaimName) || 'photo';
+        northstarOptions.hidden = true;
+        identityOptions.hidden = true;
+        faceCheckHelp.textContent = 'Checking the selected credential contract for a photo claim...';
+        verifyButton.disabled = true;
+        identityProfileHelp.hidden = !isIdentity;
+        if (isIdentity) {
+            credentialCard.style.display = "none";
+        } else if (credentialCardLoaded) {
+            credentialCard.style.display = "";
+        }
+
+        try {
+            const credentialId = isIdentity ? 'verifiedidentity' : 'default';
+            const response = await fetch('/api/issuer/get-manifest?credentialId=' + credentialId, {
+                signal: AbortSignal.timeout(10000)
+            });
+            if (!response.ok) throw new Error('Manifest unavailable');
+            const data = await response.json();
+            if (revision !== profileRevision) return;
+            const claims = data.manifest?.display?.claims;
+            const photo = claims?.['vc.credentialSubject.' + claimName] ?? claims?.[claimName];
+            const supportsPhoto = typeof photo?.type === 'string' && /^image\/jpe?g(?:;|$)/i.test(photo.type);
+            options.hidden = !supportsPhoto;
+            faceCheckHelp.textContent = supportsPhoto
+                ? 'Face Check requires a photo in the presented credential. A supported contract does not guarantee every credential contains one.'
+                : 'Face Check is unavailable: the configured credential contract has no matching JPEG photo claim.';
+        } catch {
+            if (revision !== profileRevision) return;
+            faceCheckHelp.textContent = 'Could not check the credential contract. You can continue without Face Check.';
+        } finally {
+            if (revision === profileRevision) verifyButton.disabled = false;
+        }
+    }
+
+    profileSelect.addEventListener('change', updateCredentialOptions);
+    updateCredentialOptions();
+
+    verifyButton.addEventListener('click', async () => {
+        verifyButton.disabled = true;
+        const isIdentity = profileSelect.value === 'VerifiedIdentity';
+        const query = new URLSearchParams({
+            profile: profileSelect.value,
+            faceCheck: (!(isIdentity ? identityOptions.hidden : northstarOptions.hidden) &&
+                (isIdentity ? identityFaceCheck.checked : faceCheck.checked)) ? '1' : '0'
+        });
+        if (!isIdentity && !northstarOptions.hidden && faceCheck.checked && photoClaimName) {
+            query.set('photoClaimName', photoClaimName);
+        }
+        requestService.apiCreatePresentationRequest = '/api/verifier/presentation-request?' + query.toString();
+        try {
+            await requestService.createPresentationRequest();
+            profileSelect.disabled = true;
+            faceCheck.disabled = true;
+            identityFaceCheck.disabled = true;
+            verifierOptions.hidden = true;
+        } catch {
+            verifyButton.disabled = false;
+        }
+    });
+
+    document.getElementById('check-result').addEventListener('click', () => {
+        requestService.pollRequestStatus(requestService.request.id);
+    });
+
+    drawVerifiedIDCard(() => {
+        credentialCardLoaded = true;
+        if (profileSelect.value === 'NorthstarLoyalty') credentialCard.style.display = "";
+    });
+</script>
