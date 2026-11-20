@@ -21,6 +21,10 @@ namespace ExternalIDVerifiedID {
         public string expirationDate { get; set; } // format "2024-10-20T14:52:39.043Z"
     }
 
+    public class IdentityCredentialInput {
+        public Dictionary<string, string> claims { get; set; } = new Dictionary<string, string>();
+    }
+
     /// <summary>
     /// VC Presentation
     /// </summary>
@@ -192,7 +196,7 @@ namespace ExternalIDVerifiedID {
     }
 
     public class FaceCheckResult {
-        public double matchConfidenceScore { get; set; }
+        public double? matchConfidenceScore { get; set; }
     }
 
     public class ManifestClaim {

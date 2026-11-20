@@ -2,28 +2,28 @@
 @{
     ViewData["Title"] = "Issuer";
 }
-<div id="wrap">
-    <div class="issuance-heading">
-        <h1>Issue Verified ID</h1>
-        <p>Add a credential to your digital wallet using your signed-in account details.
-            Issuance does not perform identity proofing.</p>
-    </div>
-    <div class="issuance-grid">
+<div class="issuance-heading">
+    <h1>Issue Verified ID</h1>
+    <p>Choose a credential profile and add it to your digital wallet.
+        Issuance does not perform identity proofing.</p>
+</div>
+<div class="issuance-grid">
     <section class="sample-panel" aria-labelledby="credential-heading">
         <h2 id="credential-heading">Choose your credential</h2>
         <label for="credential-select">Credential</label>
         <select id="credential-select" class="form-select mb-3">
             @foreach (var credential in Model) {
-                <option value="@credential.Id" selected="@(credential.Id == (string)ViewData["CredentialId"])">@credential.Name</option>
+                <option value="@credential.Id" data-profile="@(credential.IsIdentityProfile ? "identity" : "northstar")"
+                        selected="@(credential.Id == (string)ViewData["CredentialId"])">@credential.Name</option>
             }
         </select>
-        <dl class="issuer-details">
+        <dl id="issuer-details" class="issuer-details">
             <dt>Issuer DID</dt>
             <dd><code>@ViewData["DidAuthority"]</code></dd>
         </dl>
+        <div id="northstar-guidance">
         <p class="issuance-help">
-            Press <b>Issue Credential</b> to add the selected credential to your wallet.
-            When the QR code appears, scan it with your Microsoft Authenticator or your custom wallet app.
+            Choose <b>Issue Credential</b>, then scan the QR code with Microsoft Authenticator or another compatible wallet.
         </p>
         <p class="issuance-help">
             If the credential requires given name and surname, add <code>given_name</code> and
@@ -31,126 +31,187 @@
             <b>Token configuration &gt; Add optional claim &gt; ID</b>.
             Ensure your user profile has both names, then sign out and sign in again.
             Check the populated values on <a asp-controller="Home" asp-action="Profile">Account claims</a>.
-            These are token claims, not App Service settings.
         </p>
-        <p id="photo-help" class="normal-text" style="display:none">
-            This credential's manifest contains a photo claim. Optionally upload a portrait via 'Choose File'
-            or click 'Take Selfie' to take a selfie of yourself.
-            <br /><br />
-            For selfie, scan the QR code with your mobile's camera/QR reader, then click 'Open Camera' on the mobile page.
-            The photo is cached temporarily in server memory for issuance and included in your wallet credential.
-            A self-uploaded photo is not evidence of identity verification.
-            <br /><br />
-            Use a clear portrait photo of at least 200x200 pixels.
-        </p>
+        </div>
+
+        <form id="identity-claims" class="identity-claims" hidden aria-labelledby="identity-claims-heading">
+            <h3 id="identity-claims-heading">VerifiedIdentity credential details</h3>
+            <p class="issuance-help">Enter the claims that will be written into the configured VerifiedIdentity credential.</p>
+            <table class="identity-claims-table">
+                <tbody>
+                    <tr><th><label for="identity-first-name">First Name</label></th><td><input id="identity-first-name" name="firstName" class="form-control" autocomplete="given-name" required /></td></tr>
+                    <tr><th><label for="identity-last-name">Last Name</label></th><td><input id="identity-last-name" name="lastName" class="form-control" autocomplete="family-name" required /></td></tr>
+                    <tr><th><label for="identity-gender">Gender</label></th><td><input id="identity-gender" name="gender" class="form-control" required /></td></tr>
+                    <tr><th><label for="identity-address">Address</label></th><td><input id="identity-address" name="address" class="form-control" autocomplete="street-address" required /></td></tr>
+                    <tr><th><label for="identity-nationality">Nationality</label></th><td><input id="identity-nationality" name="nationality" class="form-control" maxlength="3" aria-describedby="nationality-help" required /><small id="nationality-help">ISO 3166-1 alpha-3 country code, for example USA.</small></td></tr>
+                    <tr><th><label for="identity-document-number">Document Number</label></th><td><input id="identity-document-number" name="documentNumber" class="form-control" required /></td></tr>
+                    <tr><th><label for="identity-document-type">Document Type</label></th><td><input id="identity-document-type" name="documentType" class="form-control" required /></td></tr>
+                    <tr><th><label for="identity-date-of-birth">Date of Birth</label></th><td><input id="identity-date-of-birth" name="dateOfBirth" type="date" class="form-control" required /></td></tr>
+                    <tr><th><label for="identity-expiry-date">Expiry Date</label></th><td><input id="identity-expiry-date" name="expiryDate" type="date" class="form-control" required /></td></tr>
+                </tbody>
+            </table>
+            <p id="identity-manifest-help" class="issuance-help">
+                Issuance remains disabled until a VerifiedIdentity type and manifest are configured.
+            </p>
+        </form>
+
+        <section id="photo-panel" class="photo-panel" hidden aria-labelledby="photo-heading">
+            <h3 id="photo-heading">Add a portrait</h3>
+            <p id="photo-help" class="issuance-help">
+                This credential supports a photo. Upload a portrait or take a selfie. On a computer,
+                scan the selfie QR code with your phone and follow the camera prompt; on a phone,
+                the camera page opens directly. A photo is a credential claim, not proof of identity.
+            </p>
+            <label for="imageUpload">Upload a photo or take one with this device</label>
+            <input type="file" id="imageUpload" accept="image/*" capture="user" aria-describedby="photo-help" />
+            <div class="issuance-actions">
+                <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white">Take selfie</button>
+            </div>
+            <img id="selfie" width="240" height="320" alt="Selected portrait preview" hidden />
+        </section>
 
         <div id="message-wrapper" class="issuance-status" style="display: block" role="status" aria-live="polite">
             <div id="message">@ViewData["message"]</div>
         </div>
-
-        <span id="user-photo" style="display:none">
-            <button type="button" id="take-selfie" class="button bg-nw-purple text-nw-white" >Take Selfie</button>
-            <input type='file' id="imageUpload" accept="image/*" aria-label="Upload portrait photo" />
-        </span>
         <div class="issuance-actions">
-        <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white" disabled>Issue Credential</button>
-        <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
+            <button type="button" id="issue-credential" class="button bg-nw-purple text-nw-white" disabled>Issue Credential</button>
+            <button type="button" id="check-result" class="button bg-nw-purple text-nw-white" style="display:none">Check Result</button>
         </div>
-        <div id="qrcode" style="text-align:center; display:none"></div>
-        <div id="pinCode" style="display: none"></div>
-        <img id="selfie" width="240" height="320" alt="Selected portrait preview" style="display:none" />
-
     </section>
-    <aside class="sample-panel" aria-labelledby="wallet-heading">
+    <aside class="sample-panel">
+        <div id="wallet-instructions" aria-labelledby="wallet-heading">
         <h2 id="wallet-heading">Add to your wallet</h2>
         <ol>
             <li>Select the credential you want to receive.</li>
-            <li>Add a portrait if the credential supports a photo.</li>
+            <li>Upload or take a portrait if the credential supports a photo.</li>
             <li>Choose <strong>Issue Credential</strong> and scan the QR code with your wallet.</li>
         </ol>
-        <p class="issuance-help">The preview below uses your published credential's design.
-            It appears after the manifest loads successfully.</p>
+        <p class="issuance-help">The preview below uses your published credential's design.</p>
         <div id="idCard" class="idCard" style="display:none">
             <div class="idCardLogo">
                 <img id="idCardLogo" src="" alt="Logo">
             </div>
-    </aside>
-    </div>
             <div id="idCardTitle" class="idCardTitle">Card Title</div>
             <div id="idCardIssuedBy" class="idCardIssuedBy">Issuer</div>
         </div>
-
-        <script src="~/js/qrcode.min.js"></script>
-        <script src="~/js/verifiedid.card.js" asp-append-version="true"></script>
-        <script src="~/js/verifiedid.requestservice.client.js" asp-append-version="true"></script>
-        <script src="~/js/verifiedid.uihandler.js" asp-append-version="true"></script>
-
-        <script>
-            var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
-            var havePhotoClaim = false;
-            const credentialSelect = document.getElementById('credential-select');
-            const selection = '?credentialId=' + encodeURIComponent(credentialSelect.value);
-            requestService.apiCreateIssuanceRequest += selection;
-            requestService.apiSetPhoto += selection;
-            requestService.apiCreateSelfieRequest += selection;
-
-            credentialSelect.addEventListener('change', () => {
-                window.location.assign('/Home/Issuer?credentialId=' + encodeURIComponent(credentialSelect.value));
-            });
-
-            document.getElementById('issue-credential').addEventListener('click', async () => {
-                const issueButton = document.getElementById('issue-credential');
-                issueButton.disabled = true;
-                credentialSelect.disabled = true;
-                try {
-                    if (havePhotoClaim) {
-                        await setUserPhoto();
-                    }
-                    await requestService.createIssuanceRequest();
-                    hideShowPhotoElements("none");
-                    document.getElementById("user-photo").style.display = "none";
-                } catch (error) {
-                    document.getElementById('message').textContent = error.message;
-                    issueButton.disabled = false;
-                    credentialSelect.disabled = false;
-                }
-            });
-
-            document.getElementById('take-selfie').addEventListener('click', async () => {
-                document.getElementById("selfie").src = "";
-                document.getElementById("selfie").style.display = "none";
-                document.getElementById("imageUpload").style.display = "none";
-                document.getElementById("issue-credential").disabled = true;
-                try {
-                    await requestService.createSelfieRequest();
-                } catch (error) {
-                    document.getElementById('message').textContent = error.message;
-                    document.getElementById("issue-credential").disabled = false;
-                    document.getElementById("imageUpload").style.display = "";
-                }
-            });
-
-            document.getElementById('check-result').addEventListener('click', () => {
-                requestService.pollRequestStatus(requestService.request.id);
-            });
-
-            document.getElementById('imageUpload').addEventListener('change', async function (e) {
-                document.getElementById("issue-credential").disabled = true;
-                try {
-                    await uploadImage(e);
-                } catch (error) {
-                    document.getElementById('message').textContent = error.message;
-                } finally {
-                    document.getElementById("issue-credential").disabled = false;
-                }
-            });
-
-            drawVerifiedIDCard((details) => {
-                havePhotoClaim = Boolean(details.photoClaimName);
-                hideShowPhotoElements(havePhotoClaim ? "" : "none");
-                document.getElementById("user-photo").style.display = havePhotoClaim ? "" : "none";
-                document.getElementById('issue-credential').disabled = false;
-            }, '/api/issuer/get-manifest' + selection);
-
-        </script>
+        </div>
+        <section id="wallet-request" class="wallet-request" hidden aria-labelledby="wallet-request-heading">
+            <h2 id="wallet-request-heading">Scan to issue</h2>
+            <p id="wallet-request-help">Scan with Microsoft Authenticator or a compatible wallet.</p>
+            <div id="qrcode" style="text-align:center; display:none"></div>
+            <div id="pinCode" style="display:none"></div>
+        </section>
+    </aside>
 </div>
+
+<script src="~/js/qrcode.min.js"></script>
+<script src="~/js/verifiedid.card.js" asp-append-version="true"></script>
+<script src="~/js/verifiedid.requestservice.client.js" asp-append-version="true"></script>
+<script src="~/js/verifiedid.uihandler.js" asp-append-version="true"></script>
+<script>
+    var qrcode = new QRCode("qrcode", { width: 150, height: 150 });
+    const credentialSelect = document.getElementById('credential-select');
+    const photoPanel = document.getElementById('photo-panel');
+    const photoPreview = document.getElementById('selfie');
+    const issueButton = document.getElementById('issue-credential');
+    const identityClaimsPanel = document.getElementById('identity-claims');
+    const northstarGuidance = document.getElementById('northstar-guidance');
+    const credentialCard = document.getElementById('idCard');
+    window.issuanceManifestReady = false;
+    const selection = '?credentialId=' + encodeURIComponent(credentialSelect.value);
+    requestService.apiCreateIssuanceRequest += selection;
+    requestService.apiSetPhoto += selection;
+    requestService.apiCreateSelfieRequest += selection;
+
+    function isIdentityProfile() {
+        return credentialSelect.selectedOptions[0].dataset.profile === 'identity';
+    }
+
+    function updateIssuanceProfile() {
+        const identityProfile = isIdentityProfile();
+        identityClaimsPanel.hidden = !identityProfile;
+        northstarGuidance.hidden = identityProfile;
+        document.getElementById('issuer-details').hidden = identityProfile;
+        if (identityProfile) {
+            credentialCard.style.display = 'none';
+            photoPanel.hidden = false;
+        }
+    }
+
+    credentialSelect.addEventListener('change', () => {
+        window.location.assign('/Home/Issuer?credentialId=' + encodeURIComponent(credentialSelect.value));
+    });
+    updateIssuanceProfile();
+
+    issueButton.addEventListener('click', async () => {
+        if (isIdentityProfile() && !identityClaimsPanel.checkValidity()) {
+            identityClaimsPanel.reportValidity();
+            return;
+        }
+        issueButton.disabled = true;
+        credentialSelect.disabled = true;
+        identityClaimsPanel.querySelectorAll('input').forEach(input => input.disabled = true);
+        try {
+            if (!photoPanel.hidden && !photoPreview.hidden && photoPreview.src) {
+                await setUserPhoto();
+            }
+            if (isIdentityProfile()) {
+                const claims = {};
+                identityClaimsPanel.querySelectorAll('input').forEach(input => {
+                    claims[input.name] = input.value;
+                });
+                await requestService.createIssuanceRequest({
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ claims })
+                });
+            } else {
+                await requestService.createIssuanceRequest();
+            }
+            photoPanel.hidden = true;
+            identityClaimsPanel.hidden = true;
+        } catch (error) {
+            document.getElementById('message').textContent = error.message;
+            issueButton.disabled = !window.issuanceManifestReady;
+            credentialSelect.disabled = false;
+            identityClaimsPanel.querySelectorAll('input').forEach(input => input.disabled = false);
+        }
+    });
+
+    document.getElementById('take-selfie').addEventListener('click', async () => {
+        photoPreview.removeAttribute('src');
+        photoPreview.hidden = true;
+        document.getElementById('imageUpload').value = '';
+        document.getElementById('imageUpload').disabled = true;
+        issueButton.disabled = true;
+        try {
+            await requestService.createSelfieRequest();
+        } catch (error) {
+            document.getElementById('message').textContent = error.message;
+            issueButton.disabled = !window.issuanceManifestReady;
+            document.getElementById('imageUpload').disabled = false;
+        }
+    });
+
+    document.getElementById('check-result').addEventListener('click', () => {
+        requestService.pollRequestStatus(requestService.request.id);
+    });
+
+    document.getElementById('imageUpload').addEventListener('change', async (event) => {
+        issueButton.disabled = true;
+        try {
+            await uploadImage(event);
+        } catch (error) {
+            document.getElementById('message').textContent = error.message;
+        } finally {
+            issueButton.disabled = !window.issuanceManifestReady;
+        }
+    });
+
+    drawVerifiedIDCard((details) => {
+        photoPanel.hidden = isIdentityProfile() ? false : !details.photoClaimName;
+        document.getElementById('identity-manifest-help').hidden = true;
+        window.issuanceManifestReady = true;
+        issueButton.disabled = false;
+    }, '/api/issuer/get-manifest' + selection);
+</script>

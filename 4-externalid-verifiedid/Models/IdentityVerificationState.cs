@@ -26,6 +26,7 @@ namespace ExternalIDVerifiedID.Models {
             public string RequestId { get; set; }
             public string ProfileValue { get; set; }
             public bool ProviderReturnSeen { get; set; }
+            public int? IdentityFaceCheckThreshold { get; set; }
         }
 
         public void Add(string state, Transaction transaction, TimeSpan? lifetime = null) {

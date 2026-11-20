@@ -2,6 +2,12 @@ using System;
 
 namespace ExternalIDVerifiedID.Models {
     public static class IdentityPresentationValidator {
+        private static readonly string[] StandalonePresentationTypes = {
+            "VerifiableCredential",
+            "TrueIdentity",
+            "VerifiedIdentity"
+        };
+
         private static bool TryGetCredential(CallbackEvent callback, string type, string issuer,
             out ClaimsIssuer credential, out string error) {
             credential = null;
@@ -27,6 +33,49 @@ namespace ExternalIDVerifiedID.Models {
             if (!DateTimeOffset.TryParse(credential.expirationDate, out var expires) ||
                 expires <= DateTimeOffset.UtcNow) {
                 error = "The credential expiration is missing, invalid or in the past.";
+                return false;
+            }
+            error = null;
+            return true;
+        }
+
+        public static bool TryValidateStandalonePresentation(CallbackEvent callback, out string error) {
+            error = "Expected one verified credential presentation.";
+            if (callback?.requestStatus != "presentation_verified" ||
+                callback.verifiedCredentialsData?.Length != 1) {
+                return false;
+            }
+
+            var credential = callback.verifiedCredentialsData[0];
+            if (credential.type == null ||
+                !Array.Exists(credential.type, type => Array.Exists(StandalonePresentationTypes,
+                    allowedType => string.Equals(type, allowedType, StringComparison.Ordinal)))) {
+                error = "The presented credential does not include a supported type.";
+                return false;
+            }
+
+            if (credential.credentialState?.revocationStatus != null &&
+                credential.credentialState.revocationStatus != "VALID") {
+                error = "The presented credential has an invalid revocation status.";
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(credential.expirationDate) &&
+                (!DateTimeOffset.TryParse(credential.expirationDate, out var expires) ||
+                 expires <= DateTimeOffset.UtcNow)) {
+                error = "The presented credential is expired or has an invalid expiration date.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        public static bool TryValidateFaceCheck(CallbackEvent callback, int threshold, out string error) {
+            double? score = callback?.verifiedCredentialsData?.Length == 1
+                ? callback.verifiedCredentialsData[0]?.faceCheck?.matchConfidenceScore : null;
+            if (!score.HasValue || double.IsNaN(score.Value) || double.IsInfinity(score.Value) ||
+                score.Value < threshold || score.Value > 100) {
+                error = "The requested Face Check result is missing or did not meet the required confidence threshold.";
                 return false;
             }
             error = null;

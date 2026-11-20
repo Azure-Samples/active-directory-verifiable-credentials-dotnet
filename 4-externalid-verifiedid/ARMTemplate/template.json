@@ -139,13 +139,39 @@
       "defaultValue": "did:web:did.woodgrovedemo.com",
       "metadata": { "description": "DID of the trusted TrueIdentity credential issuer; verify against your provider" }
     },
+    "IdentityIssuanceManifest": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": { "description": "Optional HTTPS manifest URL for a VerifiedIdentity credential issued by this Verified ID tenant. Required to enable the VerifiedIdentity issuance profile." }
+    },
+    "IdentityPresentationPhotoClaimName": {
+      "type": "string",
+      "defaultValue": "photo",
+      "minLength": 1,
+      "metadata": { "description": "Photo claim in the provider-issued TrueIdentity credential for required step-3 Face Check and optional standalone identity Face Check." }
+    },
+    "IdentityIssuanceType": {
+      "type": "string",
+      "defaultValue": "VerifiedIdentity",
+      "metadata": { "description": "Credential type in the VerifiedIdentity issuance manifest." }
+    },
+    "IdentityIssuanceIssuer": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": { "description": "Issuer DID for the VerifiedIdentity issuance manifest; defaults to DidAuthority." }
+    },
+    "IdentityIssuancePhotoClaimName": {
+      "type": "string",
+      "defaultValue": "photo",
+      "metadata": { "description": "Optional JPEG photo claim name in the VerifiedIdentity issuance manifest." }
+    },
     "CallbackApiKey": {
       "type": "secureString",
       "metadata": { "description": "Strong shared secret for Verified ID callbacks; store as a Key Vault reference after deployment" }
     },
     "ProviderUrl": {
       "type": "string",
-      "defaultValue": "https://trueidentityincv2.azurewebsites.net/",
+      "defaultValue": "https://trueidentity-vcdemo01.azurewebsites.net/",
       "metadata": { "description": "Optional HTTPS identity-provider enrollment URL; browser return is not proof of success" }
     }
   },
@@ -178,6 +204,11 @@
       { "name": "IdentityVerification__PublicBaseUrl", "value": "[concat('https://', parameters('webAppName'), '.azurewebsites.net/')]" },
       { "name": "IdentityVerification__ProviderUrl", "value": "[parameters('ProviderUrl')]" },
       { "name": "IdentityVerification__IdentityIssuer", "value": "[parameters('IdentityIssuer')]" },
+      { "name": "IdentityVerification__PresentationPhotoClaimName", "value": "[parameters('IdentityPresentationPhotoClaimName')]" },
+      { "name": "IdentityVerification__IssuanceManifest", "value": "[parameters('IdentityIssuanceManifest')]" },
+      { "name": "IdentityVerification__IssuanceCredentialType", "value": "[parameters('IdentityIssuanceType')]" },
+      { "name": "IdentityVerification__IssuanceIssuer", "value": "[parameters('IdentityIssuanceIssuer')]" },
+      { "name": "IdentityVerification__IssuancePhotoClaimName", "value": "[parameters('IdentityIssuancePhotoClaimName')]" },
       { "name": "IdentityVerification__CallbackApiKey", "value": "[parameters('CallbackApiKey')]" }
     ],
     "copy": [

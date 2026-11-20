@@ -13,18 +13,30 @@
     var identityVerified = status == "verified";
     var providerReturned = transaction?.ProviderReturnSeen == true;
     var failed = status == "failed";
+    var faceCheckVerified = identityVerified && transaction.IdentityFaceCheckThreshold.HasValue;
+    var activeStep = !credentialVerified ? 1 :
+        providerReturned || status?.StartsWith("identity_", System.StringComparison.Ordinal) == true || failed || identityVerified ? 3 : 2;
 }
+<div class="identity-page">
 <div class="identity-heading">
-    <p class="identity-eyebrow">External ID + Verified ID</p>
     <h1>Your identity</h1>
-    <p>This is an <strong>identity verification provider integration flow</strong>.
-        First present a credential bound to your signed-in account, then complete the provider's
-        document and selfie checks and present its identity credential from your wallet.</p>
-    <p>A browser return is not proof of identity.</p>
+    <p>Verify your account, visit TrueIdentity, then present with Face Check.</p>
+    <p>Complete the final step: present your identity credential with Face Check.</p>
 </div>
+<ol class="identity-progress" aria-label="Identity verification steps">
+    <li class="@(credentialVerified ? "is-complete" : "is-current")" aria-current="@(activeStep == 1 && !identityVerified ? "step" : null)">
+        <span aria-hidden="true">1</span> Account credential
+    </li>
+    <li class="@(identityVerified ? "is-complete" : activeStep == 2 ? "is-current" : "")" aria-current="@(activeStep == 2 ? "step" : null)">
+        <span aria-hidden="true">2</span> Provider enrollment
+    </li>
+    <li class="@(faceCheckVerified ? "is-complete" : activeStep == 3 && !identityVerified ? "is-current" : "")" aria-current="@(activeStep == 3 && !identityVerified ? "step" : null)">
+        <span aria-hidden="true">3</span> Credential + Face Check
+    </li>
+</ol>
+@if (transaction == null) {
 <section class="identity-selection sample-panel" aria-labelledby="identity-selection-heading">
 <h2 id="identity-selection-heading">Choose your account credential</h2>
-@if (transaction == null) {
     <label for="verification-credential">Credential to verify</label>
     <select id="verification-credential" class="form-select mb-3">
         @foreach (var credential in credentials) {
@@ -47,16 +59,19 @@
         <div class="alert alert-warning" role="alert">Configure this credential's <code>Verification</code>
             account-binding and profile claim mappings before starting.</div>
     }
-} else {
-    <p>Selected credential: <strong>@transaction.CredentialName</strong> (<code>@transaction.CredentialType</code>).</p>
-    <p>Account binding: <code>@transaction.AccountBindingClaim</code> matches your signed-in
-        <code>@transaction.AccountBindingSource</code>. Profile value: <code>@transaction.ProfileValueClaim</code>.</p>
-    @if (transaction.Status != "verified") {
-        <a asp-controller="IdentityVerification" asp-action="Index" asp-route-credentialId="@selectedId"
-           class="btn btn-secondary">Choose a credential / start again</a>
+    @if (missing?.Count == 0) {
+        <form asp-controller="IdentityVerification" asp-action="Start" method="post">
+            <input type="hidden" name="credentialId" value="@selectedId" />
+            <button type="submit" class="btn btn-primary" disabled="@(selected?.Verification == null)">Start verification</button>
+        </form>
     }
-}
 </section>
+} else {
+    <div class="identity-summary">
+        <span>Account credential: <strong>@transaction.CredentialName</strong></span>
+        <a asp-controller="IdentityVerification" asp-action="Index" asp-route-credentialId="@selectedId">Start again</a>
+    </div>
+}
 @if (missing?.Count > 0) {
     <div class="alert alert-warning" role="alert">
         <h2>Account claims need configuration</h2>
@@ -74,19 +89,20 @@
             Do not share tokens, secrets, or personal claim values.</p>
     </div>
 }
-<div class="identity-steps" aria-label="Identity verification steps">
-    <section class="identity-step @(credentialVerified ? "is-complete" : "is-current")" aria-labelledby="credential-step-heading">
-        <span class="identity-step-number" aria-hidden="true">1</span>
-        <p class="identity-eyebrow">@(credentialVerified ? "Credential verified" : "Account credential")</p>
+@if (identityVerified) {
+    <section class="sample-panel identity-complete" role="status" aria-labelledby="identity-complete-heading">
+        <h2 id="identity-complete-heading">@(faceCheckVerified ? "Verification complete" : "Previous credential verification complete")</h2>
+        <p>@(faceCheckVerified ? "Account credential, TrueIdentity credential, and Face Check validated." :
+            "This older flow did not require Face Check. Start again to verify with Face Check.")</p>
+        <p>Your External ID profile was not changed. TrueIdentity is a demo provider, not production identity assurance.</p>
+    </section>
+} else {
+<div class="identity-steps">
+    <section class="identity-step is-current" hidden="@(activeStep != 1 || transaction == null || failed)" aria-labelledby="credential-step-heading">
         <h2 id="credential-step-heading">Verify your @(transaction?.CredentialName ?? selected?.Name) credential</h2>
         <p>Share the card issued for this account. The server checks its issuer, type, validity,
             account-binding claim and configured profile-value claim.</p>
-        @if (transaction == null && missing?.Count == 0) {
-            <form asp-controller="IdentityVerification" asp-action="Start" method="post">
-                <input type="hidden" name="credentialId" value="@selectedId" />
-                <button type="submit" class="btn btn-primary" disabled="@(selected?.Verification == null)">Start verification</button>
-            </form>
-        } else if (status == "ready") {
+        @if (status == "ready") {
         <form class="presentation" asp-controller="IdentityVerification" asp-action="Presentation" method="post">
             <input type="hidden" name="flow" value="@flow" />
             <input type="hidden" name="stage" value="credential" />
@@ -97,11 +113,8 @@
         } else {
             <p>@(failed ? "Start a new flow after resolving the validation error below." : "Waiting for account credential verification.")</p>
         }
-        <div class="identity-wallet-slot" id="credential-wallet-slot"></div>
     </section>
-    <section class="identity-step @(identityVerified ? "is-complete" : providerReturned ? "is-returned" : credentialVerified ? "is-current" : "")" aria-labelledby="provider-step-heading">
-        <span class="identity-step-number" aria-hidden="true">2</span>
-        <p class="identity-eyebrow">@(identityVerified ? "Verification complete" : providerReturned ? "Returned — continue to step 3" : credentialVerified ? "Provider enrollment" : "Locked until step 1 validates")</p>
+    <section class="identity-step is-current" hidden="@(activeStep != 2)" aria-labelledby="provider-step-heading">
         <h2 id="provider-step-heading">Verify your government document</h2>
         <p>TrueIdentity handles document and selfie checks and issues a <code>TrueIdentity</code>
             credential to your wallet. This app does not perform those checks.</p>
@@ -116,37 +129,34 @@
             <button class="btn btn-secondary" disabled>Verify account credential first</button>
         }
         </div>
-        @if (providerReturned && !identityVerified) {
-            <p class="identity-provider-return" role="status"><span class="identity-return-check" aria-hidden="true">✓</span>
-                <span><strong>You've returned from TrueIdentity</strong>
-                Next, present your issued credential in step 3. This confirms the return only—not the proofing result.</span></p>
+        @if (status == "credential_verified") {
+            <button type="button" class="btn btn-secondary" id="show-identity-step">I already have the identity credential</button>
         }
     </section>
-    <section class="identity-step @(identityVerified ? "is-complete" : credentialVerified ? "is-current" : "")" aria-labelledby="identity-step-heading">
-        <span class="identity-step-number" aria-hidden="true">3</span>
-        <p class="identity-eyebrow">@(identityVerified ? "Verification complete" : credentialVerified ? "Wallet presentation" : "Locked until step 1 validates")</p>
-        <h2 id="identity-step-heading">Present your identity credential</h2>
-        <p>After receiving the provider-issued <code>TrueIdentity</code> credential, share it from your wallet.
-            Only a validated backend presentation result can complete this flow. Your External ID profile is not changed.</p>
-        <p>The credential's type array must include <code>TrueIdentity</code> and its issuer must match the configured trusted issuer.
-            If the type changed after your wallet credential was issued, obtain a newly issued credential.</p>
-        @if (status == "credential_verified") {
+    <section class="identity-step is-current" hidden="@(activeStep != 3 || failed)" aria-labelledby="identity-step-heading">
+        <h2 id="identity-step-heading" tabindex="-1">Present your identity credential with Face Check</h2>
+        @if (providerReturned) {
+            <p>You're back from TrueIdentity. Present your identity credential with Face Check to complete verification.</p>
+        }
+        <p>Share the trusted provider's <code>TrueIdentity</code> credential and complete a live selfie in your wallet.
+            Face Check is required and must meet a confidence threshold of 70.</p>
+        <p>The credential must contain the configured photo claim. Only a validated backend result completes this flow;
+            your External ID profile is not changed.</p>
+        @if (status == "credential_verified" && !failed) {
         <form class="presentation" asp-controller="IdentityVerification" asp-action="Presentation" method="post">
             <input type="hidden" name="flow" value="@flow" />
             <input type="hidden" name="stage" value="identity" />
-            <button type="submit" class="btn btn-primary">Present identity credential</button>
+            <button type="submit" class="btn btn-primary">Present with Face Check</button>
         </form>
-        } else if (identityVerified) {
-            <p class="identity-step-result">Both presentations validated. Verification complete; your External ID profile was not changed.</p>
         } else {
             <button class="btn btn-secondary" disabled>Waiting for preceding steps</button>
         }
-        <div class="identity-wallet-slot" id="identity-wallet-slot"></div>
     </section>
 </div>
-@if (transaction != null) {
+}
+@if (transaction != null && !identityVerified) {
     <section class="identity-wallet sample-panel" aria-labelledby="wallet-step-heading">
-    <h2 id="wallet-step-heading">Wallet request status</h2>
+    <h2 id="wallet-step-heading">@(failed ? "Verification failed" : "Wallet request status")</h2>
     <p id="flow-message" role="status" aria-live="polite">@transaction.Message</p>
     @if (failed) {
         <p>No successful identity verification was recorded. Wallet errors can reflect a rejected backend
@@ -154,8 +164,7 @@
     }
     <section class="wallet-scan-panel" id="wallet-scan-panel" hidden aria-labelledby="wallet-scan-heading">
         <h3 id="wallet-scan-heading">Scan with Microsoft Authenticator</h3>
-        <p>Open Microsoft Authenticator (or a compatible wallet), scan this QR code, and follow the prompt.
-            Keep this page open while your presentation is checked.</p>
+        <p>Scan with your wallet and complete the prompt. Keep this page open.</p>
         <div id="verification-qrcode" hidden aria-label="Verified ID presentation QR code"></div>
         <a id="verification-link" class="btn btn-secondary" hidden>Open in wallet</a>
     </section>
@@ -163,6 +172,24 @@
     <script src="~/js/qrcode.min.js"></script>
     <script>
         const form = document.querySelector('form.presentation');
+        document.getElementById('show-identity-step')?.addEventListener('click', () => {
+            document.querySelectorAll('.identity-step').forEach(panel => {
+                panel.hidden = !panel.querySelector('#identity-step-heading');
+            });
+            document.querySelectorAll('.identity-progress li').forEach((step, index) => {
+                step.classList.toggle('is-current', index === 2);
+                step.removeAttribute('aria-current');
+                if (index === 2) step.setAttribute('aria-current', 'step');
+            });
+            document.getElementById('identity-step-heading').focus();
+        });
+        function restoreWalletLayout() {
+            document.body.classList.remove('identity-scanning');
+            form?.closest('.identity-step').classList.remove('is-scanning');
+            document.getElementById('verification-qrcode').hidden = true;
+            document.getElementById('verification-link').hidden = true;
+            document.querySelector('.identity-wallet').appendChild(document.getElementById('wallet-scan-panel'));
+        }
         if (form) form.addEventListener('submit', async event => {
             event.preventDefault();
             const button = form.querySelector('button');
@@ -175,11 +202,12 @@
                 });
                 if (!response.ok) throw new Error(await response.text());
                 const request = await response.json();
-                const stage = form.querySelector('[name="stage"]').value;
                 const scanPanel = document.getElementById('wallet-scan-panel');
-                const walletSlot = document.getElementById(
-                    stage === 'credential' ? 'credential-wallet-slot' : 'identity-wallet-slot');
-                walletSlot.appendChild(scanPanel);
+                const steps = document.querySelector('.identity-steps');
+                form.closest('.identity-step').classList.add('is-scanning');
+                document.body.classList.add('identity-scanning');
+                steps.appendChild(scanPanel);
+                scanPanel.appendChild(message);
                 scanPanel.hidden = false;
                 const qr = document.getElementById('verification-qrcode');
                 qr.textContent = '';
@@ -204,16 +232,21 @@
                             link.hidden = true;
                             if (['credential_verified', 'verified', 'failed'].includes(result.status))
                                 window.location.reload();
+                            else
+                                restoreWalletLayout();
                         }
                     } catch (error) {
                         clearInterval(timer);
                         message.textContent = error.message;
+                        restoreWalletLayout();
                     }
                 }, 2000);
             } catch (error) {
                 message.textContent = error.message;
                 button.disabled = false;
+                restoreWalletLayout();
             }
         });
     </script>
 }
+</div>

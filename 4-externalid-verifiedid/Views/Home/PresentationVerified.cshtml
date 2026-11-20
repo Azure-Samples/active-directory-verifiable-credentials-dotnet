@@ -42,12 +42,12 @@
 
             function addTableRowLabel(tbodyRef, key) {
                 var row = tbodyRef.insertRow(0);
-                (row.insertCell(0)).innerHTML = key;
+                (row.insertCell(0)).textContent = key;
                 return row;
             }
             function addTableRow(tbodyRef, key, value) {
                 var row = addTableRowLabel(tbodyRef, key);
-                (row.insertCell(1)).innerHTML = value;
+                (row.insertCell(1)).textContent = value == null ? "" : String(value);
             }
 
             function drawClaimsTable(claims) {
@@ -86,8 +86,8 @@
                     if (respMsg.jti) {
                         addTableRow(tbodyRef, "jti", respMsg.jti);
                     }
-                    var vcSubject = respMsg.subject.split(":");
-                    addTableRow(tbodyRef, "subject", vcSubject[0] + ":" + vcSubject[1] + vcSubject[2] + "...");
+                    var vcSubject = (respMsg.subject || "").split(":");
+                    addTableRow(tbodyRef, "subject", vcSubject.length > 2 ? vcSubject[0] + ":" + vcSubject[1] + vcSubject[2] + "..." : respMsg.subject);
                     if (respMsg.revocationStatus) {
                         addTableRow(tbodyRef, "revocationStatus", respMsg.revocationStatus);
                     }
@@ -108,8 +108,9 @@
                             console.log(response)
                             respMsg = JSON.parse(response);
                             if (respMsg.status == 'presentation_verified') {
-                                document.getElementById('vcType').innerText = respMsg.type[1] + " " + respMsg.message;
-                                document.getElementById('message').innerHTML = "";
+                                const credentialTypes = Array.isArray(respMsg.type) ? respMsg.type : [respMsg.type];
+                                document.getElementById('vcType').innerText = credentialTypes.filter(Boolean).join(', ') + " " + respMsg.message;
+                                document.getElementById('message').textContent = "";
                                 drawClaimsTable(respMsg.payload[0].claims);
                                 drawVcInfoTable(respMsg, respMsg.payload[0]);
                             }
